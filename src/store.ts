@@ -79,7 +79,7 @@ export const useStore = () => {
         ...state.novel.chapters[index],
         ...updates,
         updatedAt: new Date().toISOString(),
-      };
+      } as Chapter;
       saveToStorage();
     }
   }
@@ -114,7 +114,7 @@ export const useStore = () => {
       state.novel.characters[index] = {
         ...state.novel.characters[index],
         ...updates,
-      };
+      } as Character;
       saveToStorage();
     }
   }
@@ -144,7 +144,7 @@ export const useStore = () => {
       state.novel.scenes[index] = {
         ...state.novel.scenes[index],
         ...updates,
-      };
+      } as Scene;
       saveToStorage();
     }
   }

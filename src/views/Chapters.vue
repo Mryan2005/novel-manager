@@ -153,7 +153,7 @@ const editingId = ref<string | null>(null);
 
 const form = ref({
   title: '',
-  status: 'draft' as const,
+  status: 'draft' as Chapter['status'],
 });
 
 const sortedChapters = computed(() => {

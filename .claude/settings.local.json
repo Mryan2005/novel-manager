@@ -6,7 +6,8 @@
       "Bash(npx vue-tsc *)",
       "Bash(node -e \"const icons = require\\('lucide-vue-next'\\); console.log\\('FileJson' in icons ? 'EXISTS' : 'MISSING'\\)\")",
       "Bash(pkill -f \"vite\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000)",
+      "Bash(npm run *)"
     ]
   }
 }
