@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue';
-import type { Novel, Chapter, Character, Scene } from './types';
+import type { Novel, Volume, Chapter, Character, Scene } from './types';
 
 const STORAGE_KEY = 'novel-workshop-data';
 const DRAFT_PREFIX = 'novel-draft-';
@@ -10,13 +10,43 @@ function loadFromStorage(): Novel {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-      return JSON.parse(data);
+      const novel = JSON.parse(data);
+      // Backward compat: ensure volumes exists
+      if (!novel.volumes || !Array.isArray(novel.volumes)) {
+        novel.volumes = [];
+      }
+      // Backward compat: ensure every chapter has volumeId
+      if (novel.volumes.length === 0 && novel.chapters && novel.chapters.length > 0) {
+        const defaultVolume: Volume = {
+          id: Date.now().toString(),
+          title: '默认卷',
+          order: 0,
+          createdAt: new Date().toISOString(),
+        };
+        novel.volumes = [defaultVolume];
+        novel.chapters.forEach((c: Chapter) => { c.volumeId = defaultVolume.id; });
+      }
+      if (novel.chapters && Array.isArray(novel.chapters)) {
+        novel.chapters.forEach((c: Chapter) => {
+          if (!c.volumeId && novel.volumes.length > 0) {
+            c.volumeId = novel.volumes[0].id;
+          }
+        });
+      }
+      // Backward compat: ensure characters have tags
+      if (novel.characters && Array.isArray(novel.characters)) {
+        novel.characters.forEach((c: Character) => {
+          if (!c.tags) c.tags = [];
+        });
+      }
+      return novel;
     }
   } catch (e) {
     console.error('Failed to load data:', e);
   }
   return {
     title: '我的小说',
+    volumes: [],
     chapters: [],
     characters: [],
     scenes: [],
@@ -44,7 +74,11 @@ export const useStore = () => {
   const totalCharacters = computed(() => state.novel.characters.length);
   const totalScenes = computed(() => state.novel.scenes.length);
 
-  const chapters = computed(() => 
+  const volumes = computed(() =>
+    [...state.novel.volumes].sort((a, b) => a.order - b.order)
+  );
+
+  const chapters = computed(() =>
     [...state.novel.chapters].sort((a, b) => a.order - b.order)
   );
 
@@ -59,13 +93,57 @@ export const useStore = () => {
     saveToStorage();
   }
 
+  // === Volume CRUD ===
+  function addVolume(title: string) {
+    const volume: Volume = {
+      id: Date.now().toString(),
+      title,
+      order: state.novel.volumes.length,
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.volumes.push(volume);
+    saveToStorage();
+    return volume;
+  }
+
+  function updateVolume(id: string, updates: Partial<Pick<Volume, 'title' | 'order'>>) {
+    const index = state.novel.volumes.findIndex(v => v.id === id);
+    if (index !== -1) {
+      state.novel.volumes[index] = { ...state.novel.volumes[index], ...updates } as Volume;
+      saveToStorage();
+    }
+  }
+
+  function deleteVolume(id: string) {
+    const index = state.novel.volumes.findIndex(v => v.id === id);
+    if (index !== -1) {
+      // Reassign chapters to the first remaining volume, or clear volumeId
+      const targetId = state.novel.volumes.length > 1
+        ? (state.novel.volumes[0]!.id === id ? state.novel.volumes[1]!.id : state.novel.volumes[0]!.id)
+        : '';
+      state.novel.chapters.forEach(c => {
+        if (c.volumeId === id) c.volumeId = targetId;
+      });
+      state.novel.volumes.splice(index, 1);
+      state.novel.volumes.forEach((v, i) => { v.order = i; });
+      saveToStorage();
+    }
+  }
+
+  function getChaptersByVolume(volumeId: string): Chapter[] {
+    return state.novel.chapters
+      .filter(c => c.volumeId === volumeId)
+      .sort((a, b) => a.order - b.order);
+  }
+
   function addChapter(chapter: Omit<Chapter, 'id' | 'createdAt' | 'updatedAt' | 'order'>) {
+    const volumeChapterCount = state.novel.chapters.filter(c => c.volumeId === chapter.volumeId).length;
     const newChapter: Chapter = {
       ...chapter,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      order: state.novel.chapters.length,
+      order: volumeChapterCount,
     };
     state.novel.chapters.push(newChapter);
     saveToStorage();
@@ -87,8 +165,13 @@ export const useStore = () => {
   function deleteChapter(id: string) {
     const index = state.novel.chapters.findIndex(c => c.id === id);
     if (index !== -1) {
+      const chapter = state.novel.chapters[index]!;
+      const volumeId = chapter.volumeId;
       state.novel.chapters.splice(index, 1);
-      state.novel.chapters.forEach((c, i) => c.order = i);
+      state.novel.chapters
+        .filter(c => c.volumeId === volumeId)
+        .sort((a, b) => a.order - b.order)
+        .forEach((c, i) => { c.order = i; });
       saveToStorage();
     }
   }
@@ -169,6 +252,9 @@ export const useStore = () => {
       if (char.traits.length > 0) {
         content += `- 性格特点: ${char.traits.join(', ')}\n`;
       }
+      if (char.tags.length > 0) {
+        content += `- 标签: ${char.tags.join(', ')}\n`;
+      }
       content += '\n';
     });
 
@@ -184,11 +270,17 @@ export const useStore = () => {
     });
 
     content += `## 正文\n\n`;
-    [...state.novel.chapters]
+    [...state.novel.volumes]
       .sort((a, b) => a.order - b.order)
-      .forEach(chapter => {
-        content += `### ${chapter.title}\n\n`;
-        content += `${chapter.content}\n\n`;
+      .forEach(volume => {
+        content += `# ${volume.title}\n\n`;
+        state.novel.chapters
+          .filter(c => c.volumeId === volume.id)
+          .sort((a, b) => a.order - b.order)
+          .forEach(chapter => {
+            content += `### ${chapter.title}\n\n`;
+            content += `${chapter.content}\n\n`;
+          });
       });
 
     return content;
@@ -226,6 +318,7 @@ export const useStore = () => {
       if (!data || typeof data !== 'object') return false;
       state.novel = {
         title: data.title || '我的小说',
+        volumes: Array.isArray(data.volumes) ? data.volumes : [],
         chapters: Array.isArray(data.chapters) ? data.chapters : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
@@ -349,6 +442,7 @@ export const useStore = () => {
       if (!entry.data || typeof entry.data !== 'object') return false;
       state.novel = {
         title: entry.data.title || '我的小说',
+        volumes: Array.isArray(entry.data.volumes) ? entry.data.volumes : [],
         chapters: Array.isArray(entry.data.chapters) ? entry.data.chapters : [],
         characters: Array.isArray(entry.data.characters) ? entry.data.characters : [],
         scenes: Array.isArray(entry.data.scenes) ? entry.data.scenes : [],
@@ -371,11 +465,16 @@ export const useStore = () => {
     totalWords,
     totalCharacters,
     totalScenes,
+    volumes,
     chapters,
     characters,
     scenes,
     currentChapter,
     setNovelTitle,
+    addVolume,
+    updateVolume,
+    deleteVolume,
+    getChaptersByVolume,
     addChapter,
     updateChapter,
     deleteChapter,

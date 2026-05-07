@@ -3,19 +3,21 @@
     <div class="h-full flex flex-col">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
-          <select 
-            v-model="selectedChapterId" 
+          <select
+            v-model="selectedChapterId"
             @change="onChapterChange"
             class="input w-72"
           >
             <option value="">选择章节...</option>
-            <option 
-              v-for="chapter in sortedChapters" 
-              :key="chapter.id"
-              :value="chapter.id"
-            >
-              {{ chapter.order + 1 }}. {{ chapter.title }}
-            </option>
+            <optgroup v-for="volume in volumes" :key="volume.id" :label="volume.title">
+              <option
+                v-for="chapter in getVolumeChapters(volume.id)"
+                :key="chapter.id"
+                :value="chapter.id"
+              >
+                {{ chapter.order + 1 }}. {{ chapter.title }}
+              </option>
+            </optgroup>
           </select>
           <button 
             v-if="!selectedChapterId"
@@ -141,10 +143,16 @@
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">新建章节</h2>
         <div class="space-y-5">
           <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
+            <select v-model="newChapterVolumeId" class="input">
+              <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">章节标题</label>
-            <input 
-              v-model="newChapterTitle" 
-              type="text" 
+            <input
+              v-model="newChapterTitle"
+              type="text"
               class="input"
               placeholder="输入章节标题"
             />
@@ -170,6 +178,7 @@ import type { Chapter } from '../types';
 const route = useRoute();
 const router = useRouter();
 const {
+  volumes,
   chapters,
   characters,
   scenes,
@@ -191,12 +200,17 @@ const saving = ref(false);
 const showSidebar = ref(true);
 const showNewChapterModal = ref(false);
 const newChapterTitle = ref('');
+const newChapterVolumeId = ref('');
 const draftStatus = ref('');
 let draftTimer: ReturnType<typeof setTimeout> | null = null;
 
 const sortedChapters = computed(() => {
   return [...chapters.value].sort((a, b) => a.order - b.order);
 });
+
+const getVolumeChapters = (volumeId: string) => {
+  return chapters.value.filter(c => c.volumeId === volumeId).sort((a, b) => a.order - b.order);
+};
 
 const triggerAutoSave = () => {
   if (!selectedChapterId.value) return;
@@ -307,6 +321,7 @@ const save = async () => {
 
 const createNewChapter = () => {
   newChapterTitle.value = '';
+  newChapterVolumeId.value = volumes.value[0]?.id || '';
   showNewChapterModal.value = true;
 };
 
@@ -318,6 +333,7 @@ const confirmCreateChapter = () => {
     content: '',
     wordCount: 0,
     status: 'draft',
+    volumeId: newChapterVolumeId.value || volumes.value[0]?.id || '',
   });
 
   showNewChapterModal.value = false;

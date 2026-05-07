@@ -12,15 +12,30 @@
         </button>
       </div>
 
-      <div v-if="scenes.length === 0" class="card p-12 text-center">
+      <div class="relative">
+        <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="input pl-10"
+          placeholder="搜索场景名称、地点、描述..."
+        />
+      </div>
+
+      <div v-if="filteredScenes.length === 0 && scenes.length > 0" class="card p-12 text-center">
+        <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
+        <p class="text-[var(--text-light)]">没有匹配的场景</p>
+      </div>
+
+      <div v-else-if="scenes.length === 0" class="card p-12 text-center">
         <Map class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有场景</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个场景，让故事发生在特定的地方</p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div 
-          v-for="scene in scenes" 
+        <div
+          v-for="scene in filteredScenes"
           :key="scene.id"
           class="card p-8"
         >
@@ -33,14 +48,14 @@
               </p>
             </div>
             <div class="flex items-center gap-1">
-              <button 
+              <button
                 @click="editScene(scene)"
                 class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
                 title="编辑"
               >
                 <Edit class="w-5 h-5" />
               </button>
-              <button 
+              <button
                 @click="confirmDelete(scene)"
                 class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
                 title="删除"
@@ -51,8 +66,8 @@
           </div>
           <p class="text-[var(--text-light)] mt-4 leading-relaxed">{{ scene.description }}</p>
           <div v-if="scene.atmosphere.length > 0" class="flex flex-wrap gap-2 mt-5">
-            <span 
-              v-for="atm in scene.atmosphere" 
+            <span
+              v-for="atm in scene.atmosphere"
               :key="atm"
               class="px-2.5 py-1 rounded-lg text-xs"
               style="background: rgba(245, 158, 11, 0.1); color: var(--accent);"
@@ -73,35 +88,35 @@
         <div class="space-y-5">
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">场景名称</label>
-            <input 
-              v-model="form.name" 
-              type="text" 
+            <input
+              v-model="form.name"
+              type="text"
               class="input"
               placeholder="输入场景名称"
             />
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">地点</label>
-            <input 
-              v-model="form.location" 
-              type="text" 
+            <input
+              v-model="form.location"
+              type="text"
               class="input"
               placeholder="如：皇宫大殿、森林深处"
             />
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">氛围标签（用逗号分隔）</label>
-            <input 
-              v-model="atmosphereInput" 
-              type="text" 
+            <input
+              v-model="atmosphereInput"
+              type="text"
               class="input"
               placeholder="如：神秘,紧张,温馨"
             />
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">场景描述</label>
-            <textarea 
-              v-model="form.description" 
+            <textarea
+              v-model="form.description"
               class="input min-h-[140px]"
               placeholder="描述这个场景的环境、氛围等"
             ></textarea>
@@ -136,8 +151,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { Map, MapPin, Plus, Edit, Trash2 } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import { Map, MapPin, Plus, Edit, Trash2, Search } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Scene } from '../types';
@@ -150,12 +165,23 @@ const showDeleteModal = ref(false);
 const sceneToDelete = ref<Scene | null>(null);
 const editingId = ref<string | null>(null);
 const atmosphereInput = ref('');
+const searchQuery = ref('');
 
 const form = ref({
   name: '',
   location: '',
   description: '',
   atmosphere: [] as string[],
+});
+
+const filteredScenes = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return scenes.value;
+  return scenes.value.filter(s => {
+    return s.name.toLowerCase().includes(q)
+      || s.location.toLowerCase().includes(q)
+      || s.description.toLowerCase().includes(q);
+  });
 });
 
 const closeModal = () => {

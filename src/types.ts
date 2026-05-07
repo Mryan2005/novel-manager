@@ -1,3 +1,10 @@
+export interface Volume {
+  id: string;
+  title: string;
+  order: number;
+  createdAt: string;
+}
+
 export interface Chapter {
   id: string;
   title: string;
@@ -7,6 +14,7 @@ export interface Chapter {
   updatedAt: string;
   status: 'draft' | 'in-progress' | 'completed';
   order: number;
+  volumeId: string;
 }
 
 export interface Character {
@@ -18,6 +26,7 @@ export interface Character {
   role: string;
   description: string;
   traits: string[];
+  tags: string[];
   createdAt: string;
 }
 
@@ -32,6 +41,7 @@ export interface Scene {
 
 export interface Novel {
   title: string;
+  volumes: Volume[];
   chapters: Chapter[];
   characters: Character[];
   scenes: Scene[];

@@ -12,15 +12,64 @@
         </button>
       </div>
 
-      <div v-if="characters.length === 0" class="card p-12 text-center">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input pl-10"
+            placeholder="搜索角色名称、身份、描述..."
+          />
+        </div>
+        <div class="relative">
+          <Tag class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            v-model="tagFilter"
+            type="text"
+            class="input pl-10"
+            placeholder="按标签筛选..."
+          />
+        </div>
+      </div>
+
+      <div v-if="allTags.length > 0" class="flex flex-wrap gap-2">
+        <button
+          v-for="tag in allTags"
+          :key="tag"
+          @click="toggleTag(tag)"
+          :class="[
+            'px-3 py-1 rounded-lg text-xs font-medium transition-all',
+            selectedTags.has(tag)
+              ? 'bg-[var(--primary)] text-white'
+              : 'bg-[var(--surface-alt)] text-[var(--text-light)] hover:bg-[var(--surface-hover)]'
+          ]"
+        >
+          {{ tag }}
+        </button>
+        <button
+          v-if="selectedTags.size > 0"
+          @click="selectedTags.clear()"
+          class="px-3 py-1 rounded-lg text-xs font-medium bg-[var(--surface-alt)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+        >
+          清除
+        </button>
+      </div>
+
+      <div v-if="filteredCharacters.length === 0 && characters.length > 0" class="card p-12 text-center">
+        <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
+        <p class="text-[var(--text-light)]">没有匹配的角色</p>
+      </div>
+
+      <div v-else-if="characters.length === 0" class="card p-12 text-center">
         <Users class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有角色</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个角色，让你的故事更生动</p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div 
-          v-for="char in characters" 
+        <div
+          v-for="char in filteredCharacters"
           :key="char.id"
           class="card p-8"
         >
@@ -40,23 +89,38 @@
           </div>
           <p class="text-[var(--text-light)] mt-5 line-clamp-3 leading-relaxed">{{ char.description }}</p>
           <div v-if="char.traits.length > 0" class="flex flex-wrap gap-2 mt-5">
-            <span 
-              v-for="trait in char.traits" 
+            <span
+              v-for="trait in char.traits"
               :key="trait"
               class="px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-alt)] text-[var(--text-light)] font-medium"
             >
               {{ trait }}
             </span>
           </div>
+          <div v-if="char.tags.length > 0" class="flex flex-wrap gap-2 mt-2">
+            <span
+              v-for="tag in char.tags"
+              :key="tag"
+              @click="toggleTag(tag)"
+              :class="[
+                'px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors',
+                selectedTags.has(tag)
+                  ? 'bg-[var(--primary)]/20 text-[var(--primary)]'
+                  : 'bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25'
+              ]"
+            >
+              {{ tag }}
+            </span>
+          </div>
           <div class="flex items-center justify-end gap-2 mt-5 pt-5 border-t border-[var(--border-light)]">
-            <button 
+            <button
               @click="editCharacter(char)"
               class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
               title="编辑"
             >
               <Edit class="w-5 h-5" />
             </button>
-            <button 
+            <button
               @click="confirmDelete(char)"
               class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
               title="删除"
@@ -77,9 +141,9 @@
         <div class="space-y-5">
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">角色名称</label>
-            <input 
-              v-model="form.name" 
-              type="text" 
+            <input
+              v-model="form.name"
+              type="text"
               class="input"
               placeholder="输入角色名称"
             />
@@ -87,18 +151,18 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-semibold text-[var(--text)] mb-2">性别</label>
-              <input 
-                v-model="form.gender" 
-                type="text" 
+              <input
+                v-model="form.gender"
+                type="text"
                 class="input"
                 placeholder="如：男、女"
               />
             </div>
             <div>
               <label class="block text-sm font-semibold text-[var(--text)] mb-2">年龄</label>
-              <input 
-                v-model.number="form.age" 
-                type="number" 
+              <input
+                v-model.number="form.age"
+                type="number"
                 class="input"
                 placeholder="年龄"
               />
@@ -106,26 +170,35 @@
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">身份/定位</label>
-            <input 
-              v-model="form.role" 
-              type="text" 
+            <input
+              v-model="form.role"
+              type="text"
               class="input"
               placeholder="如：主角、反派、配角"
             />
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">性格特点（用逗号分隔）</label>
-            <input 
-              v-model="traitsInput" 
-              type="text" 
+            <input
+              v-model="traitsInput"
+              type="text"
               class="input"
               placeholder="如：勇敢,善良,聪明"
             />
           </div>
           <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">标签（用逗号分隔，用于分类检索）</label>
+            <input
+              v-model="tagsInput"
+              type="text"
+              class="input"
+              placeholder="如：主角团,反派,重要"
+            />
+          </div>
+          <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">角色描述</label>
-            <textarea 
-              v-model="form.description" 
+            <textarea
+              v-model="form.description"
               class="input min-h-[120px]"
               placeholder="描述这个角色的背景、故事等"
             ></textarea>
@@ -160,8 +233,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { Users, Plus, Edit, Trash2 } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import { Users, Plus, Edit, Trash2, Search, Tag } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Character } from '../types';
@@ -174,6 +247,10 @@ const showDeleteModal = ref(false);
 const characterToDelete = ref<Character | null>(null);
 const editingId = ref<string | null>(null);
 const traitsInput = ref('');
+const tagsInput = ref('');
+const searchQuery = ref('');
+const tagFilter = ref('');
+const selectedTags = ref(new Set<string>());
 
 const form = ref({
   name: '',
@@ -182,13 +259,50 @@ const form = ref({
   role: '',
   description: '',
   traits: [] as string[],
+  tags: [] as string[],
 });
+
+const allTags = computed(() => {
+  const set = new Set<string>();
+  characters.value.forEach(c => c.tags.forEach(t => set.add(t)));
+  return [...set].sort();
+});
+
+const filteredCharacters = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  const tagQ = tagFilter.value.trim().toLowerCase();
+
+  return characters.value.filter(c => {
+    if (q) {
+      const matchName = c.name.toLowerCase().includes(q);
+      const matchRole = c.role.toLowerCase().includes(q);
+      const matchDesc = c.description.toLowerCase().includes(q);
+      if (!matchName && !matchRole && !matchDesc) return false;
+    }
+    if (selectedTags.value.size > 0) {
+      if (!c.tags.some(t => selectedTags.value.has(t))) return false;
+    }
+    if (tagQ) {
+      if (!c.tags.some(t => t.toLowerCase().includes(tagQ))) return false;
+    }
+    return true;
+  });
+});
+
+const toggleTag = (tag: string) => {
+  if (selectedTags.value.has(tag)) {
+    selectedTags.value.delete(tag);
+  } else {
+    selectedTags.value.add(tag);
+  }
+};
 
 const closeModal = () => {
   showAddModal.value = false;
   showEditModal.value = false;
-  form.value = { name: '', gender: '', age: 0, role: '', description: '', traits: [] };
+  form.value = { name: '', gender: '', age: 0, role: '', description: '', traits: [], tags: [] };
   traitsInput.value = '';
+  tagsInput.value = '';
   editingId.value = null;
 };
 
@@ -200,15 +314,22 @@ const saveCharacter = () => {
     .map(t => t.trim())
     .filter(t => t.length > 0);
 
+  const tags = tagsInput.value
+    .split(',')
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
+
   if (showEditModal.value && editingId.value) {
     updateCharacter(editingId.value, {
       ...form.value,
       traits,
+      tags,
     });
   } else {
     addCharacter({
       ...form.value,
       traits,
+      tags,
     });
   }
 
@@ -223,8 +344,10 @@ const editCharacter = (char: Character) => {
     role: char.role,
     description: char.description,
     traits: [...char.traits],
+    tags: [...char.tags],
   };
   traitsInput.value = char.traits.join(', ');
+  tagsInput.value = char.tags.join(', ');
   editingId.value = char.id;
   showEditModal.value = true;
 };

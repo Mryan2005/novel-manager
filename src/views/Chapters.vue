@@ -6,100 +6,158 @@
           <h1 class="text-3xl font-bold text-[var(--text)]">章节管理</h1>
           <p class="text-[var(--text-light)] mt-1 text-lg">管理你的小说章节</p>
         </div>
-        <button @click="showAddModal = true" class="btn btn-primary">
-          <Plus class="w-4 h-4" />
-          新建章节
+        <div class="flex items-center gap-3">
+          <button @click="openAddVolume" class="btn btn-secondary">
+            <FolderPlus class="w-4 h-4" />
+            新建卷
+          </button>
+          <button @click="openAddChapter('')" class="btn btn-primary" :disabled="volumes.length === 0">
+            <Plus class="w-4 h-4" />
+            新建章节
+          </button>
+        </div>
+      </div>
+
+      <div class="relative">
+        <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="input pl-10"
+          placeholder="搜索章节标题..."
+        />
+      </div>
+
+      <div v-if="volumes.length === 0" class="card p-12 text-center">
+        <FileText class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
+        <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有卷和章节</h3>
+        <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">先创建一个卷，然后在卷中添加章节</p>
+        <button @click="openAddVolume" class="btn btn-primary">
+          <FolderPlus class="w-4 h-4" />
+          新建卷
         </button>
       </div>
 
-      <div v-if="chapters.length === 0" class="card p-12 text-center">
-        <FileText class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
-        <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有章节</h3>
-        <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个章节，开始你的创作之旅</p>
-      </div>
-
       <div v-else class="space-y-4">
-        <div 
-          v-for="chapter in sortedChapters" 
-          :key="chapter.id"
-          class="card p-8"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-5">
-              <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
-                <span class="text-[var(--primary)] font-bold text-lg">{{ chapter.order + 1 }}</span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-3 mb-1">
-                  <h3 class="font-semibold text-[var(--text)] text-lg truncate">{{ chapter.title }}</h3>
-                  <span 
-                    class="tag"
-                    :class="statusClass(chapter.status)"
-                  >
-                    {{ statusText(chapter.status) }}
-                  </span>
-                </div>
-                <p class="text-sm text-[var(--text-muted)]">
-                  {{ chapter.wordCount.toLocaleString() }} 字 · 最后编辑 {{ formatDate(chapter.updatedAt) }}
-                </p>
-              </div>
+        <div v-for="volume in filteredVolumes" :key="volume.id" class="card overflow-hidden">
+          <div class="p-5 flex items-center justify-between" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);">
+            <div class="flex items-center gap-3">
+              <button @click="toggleVolume(volume.id)" class="p-1 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
+                <ChevronRight :class="['w-5 h-5 text-[var(--text-light)] transition-transform', { 'rotate-90': expandedVolumes.has(volume.id) }]" />
+              </button>
+              <FolderOpen class="w-5 h-5 text-[var(--primary)]" />
+              <h2 class="font-bold text-[var(--text)] text-lg">{{ volume.title }}</h2>
+              <span class="text-sm text-[var(--text-muted)]">
+                {{ getVolumeChapterCount(volume.id) }} 章
+              </span>
             </div>
             <div class="flex items-center gap-2">
-              <button 
-                @click="editChapter(chapter.id)"
-                class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
-                title="编辑"
+              <button
+                @click="openAddChapter(volume.id)"
+                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--primary)] transition-colors"
+                title="添加章节"
               >
-                <Edit class="w-5 h-5" />
+                <Plus class="w-4 h-4" />
               </button>
-              <button 
-                @click="moveChapter(chapter.id, -1)"
-                :disabled="chapter.order === 0"
-                class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                title="上移"
+              <button
+                @click="openEditVolume(volume)"
+                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-colors"
+                title="编辑卷名"
               >
-                <ChevronUp class="w-5 h-5" />
+                <Edit class="w-4 h-4" />
               </button>
-              <button 
-                @click="moveChapter(chapter.id, 1)"
-                :disabled="chapter.order === chapters.length - 1"
-                class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                title="下移"
+              <button
+                v-if="volumes.length > 1"
+                @click="confirmDeleteVolume(volume)"
+                class="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-colors"
+                title="删除卷"
               >
-                <ChevronDown class="w-5 h-5" />
+                <Trash2 class="w-4 h-4" />
               </button>
-              <button 
-                @click="confirmDelete(chapter)"
-                class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
-                title="删除"
-              >
-                <Trash2 class="w-5 h-5" />
-              </button>
+            </div>
+          </div>
+
+          <div v-if="expandedVolumes.has(volume.id)" class="p-4 space-y-3">
+            <div v-if="getVolumeChapters(volume.id).length === 0" class="text-center py-8 text-[var(--text-muted)]">
+              <p>此卷暂无章节</p>
+            </div>
+            <div
+              v-for="chapter in getVolumeChapters(volume.id)"
+              :key="chapter.id"
+              class="p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                    <span class="text-[var(--primary)] font-bold text-sm">{{ chapter.order + 1 }}</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-0.5">
+                      <h3 class="font-semibold text-[var(--text)] truncate">{{ chapter.title }}</h3>
+                      <span class="tag" :class="statusClass(chapter.status)">{{ statusText(chapter.status) }}</span>
+                    </div>
+                    <p class="text-sm text-[var(--text-muted)]">
+                      {{ chapter.wordCount.toLocaleString() }} 字 · 最后编辑 {{ formatDate(chapter.updatedAt) }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button @click="editChapter(chapter)" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
+                    <Edit class="w-4 h-4" />
+                  </button>
+                  <button @click="moveChapter(chapter, -1)" :disabled="chapter.order === 0" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="上移">
+                    <ChevronUp class="w-4 h-4" />
+                  </button>
+                  <button @click="moveChapter(chapter, 1)" :disabled="chapter.order === getVolumeChapterCount(chapter.volumeId) - 1" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="下移">
+                    <ChevronDown class="w-4 h-4" />
+                  </button>
+                  <button @click="confirmDeleteChapter(chapter)" class="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeModal">
+    <!-- 卷 添加/编辑模态框 -->
+    <div v-if="showVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeVolumeModal">
+      <div class="card w-full max-w-sm p-8">
+        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingVolume ? '编辑卷名' : '新建卷' }}</h2>
+        <div>
+          <label class="block text-sm font-semibold text-[var(--text)] mb-2">卷名</label>
+          <input v-model="volumeForm.title" type="text" class="input" placeholder="输入卷名" @keyup.enter="saveVolume" />
+        </div>
+        <div class="flex justify-end gap-3 mt-7">
+          <button @click="closeVolumeModal" class="btn btn-secondary">取消</button>
+          <button @click="saveVolume" class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 章节 添加/编辑模态框 -->
+    <div v-if="showChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeChapterModal">
       <div class="card w-full max-w-md p-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
-          {{ showEditModal ? '编辑章节' : '新建章节' }}
+          {{ editingChapter ? '编辑章节' : '新建章节' }}
         </h2>
         <div class="space-y-5">
+          <div v-if="!editingChapter && chapterForm.volumeId === ''">
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
+            <select v-model="chapterForm.volumeId" class="input">
+              <option value="" disabled>选择卷</option>
+              <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
+            </select>
+          </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">章节标题</label>
-            <input 
-              v-model="form.title" 
-              type="text" 
-              class="input"
-              placeholder="输入章节标题"
-            />
+            <input v-model="chapterForm.title" type="text" class="input" placeholder="输入章节标题" />
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">状态</label>
-            <select v-model="form.status" class="input">
+            <select v-model="chapterForm.status" class="input">
               <option value="draft">草稿</option>
               <option value="in-progress">撰写中</option>
               <option value="completed">已完成</option>
@@ -107,14 +165,33 @@
           </div>
         </div>
         <div class="flex justify-end gap-3 mt-7">
-          <button @click="closeModal" class="btn btn-secondary">取消</button>
+          <button @click="closeChapterModal" class="btn btn-secondary">取消</button>
           <button @click="saveChapter" class="btn btn-primary">保存</button>
         </div>
       </div>
     </div>
 
-    <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteModal = false">
+    <!-- 删除卷确认 -->
+    <div v-if="showDeleteVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteVolumeModal = false">
+      <div class="card w-full max-w-sm p-8">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
+            <Trash2 class="w-8 h-8 text-[var(--error)]" />
+          </div>
+          <h3 class="text-xl font-bold text-[var(--text)] mb-3">确认删除</h3>
+          <p class="text-[var(--text-light)] mb-7">
+            确定要删除卷「{{ volumeToDelete?.title }}」吗？卷内章节将移至其他卷。
+          </p>
+          <div class="flex justify-center gap-3">
+            <button @click="showDeleteVolumeModal = false" class="btn btn-secondary">取消</button>
+            <button @click="deleteVolume" class="btn" style="background: var(--error); color: white;">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除章节确认 -->
+    <div v-if="showDeleteChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteChapterModal = false">
       <div class="card w-full max-w-sm p-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
@@ -125,7 +202,7 @@
             确定要删除章节「{{ chapterToDelete?.title }}」吗？此操作无法撤销。
           </p>
           <div class="flex justify-center gap-3">
-            <button @click="showDeleteModal = false" class="btn btn-secondary">取消</button>
+            <button @click="showDeleteChapterModal = false" class="btn btn-secondary">取消</button>
             <button @click="deleteChapter" class="btn" style="background: var(--error); color: white;">删除</button>
           </div>
         </div>
@@ -137,119 +214,204 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { FileText, Plus, Edit, ChevronUp, ChevronDown, Trash2 } from 'lucide-vue-next';
+import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
-import type { Chapter } from '../types';
+import type { Chapter, Volume } from '../types';
 
 const router = useRouter();
-const { chapters, addChapter, updateChapter, deleteChapter: deleteChapterFromStore, setCurrentChapter } = useStore();
+const {
+  volumes, chapters, addVolume, updateVolume, deleteVolume: deleteVolumeFromStore,
+  addChapter, updateChapter, deleteChapter: deleteChapterFromStore, setCurrentChapter
+} = useStore();
 
-const showAddModal = ref(false);
-const showEditModal = ref(false);
-const showDeleteModal = ref(false);
+const searchQuery = ref('');
+const expandedVolumes = ref(new Set<string>());
+
+// Volume modals
+const showVolumeModal = ref(false);
+const editingVolume = ref<Volume | null>(null);
+const volumeForm = ref({ title: '' });
+const showDeleteVolumeModal = ref(false);
+const volumeToDelete = ref<Volume | null>(null);
+
+// Chapter modals
+const showChapterModal = ref(false);
+const editingChapter = ref<Chapter | null>(null);
+const chapterForm = ref({ title: '', status: 'draft' as Chapter['status'], volumeId: '' });
+const showDeleteChapterModal = ref(false);
 const chapterToDelete = ref<Chapter | null>(null);
-const editingId = ref<string | null>(null);
 
-const form = ref({
-  title: '',
-  status: 'draft' as Chapter['status'],
+// Init: expand all volumes
+volumes.value.forEach(v => expandedVolumes.value.add(v.id));
+
+const filteredVolumes = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return volumes.value;
+  return volumes.value.filter(v =>
+    getVolumeChapters(v.id).length > 0
+  ).filter(v => {
+    const chs = chapters.value.filter(c => c.volumeId === v.id);
+    return chs.some(c => c.title.toLowerCase().includes(q));
+  });
 });
 
-const sortedChapters = computed(() => {
-  return [...chapters.value].sort((a, b) => a.order - b.order);
-});
+const getVolumeChapters = (volumeId: string) => {
+  const q = searchQuery.value.trim().toLowerCase();
+  let chs = chapters.value.filter(c => c.volumeId === volumeId).sort((a, b) => a.order - b.order);
+  if (q) {
+    chs = chs.filter(c => c.title.toLowerCase().includes(q));
+  }
+  return chs;
+};
+
+const getVolumeChapterCount = (volumeId: string) =>
+  chapters.value.filter(c => c.volumeId === volumeId).length;
+
+const toggleVolume = (id: string) => {
+  if (expandedVolumes.value.has(id)) {
+    expandedVolumes.value.delete(id);
+  } else {
+    expandedVolumes.value.add(id);
+  }
+};
 
 const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('zh-CN', { 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleDateString('zh-CN', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 };
 
 const statusClass = (status: string) => {
-  const classes = {
+  const classes: Record<string, string> = {
     'draft': 'tag-muted',
     'in-progress': 'tag-warning',
     'completed': 'tag-success',
   };
-  return classes[status as keyof typeof classes] || 'tag-muted';
+  return classes[status] || 'tag-muted';
 };
 
 const statusText = (status: string) => {
-  const texts = {
+  const texts: Record<string, string> = {
     'draft': '草稿',
     'in-progress': '撰写中',
     'completed': '已完成',
   };
-  return texts[status as keyof typeof texts] || '草稿';
+  return texts[status] || '草稿';
 };
 
-const closeModal = () => {
-  showAddModal.value = false;
-  showEditModal.value = false;
-  form.value = { title: '', status: 'draft' };
-  editingId.value = null;
+// === Volume actions ===
+const openAddVolume = () => {
+  editingVolume.value = null;
+  volumeForm.value = { title: '' };
+  showVolumeModal.value = true;
+};
+
+const openEditVolume = (volume: Volume) => {
+  editingVolume.value = volume;
+  volumeForm.value = { title: volume.title };
+  showVolumeModal.value = true;
+};
+
+const closeVolumeModal = () => {
+  showVolumeModal.value = false;
+  editingVolume.value = null;
+};
+
+const saveVolume = () => {
+  if (!volumeForm.value.title.trim()) return;
+  if (editingVolume.value) {
+    updateVolume(editingVolume.value.id, { title: volumeForm.value.title });
+  } else {
+    const v = addVolume(volumeForm.value.title);
+    expandedVolumes.value.add(v.id);
+  }
+  closeVolumeModal();
+};
+
+const confirmDeleteVolume = (volume: Volume) => {
+  volumeToDelete.value = volume;
+  showDeleteVolumeModal.value = true;
+};
+
+const deleteVolume = () => {
+  if (volumeToDelete.value) {
+    deleteVolumeFromStore(volumeToDelete.value.id);
+    showDeleteVolumeModal.value = false;
+    volumeToDelete.value = null;
+  }
+};
+
+// === Chapter actions ===
+const openAddChapter = (volumeId: string) => {
+  editingChapter.value = null;
+  chapterForm.value = { title: '', status: 'draft', volumeId };
+  showChapterModal.value = true;
+};
+
+const editChapter = (chapter: Chapter) => {
+  editingChapter.value = chapter;
+  chapterForm.value = {
+    title: chapter.title,
+    status: chapter.status,
+    volumeId: chapter.volumeId,
+  };
+  showChapterModal.value = true;
+};
+
+const closeChapterModal = () => {
+  showChapterModal.value = false;
+  editingChapter.value = null;
 };
 
 const saveChapter = () => {
-  if (!form.value.title.trim()) return;
+  if (!chapterForm.value.title.trim()) return;
 
-  if (showEditModal.value && editingId.value) {
-    updateChapter(editingId.value, {
-      title: form.value.title,
-      status: form.value.status,
+  if (editingChapter.value) {
+    updateChapter(editingChapter.value.id, {
+      title: chapterForm.value.title,
+      status: chapterForm.value.status,
     });
   } else {
+    const vid = chapterForm.value.volumeId || volumes.value[0]?.id;
+    if (!vid) return;
     addChapter({
-      title: form.value.title,
+      title: chapterForm.value.title,
       content: '',
       wordCount: 0,
-      status: form.value.status,
+      status: chapterForm.value.status,
+      volumeId: vid,
     });
   }
 
-  closeModal();
+  closeChapterModal();
 };
 
-const editChapter = (id: string) => {
-  const chapter = chapters.value.find(c => c.id === id);
-  if (chapter) {
-    form.value = {
-      title: chapter.title,
-      status: chapter.status,
-    };
-    editingId.value = id;
-    showEditModal.value = true;
-  }
-};
-
-const moveChapter = (id: string, direction: number) => {
-  const chapter = chapters.value.find(c => c.id === id);
-  if (!chapter) return;
+const moveChapter = (chapter: Chapter, direction: number) => {
+  const siblings = chapters.value
+    .filter(c => c.volumeId === chapter.volumeId)
+    .sort((a, b) => a.order - b.order);
 
   const newOrder = chapter.order + direction;
-  if (newOrder < 0 || newOrder >= chapters.value.length) return;
+  if (newOrder < 0 || newOrder >= siblings.length) return;
 
-  const targetChapter = chapters.value.find(c => c.order === newOrder);
+  const targetChapter = siblings.find(c => c.order === newOrder);
   if (targetChapter) {
     updateChapter(targetChapter.id, { order: chapter.order });
   }
-  updateChapter(id, { order: newOrder });
+  updateChapter(chapter.id, { order: newOrder });
 };
 
-const confirmDelete = (chapter: Chapter) => {
+const confirmDeleteChapter = (chapter: Chapter) => {
   chapterToDelete.value = chapter;
-  showDeleteModal.value = true;
+  showDeleteChapterModal.value = true;
 };
 
 const deleteChapter = () => {
   if (chapterToDelete.value) {
     deleteChapterFromStore(chapterToDelete.value.id);
-    showDeleteModal.value = false;
+    showDeleteChapterModal.value = false;
     chapterToDelete.value = null;
   }
 };
