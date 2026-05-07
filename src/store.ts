@@ -1,0 +1,403 @@
+import { reactive, computed } from 'vue';
+import type { Novel, Chapter, Character, Scene } from './types';
+
+const STORAGE_KEY = 'novel-workshop-data';
+const DRAFT_PREFIX = 'novel-draft-';
+const BACKUP_PREFIX = 'novel-backup-';
+const MAX_BACKUPS = 5;
+
+function loadFromStorage(): Novel {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Failed to load data:', e);
+  }
+  return {
+    title: '我的小说',
+    chapters: [],
+    characters: [],
+    scenes: [],
+  };
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.novel));
+  } catch (e) {
+    console.error('Failed to save data:', e);
+  }
+}
+
+const state = reactive({
+  novel: loadFromStorage(),
+  currentChapterId: null as string | null,
+});
+
+export const useStore = () => {
+  const totalChapters = computed(() => state.novel.chapters.length);
+  const totalWords = computed(() => 
+    state.novel.chapters.reduce((sum, chapter) => sum + chapter.wordCount, 0)
+  );
+  const totalCharacters = computed(() => state.novel.characters.length);
+  const totalScenes = computed(() => state.novel.scenes.length);
+
+  const chapters = computed(() => 
+    [...state.novel.chapters].sort((a, b) => a.order - b.order)
+  );
+
+  const characters = computed(() => state.novel.characters);
+  const scenes = computed(() => state.novel.scenes);
+  const currentChapter = computed(() => 
+    state.novel.chapters.find(c => c.id === state.currentChapterId)
+  );
+
+  function setNovelTitle(title: string) {
+    state.novel.title = title;
+    saveToStorage();
+  }
+
+  function addChapter(chapter: Omit<Chapter, 'id' | 'createdAt' | 'updatedAt' | 'order'>) {
+    const newChapter: Chapter = {
+      ...chapter,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      order: state.novel.chapters.length,
+    };
+    state.novel.chapters.push(newChapter);
+    saveToStorage();
+    return newChapter;
+  }
+
+  function updateChapter(id: string, updates: Partial<Chapter>) {
+    const index = state.novel.chapters.findIndex(c => c.id === id);
+    if (index !== -1) {
+      state.novel.chapters[index] = {
+        ...state.novel.chapters[index],
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      saveToStorage();
+    }
+  }
+
+  function deleteChapter(id: string) {
+    const index = state.novel.chapters.findIndex(c => c.id === id);
+    if (index !== -1) {
+      state.novel.chapters.splice(index, 1);
+      state.novel.chapters.forEach((c, i) => c.order = i);
+      saveToStorage();
+    }
+  }
+
+  function setCurrentChapter(id: string | null) {
+    state.currentChapterId = id;
+  }
+
+  function addCharacter(character: Omit<Character, 'id' | 'createdAt'>) {
+    const newCharacter: Character = {
+      ...character,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.characters.push(newCharacter);
+    saveToStorage();
+    return newCharacter;
+  }
+
+  function updateCharacter(id: string, updates: Partial<Character>) {
+    const index = state.novel.characters.findIndex(c => c.id === id);
+    if (index !== -1) {
+      state.novel.characters[index] = {
+        ...state.novel.characters[index],
+        ...updates,
+      };
+      saveToStorage();
+    }
+  }
+
+  function deleteCharacter(id: string) {
+    const index = state.novel.characters.findIndex(c => c.id === id);
+    if (index !== -1) {
+      state.novel.characters.splice(index, 1);
+      saveToStorage();
+    }
+  }
+
+  function addScene(scene: Omit<Scene, 'id' | 'createdAt'>) {
+    const newScene: Scene = {
+      ...scene,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.scenes.push(newScene);
+    saveToStorage();
+    return newScene;
+  }
+
+  function updateScene(id: string, updates: Partial<Scene>) {
+    const index = state.novel.scenes.findIndex(s => s.id === id);
+    if (index !== -1) {
+      state.novel.scenes[index] = {
+        ...state.novel.scenes[index],
+        ...updates,
+      };
+      saveToStorage();
+    }
+  }
+
+  function deleteScene(id: string) {
+    const index = state.novel.scenes.findIndex(s => s.id === id);
+    if (index !== -1) {
+      state.novel.scenes.splice(index, 1);
+      saveToStorage();
+    }
+  }
+
+  function exportToTxt(): string {
+    let content = `# ${state.novel.title}\n\n`;
+    content += `## 角色设定\n\n`;
+    state.novel.characters.forEach(char => {
+      content += `### ${char.name}\n`;
+      content += `- 性别: ${char.gender}\n`;
+      content += `- 年龄: ${char.age}\n`;
+      content += `- 身份: ${char.role}\n`;
+      content += `- 描述: ${char.description}\n`;
+      if (char.traits.length > 0) {
+        content += `- 性格特点: ${char.traits.join(', ')}\n`;
+      }
+      content += '\n';
+    });
+
+    content += `## 场景设定\n\n`;
+    state.novel.scenes.forEach(scene => {
+      content += `### ${scene.name}\n`;
+      content += `- 地点: ${scene.location}\n`;
+      content += `- 描述: ${scene.description}\n`;
+      if (scene.atmosphere.length > 0) {
+        content += `- 氛围: ${scene.atmosphere.join(', ')}\n`;
+      }
+      content += '\n';
+    });
+
+    content += `## 正文\n\n`;
+    [...state.novel.chapters]
+      .sort((a, b) => a.order - b.order)
+      .forEach(chapter => {
+        content += `### ${chapter.title}\n\n`;
+        content += `${chapter.content}\n\n`;
+      });
+
+    return content;
+  }
+
+  function downloadTxt() {
+    const content = exportToTxt();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.novel.title || '小说'}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportToJson(): string {
+    return JSON.stringify(state.novel, null, 2);
+  }
+
+  function downloadJson() {
+    const content = exportToJson();
+    const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.novel.title || '小说'}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importFromJson(jsonString: string): boolean {
+    try {
+      const data = JSON.parse(jsonString);
+      if (!data || typeof data !== 'object') return false;
+      state.novel = {
+        title: data.title || '我的小说',
+        chapters: Array.isArray(data.chapters) ? data.chapters : [],
+        characters: Array.isArray(data.characters) ? data.characters : [],
+        scenes: Array.isArray(data.scenes) ? data.scenes : [],
+      };
+      saveToStorage();
+      return true;
+    } catch (e) {
+      console.error('Failed to import JSON:', e);
+      return false;
+    }
+  }
+
+  function importFromFile(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        resolve(importFromJson(text));
+      };
+      reader.onerror = () => resolve(false);
+      reader.readAsText(file);
+    });
+  }
+
+  // === Draft auto-save ===
+  interface Draft {
+    chapterId: string;
+    title: string;
+    content: string;
+    wordCount: number;
+    savedAt: string;
+  }
+
+  function saveDraft(chapterId: string, title: string, content: string, wordCount: number) {
+    try {
+      const draft: Draft = {
+        chapterId,
+        title,
+        content,
+        wordCount,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFT_PREFIX + chapterId, JSON.stringify(draft));
+    } catch (e) {
+      console.error('Failed to save draft:', e);
+    }
+  }
+
+  function loadDraft(chapterId: string): Draft | null {
+    try {
+      const data = localStorage.getItem(DRAFT_PREFIX + chapterId);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to load draft:', e);
+    }
+    return null;
+  }
+
+  function removeDraft(chapterId: string) {
+    localStorage.removeItem(DRAFT_PREFIX + chapterId);
+  }
+
+  // === Full-data JSON backup ===
+  interface BackupEntry {
+    id: string;
+    title: string;
+    data: Novel;
+    createdAt: string;
+  }
+
+  function saveBackup() {
+    try {
+      const id = Date.now().toString();
+      const entry: BackupEntry = {
+        id,
+        title: state.novel.title,
+        data: JSON.parse(JSON.stringify(state.novel)),
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(BACKUP_PREFIX + id, JSON.stringify(entry));
+
+      // rotate: keep only the latest N backups
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(BACKUP_PREFIX)) keys.push(key);
+      }
+      if (keys.length > MAX_BACKUPS) {
+        keys
+          .sort()
+          .slice(0, keys.length - MAX_BACKUPS)
+          .forEach(k => localStorage.removeItem(k));
+      }
+
+      return id;
+    } catch (e) {
+      console.error('Failed to save backup:', e);
+      return null;
+    }
+  }
+
+  function listBackups(): BackupEntry[] {
+    const backups: BackupEntry[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(BACKUP_PREFIX)) {
+        try {
+          const data = localStorage.getItem(key);
+          if (data) backups.push(JSON.parse(data));
+        } catch { /* skip corrupt entries */ }
+      }
+    }
+    return backups.sort((a, b) => b.id.localeCompare(a.id));
+  }
+
+  function restoreBackup(id: string): boolean {
+    try {
+      const data = localStorage.getItem(BACKUP_PREFIX + id);
+      if (!data) return false;
+      const entry: BackupEntry = JSON.parse(data);
+      if (!entry.data || typeof entry.data !== 'object') return false;
+      state.novel = {
+        title: entry.data.title || '我的小说',
+        chapters: Array.isArray(entry.data.chapters) ? entry.data.chapters : [],
+        characters: Array.isArray(entry.data.characters) ? entry.data.characters : [],
+        scenes: Array.isArray(entry.data.scenes) ? entry.data.scenes : [],
+      };
+      saveToStorage();
+      return true;
+    } catch (e) {
+      console.error('Failed to restore backup:', e);
+      return false;
+    }
+  }
+
+  function deleteBackup(id: string) {
+    localStorage.removeItem(BACKUP_PREFIX + id);
+  }
+
+  return {
+    novel: computed(() => state.novel),
+    totalChapters,
+    totalWords,
+    totalCharacters,
+    totalScenes,
+    chapters,
+    characters,
+    scenes,
+    currentChapter,
+    setNovelTitle,
+    addChapter,
+    updateChapter,
+    deleteChapter,
+    setCurrentChapter,
+    addCharacter,
+    updateCharacter,
+    deleteCharacter,
+    addScene,
+    updateScene,
+    deleteScene,
+    exportToTxt,
+    downloadTxt,
+    exportToJson,
+    downloadJson,
+    importFromJson,
+    importFromFile,
+    saveDraft,
+    loadDraft,
+    removeDraft,
+    saveBackup,
+    listBackups,
+    restoreBackup,
+    deleteBackup,
+  };
+};

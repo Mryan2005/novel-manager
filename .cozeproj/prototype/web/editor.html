@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://fonts.googleapis.cn/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #7C5CFF;
+      --color-primary-container:    rgba(124, 92, 255, 0.2);
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #070A14;
+      --color-surface-container-lowest:   rgba(255, 255, 255, 0.03);
+      --color-surface:                    rgba(255, 255, 255, 0.05);
+      --color-surface-container:          rgba(255, 255, 255, 0.08);
+      --color-surface-container-high:     rgba(255, 255, 255, 0.12);
+      --color-surface-container-highest:  rgba(255, 255, 255, 0.16);
+      /* === 文字 === */
+      --color-on-surface:           #F7FAFF;
+      --color-on-surface-variant:   #9AA7C7;
+      /* === 功能色 === */
+      --color-success:  #62FAD3;
+      --color-error:    #FF6B8A;
+      --color-warning:  #FFD166;
+      /* === 边框 === */
+      --color-outline:          rgba(255, 255, 255, 0.12);
+      --color-outline-variant:  rgba(255, 255, 255, 0.08);
+      /* === 圆角 === */
+      --radius-sm:   0.375rem;
+      --radius-md:   0.5rem;
+      --radius-lg:   0.75rem;
+      --radius-xl:   1rem;
+      --radius-2xl:  1.5rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-float:  0 10px 25px rgba(0, 0, 0, 0.4);
+      --shadow-dialog: 0 25px 50px rgba(0, 0, 0, 0.5);
+      /* === 字体 === */
+      --font-sans: "Inter", system-ui, sans-serif;
+    }
+
+    /* 毛玻璃效果 */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-hover:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    /* 渐变背景动画 */
+    @keyframes gradientDrift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .bg-gradient-animate {
+      background: linear-gradient(-45deg, #070A14, #1A1F3A, #0F172A, #070A14);
+      background-size: 400% 400%;
+      animation: gradientDrift 20s ease infinite;
+    }
+
+    /* 发光效果 */
+    .glow-primary {
+      box-shadow: 0 0 20px rgba(124, 92, 255, 0.3);
+    }
+
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(105, 231, 255, 0.3);
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-gradient-animate text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件，不需要的页面则不要复制此段（从 @nav:start 到 @nav:end） -->
+  <header class="glass sticky top-0 z-40 h-16 flex items-center justify-between px-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-cyan-400 flex items-center justify-center glow-primary">
+        <i data-lucide="book-open" class="text-white w-5 h-5"></i>
+      </div>
+      <span class="font-bold text-xl bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">小说工坊</span>
+    </div>
+  </header>
+
+  <div class="flex" style="height: calc(100vh - 4rem)">
+    <aside class="w-64 shrink-0 glass overflow-y-auto p-4">
+      <div class="space-y-1">
+        <a href="home.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          仪表板
+        </a>
+        <a href="chapters.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          章节管理
+        </a>
+        <a href="characters.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          角色设定
+        </a>
+        <a href="scenes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="map" class="w-4 h-4"></i>
+          场景设定
+        </a>
+        <a href="editor.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/20 text-primary font-medium text-sm glass-hover transition-all"
+           aria-current="page">
+          <i data-lucide="edit" class="w-4 h-4"></i>
+          小说编辑
+        </a>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-outline-variant/20">
+        <button class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary to-cyan-500 text-white font-medium text-sm hover:opacity-90 transition-opacity glow-primary">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          导出小说
+        </button>
+      </div>
+    </aside>
+    <!-- @nav:end 导航组件，不需要的页面则不要复制此段 -->
+
+    <!-- @main-content:start -->
+    <main class="flex-1 min-w-0 overflow-hidden flex">
+      <!-- 主编辑区域 -->
+      <div class="flex-1 overflow-y-auto p-8">
+        <!-- 顶部工具栏 -->
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-4">
+            <!-- 章节选择下拉 -->
+            <div class="relative">
+              <select id="chapter-select" class="bg-surface-container border-none rounded-lg px-4 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors pr-10 appearance-none cursor-pointer">
+                <option value="1">第一章：初遇</option>
+                <option value="2">第二章：觉醒</option>
+                <option value="3">第三章：试炼</option>
+                <option value="4">第四章：重逢</option>
+                <option value="5">第五章：决战</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none"></i>
+            </div>
+          </div>
+          
+          <!-- 操作按钮 -->
+          <div class="flex items-center gap-3">
+            <!-- 字数统计 -->
+            <div id="word-count" class="glass rounded-lg px-4 py-2 text-sm text-on-surface-variant">
+              <span class="text-on-surface font-medium">2,847</span> 字
+            </div>
+            <!-- 预览按钮 -->
+            <button id="btn-preview" class="glass text-on-surface px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors inline-flex items-center gap-2">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+              预览
+            </button>
+            <!-- 保存按钮 -->
+            <button id="btn-save" class="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2 glow-primary">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              保存
+            </button>
+          </div>
+        </div>
+
+        <!-- 标题输入 -->
+        <div class="mb-6">
+          <input id="chapter-title" type="text" value="第一章：初遇" class="w-full bg-transparent border-none text-2xl font-bold text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none" placeholder="请输入章节标题"/>
+        </div>
+
+        <!-- 富文本编辑工具栏 -->
+        <div class="glass rounded-t-lg p-3 flex items-center gap-1 border-b border-outline-variant/20">
+          <button id="toolbar-bold" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="加粗">
+            <i data-lucide="bold" class="w-4 h-4"></i>
+          </button>
+          <button id="toolbar-italic" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="斜体">
+            <i data-lucide="italic" class="w-4 h-4"></i>
+          </button>
+          <button id="toolbar-underline" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="下划线">
+            <i data-lucide="underline" class="w-4 h-4"></i>
+          </button>
+          <div class="w-px h-6 bg-outline-variant/30 mx-2"></div>
+          <button id="toolbar-align-left" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="左对齐">
+            <i data-lucide="align-left" class="w-4 h-4"></i>
+          </button>
+          <button id="toolbar-align-center" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="居中">
+            <i data-lucide="align-center" class="w-4 h-4"></i>
+          </button>
+          <button id="toolbar-align-right" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="右对齐">
+            <i data-lucide="align-right" class="w-4 h-4"></i>
+          </button>
+          <div class="w-px h-6 bg-outline-variant/30 mx-2"></div>
+          <button id="toolbar-list" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="无序列表">
+            <i data-lucide="list" class="w-4 h-4"></i>
+          </button>
+          <button id="toolbar-list-ordered" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="有序列表">
+            <i data-lucide="list-ordered" class="w-4 h-4"></i>
+          </button>
+          <div class="w-px h-6 bg-outline-variant/30 mx-2"></div>
+          <button id="toolbar-quote" class="p-2 rounded-md hover:bg-surface-container transition-colors" title="引用">
+            <i data-lucide="quote" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- 富文本编辑区域 -->
+        <div id="editor-content" class="glass rounded-b-lg p-6 min-h-[500px] focus:outline-none" contenteditable="true">
+          <p>林雨推开咖啡馆的门时，风铃发出清脆的声响。午后的阳光透过落地窗洒进来，在木质地板上留下斑驳的光影。</p>
+          <p class="mt-4">她找了个靠窗的位置坐下，随手将背包放在旁边的椅子上。这是她第一次来这家咖啡馆，据说这里的手冲咖啡很有名。</p>
+          <p class="mt-4">"您好，请问要点什么？"一个温和的声音从旁边传来。</p>
+          <p class="mt-4">林雨抬头，撞进一双深邃的眼眸里。那是一个穿着白衬衫的年轻人，手里拿着点餐板，嘴角带着浅浅的笑意。阳光刚好照在他的侧脸上，勾勒出柔和的轮廓。</p>
+          <p class="mt-4">"我...要一杯手冲咖啡，谢谢。"林雨感觉自己的心跳忽然快了几拍。</p>
+          <p class="mt-4">"好的，稍等。"年轻人点点头，转身走向吧台。</p>
+          <p class="mt-4">林雨望着他的背影，心里忽然涌起一种奇妙的感觉。她不知道，这个平凡的午后，这个偶然的相遇，将会彻底改变她的人生轨迹。</p>
+          <p class="mt-4">命运的齿轮，就在这一刻，开始悄然转动。</p>
+        </div>
+      </div>
+
+      <!-- 侧边角色和场景提示 -->
+      <div id="sidebar-panel" class="w-80 glass border-l border-outline-variant/20 overflow-y-auto">
+        <div class="p-4 border-b border-outline-variant/20 flex items-center justify-between">
+          <h3 class="font-semibold text-on-surface">角色与场景</h3>
+          <button id="btn-toggle-sidebar" class="p-1.5 rounded-md hover:bg-surface-container transition-colors">
+            <i data-lucide="panel-right-close" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="p-4 space-y-6">
+          <!-- 本章节涉及角色 -->
+          <div>
+            <h4 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-3">本章节涉及角色</h4>
+            <div class="space-y-2">
+              <!-- 角色1 -->
+              <div class="glass rounded-lg p-3 hover:bg-surface-container transition-colors cursor-pointer">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center text-white font-medium">
+                    林
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-on-surface">林雨</p>
+                    <p class="text-xs text-on-surface-variant">女主角，24岁，插画师</p>
+                  </div>
+                </div>
+              </div>
+              <!-- 角色2 -->
+              <div class="glass rounded-lg p-3 hover:bg-surface-container transition-colors cursor-pointer">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-400 flex items-center justify-center text-white font-medium">
+                    顾
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-on-surface">顾言之</p>
+                    <p class="text-xs text-on-surface-variant">男主角，26岁，咖啡馆老板</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 本章节涉及场景 -->
+          <div>
+            <h4 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-3">本章节涉及场景</h4>
+            <div class="space-y-2">
+              <!-- 场景1 -->
+              <div class="glass rounded-lg p-3 hover:bg-surface-container transition-colors cursor-pointer">
+                <div class="flex items-start gap-3">
+                  <i data-lucide="coffee" class="w-5 h-5 text-primary shrink-0 mt-0.5"></i>
+                  <div>
+                    <p class="text-sm font-medium text-on-surface">「时光」咖啡馆</p>
+                    <p class="text-xs text-on-surface-variant mt-1">温馨的独立咖啡馆，午后阳光充足，是主角初遇的地方</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 角色设定提示 -->
+          <div>
+            <h4 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-3">角色设定提示</h4>
+            <div class="glass rounded-lg p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="lightbulb" class="w-4 h-4 text-warning"></i>
+                <span class="text-sm font-medium text-on-surface">林雨的性格特点</span>
+              </div>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                林雨性格内向细腻，不擅长与人交往，但内心世界丰富。她对色彩和光影有独特的敏感度，这在她的插画作品中表现得淋漓尽致。遇到顾言之之后，她的世界开始逐渐打开...
+              </p>
+            </div>
+          </div>
+
+          <!-- 场景细节提示 -->
+          <div>
+            <h4 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-3">场景细节提示</h4>
+            <div class="glass rounded-lg p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="map-pin" class="w-4 h-4 text-cyan-400"></i>
+                <span class="text-sm font-medium text-on-surface">咖啡馆环境描写</span>
+              </div>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                记得描写咖啡馆的细节：木质地板的纹理、空气中飘散的咖啡香、舒缓的爵士乐、吧台上陈列的各式咖啡器具...这些细节能让场景更加生动立体。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <!-- @main-content:end -->
+  </div>
+
+  <script>
+    $(function() {
+      // 初始化图标
+      lucide.createIcons();
+
+      // 侧边栏切换
+      $('#btn-toggle-sidebar').on('click', function() {
+        const sidebar = $('#sidebar-panel');
+        sidebar.toggleClass('hidden');
+        if (sidebar.hasClass('hidden')) {
+          $(this).find('i').attr('data-lucide', 'panel-right-open');
+        } else {
+          $(this).find('i').attr('data-lucide', 'panel-right-close');
+        }
+        lucide.createIcons();
+      });
+
+      // 保存按钮
+      $('#btn-save').on('click', function() {
+        console.log('保存章节内容');
+        // 这里应该实现保存逻辑：
+        // 1. 获取章节标题和内容
+        // 2. 验证内容完整性
+        // 3. 调用API保存到服务器
+        // 4. 显示保存成功提示
+      });
+
+      // 预览按钮
+      $('#btn-preview').on('click', function() {
+        console.log('预览章节内容');
+        // 这里应该实现预览逻辑：
+        // 1. 创建预览模态框
+        // 2. 将编辑内容渲染为预览格式
+        // 3. 显示预览模态框
+      });
+
+      // 章节选择
+      $('#chapter-select').on('change', function() {
+        const chapterId = $(this).val();
+        console.log('切换到章节:', chapterId);
+        // 这里应该实现章节切换逻辑：
+        // 1. 根据章节ID加载对应内容
+        // 2. 更新标题和编辑区域
+        // 3. 更新字数统计
+        // 4. 更新侧边栏的角色和场景提示
+      });
+
+      // 富文本编辑工具栏 - 加粗
+      $('#toolbar-bold').on('click', function() {
+        console.log('加粗文本');
+        // 富文本编辑功能需要完整实现：
+        // 1. 获取选中文本
+        // 2. 执行 document.execCommand('bold')
+        // 3. 更新工具栏状态
+      });
+
+      // 富文本编辑工具栏 - 斜体
+      $('#toolbar-italic').on('click', function() {
+        console.log('斜体文本');
+      });
+
+      // 富文本编辑工具栏 - 下划线
+      $('#toolbar-underline').on('click', function() {
+        console.log('下划线文本');
+      });
+
+      // 编辑区域内容变化时更新字数统计
+      $('#editor-content').on('input', function() {
+        const text = $(this).text();
+        const wordCount = text.replace(/\s/g, '').length;
+        $('#word-count span').text(wordCount.toLocaleString());
+      });
+    });
+  </script>
+</body>
+
+</html>

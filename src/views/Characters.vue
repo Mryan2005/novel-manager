@@ -1,0 +1,244 @@
+<template>
+  <Layout>
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-[var(--text)]">角色设定</h1>
+          <p class="text-[var(--text-light)] mt-1 text-lg">管理你的小说角色</p>
+        </div>
+        <button @click="showAddModal = true" class="btn btn-primary">
+          <Plus class="w-4 h-4" />
+          新建角色
+        </button>
+      </div>
+
+      <div v-if="characters.length === 0" class="card p-12 text-center">
+        <Users class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
+        <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有角色</h3>
+        <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个角色，让你的故事更生动</p>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div 
+          v-for="char in characters" 
+          :key="char.id"
+          class="card p-8"
+        >
+          <div class="flex items-start gap-4">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0" style="background: var(--primary-gradient);">
+              {{ char.name.charAt(0) }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-[var(--text)] text-lg">{{ char.name }}</h3>
+              <span class="inline-block tag tag-primary mt-2">
+                {{ char.role }}
+              </span>
+              <p class="text-sm text-[var(--text-light)] mt-3">
+                {{ char.gender }} · {{ char.age }}岁
+              </p>
+            </div>
+          </div>
+          <p class="text-[var(--text-light)] mt-5 line-clamp-3 leading-relaxed">{{ char.description }}</p>
+          <div v-if="char.traits.length > 0" class="flex flex-wrap gap-2 mt-5">
+            <span 
+              v-for="trait in char.traits" 
+              :key="trait"
+              class="px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-alt)] text-[var(--text-light)] font-medium"
+            >
+              {{ trait }}
+            </span>
+          </div>
+          <div class="flex items-center justify-end gap-2 mt-5 pt-5 border-t border-[var(--border-light)]">
+            <button 
+              @click="editCharacter(char)"
+              class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
+              title="编辑"
+            >
+              <Edit class="w-5 h-5" />
+            </button>
+            <button 
+              @click="confirmDelete(char)"
+              class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
+              title="删除"
+            >
+              <Trash2 class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加/编辑模态框 -->
+    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" @click.self="closeModal">
+      <div class="card w-full max-w-lg p-8 my-8">
+        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
+          {{ showEditModal ? '编辑角色' : '新建角色' }}
+        </h2>
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">角色名称</label>
+            <input 
+              v-model="form.name" 
+              type="text" 
+              class="input"
+              placeholder="输入角色名称"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">性别</label>
+              <input 
+                v-model="form.gender" 
+                type="text" 
+                class="input"
+                placeholder="如：男、女"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">年龄</label>
+              <input 
+                v-model.number="form.age" 
+                type="number" 
+                class="input"
+                placeholder="年龄"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">身份/定位</label>
+            <input 
+              v-model="form.role" 
+              type="text" 
+              class="input"
+              placeholder="如：主角、反派、配角"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">性格特点（用逗号分隔）</label>
+            <input 
+              v-model="traitsInput" 
+              type="text" 
+              class="input"
+              placeholder="如：勇敢,善良,聪明"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">角色描述</label>
+            <textarea 
+              v-model="form.description" 
+              class="input min-h-[120px]"
+              placeholder="描述这个角色的背景、故事等"
+            ></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-7">
+          <button @click="closeModal" class="btn btn-secondary">取消</button>
+          <button @click="saveCharacter" class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除确认 -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteModal = false">
+      <div class="card w-full max-w-sm p-8">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
+            <Trash2 class="w-8 h-8 text-[var(--error)]" />
+          </div>
+          <h3 class="text-xl font-bold text-[var(--text)] mb-3">确认删除</h3>
+          <p class="text-[var(--text-light)] mb-7">
+            确定要删除角色「{{ characterToDelete?.name }}」吗？此操作无法撤销。
+          </p>
+          <div class="flex justify-center gap-3">
+            <button @click="showDeleteModal = false" class="btn btn-secondary">取消</button>
+            <button @click="deleteCharacter" class="btn" style="background: var(--error); color: white;">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Layout>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { Users, Plus, Edit, Trash2 } from 'lucide-vue-next';
+import Layout from '../components/Layout.vue';
+import { useStore } from '../store';
+import type { Character } from '../types';
+
+const { characters, addCharacter, updateCharacter, deleteCharacter: deleteCharacterFromStore } = useStore();
+
+const showAddModal = ref(false);
+const showEditModal = ref(false);
+const showDeleteModal = ref(false);
+const characterToDelete = ref<Character | null>(null);
+const editingId = ref<string | null>(null);
+const traitsInput = ref('');
+
+const form = ref({
+  name: '',
+  gender: '',
+  age: 0,
+  role: '',
+  description: '',
+  traits: [] as string[],
+});
+
+const closeModal = () => {
+  showAddModal.value = false;
+  showEditModal.value = false;
+  form.value = { name: '', gender: '', age: 0, role: '', description: '', traits: [] };
+  traitsInput.value = '';
+  editingId.value = null;
+};
+
+const saveCharacter = () => {
+  if (!form.value.name.trim()) return;
+
+  const traits = traitsInput.value
+    .split(',')
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
+
+  if (showEditModal.value && editingId.value) {
+    updateCharacter(editingId.value, {
+      ...form.value,
+      traits,
+    });
+  } else {
+    addCharacter({
+      ...form.value,
+      traits,
+    });
+  }
+
+  closeModal();
+};
+
+const editCharacter = (char: Character) => {
+  form.value = {
+    name: char.name,
+    gender: char.gender,
+    age: char.age,
+    role: char.role,
+    description: char.description,
+    traits: [...char.traits],
+  };
+  traitsInput.value = char.traits.join(', ');
+  editingId.value = char.id;
+  showEditModal.value = true;
+};
+
+const confirmDelete = (char: Character) => {
+  characterToDelete.value = char;
+  showDeleteModal.value = true;
+};
+
+const deleteCharacter = () => {
+  if (characterToDelete.value) {
+    deleteCharacterFromStore(characterToDelete.value.id);
+    showDeleteModal.value = false;
+    characterToDelete.value = null;
+  }
+};
+</script>

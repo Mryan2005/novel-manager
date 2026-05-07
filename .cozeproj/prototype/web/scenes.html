@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://fonts.googleapis.cn/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #7C5CFF;
+      --color-primary-container:    rgba(124, 92, 255, 0.2);
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #070A14;
+      --color-surface-container-lowest:   rgba(255, 255, 255, 0.03);
+      --color-surface:                    rgba(255, 255, 255, 0.05);
+      --color-surface-container:          rgba(255, 255, 255, 0.08);
+      --color-surface-container-high:     rgba(255, 255, 255, 0.12);
+      --color-surface-container-highest:  rgba(255, 255, 255, 0.16);
+      /* === 文字 === */
+      --color-on-surface:           #F7FAFF;
+      --color-on-surface-variant:   #9AA7C7;
+      /* === 功能色 === */
+      --color-success:  #62FAD3;
+      --color-error:    #FF6B8A;
+      --color-warning:  #FFD166;
+      /* === 边框 === */
+      --color-outline:          rgba(255, 255, 255, 0.12);
+      --color-outline-variant:  rgba(255, 255, 255, 0.08);
+      /* === 圆角 === */
+      --radius-sm:   0.375rem;
+      --radius-md:   0.5rem;
+      --radius-lg:   0.75rem;
+      --radius-xl:   1rem;
+      --radius-2xl:  1.5rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-float:  0 10px 25px rgba(0, 0, 0, 0.4);
+      --shadow-dialog: 0 25px 50px rgba(0, 0, 0, 0.5);
+      /* === 字体 === */
+      --font-sans: "Inter", system-ui, sans-serif;
+    }
+
+    /* 毛玻璃效果 */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-hover:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    /* 渐变背景动画 */
+    @keyframes gradientDrift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .bg-gradient-animate {
+      background: linear-gradient(-45deg, #070A14, #1A1F3A, #0F172A, #070A14);
+      background-size: 400% 400%;
+      animation: gradientDrift 20s ease infinite;
+    }
+
+    /* 发光效果 */
+    .glow-primary {
+      box-shadow: 0 0 20px rgba(124, 92, 255, 0.3);
+    }
+
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(105, 231, 255, 0.3);
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-gradient-animate text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件，不需要的页面则不要复制此段（从 @nav:start 到 @nav:end） -->
+  <header class="glass sticky top-0 z-40 h-16 flex items-center justify-between px-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-cyan-400 flex items-center justify-center glow-primary">
+        <i data-lucide="book-open" class="text-white w-5 h-5"></i>
+      </div>
+      <span class="font-bold text-xl bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">小说工坊</span>
+    </div>
+  </header>
+
+  <div class="flex" style="height: calc(100vh - 4rem)">
+    <aside class="w-64 shrink-0 glass overflow-y-auto p-4">
+      <div class="space-y-1">
+        <a href="home.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          仪表板
+        </a>
+        <a href="chapters.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          章节管理
+        </a>
+        <a href="characters.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          角色设定
+        </a>
+        <a href="scenes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/20 text-primary font-medium text-sm glass-hover transition-all"
+           aria-current="page">
+          <i data-lucide="map" class="w-4 h-4"></i>
+          场景设定
+        </a>
+        <a href="editor.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-medium text-sm glass-hover transition-all">
+          <i data-lucide="edit" class="w-4 h-4"></i>
+          小说编辑
+        </a>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-outline-variant/20">
+        <button class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary to-cyan-500 text-white font-medium text-sm hover:opacity-90 transition-opacity glow-primary">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          导出小说
+        </button>
+      </div>
+    </aside>
+    <!-- @nav:end 导航组件，不需要的页面则不要复制此段 -->
+
+    <!-- @main-content:start -->
+    <main class="flex-1 min-w-0 overflow-y-auto p-8">
+      
+      <!-- 页面标题和操作区 -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-on-surface">场景设定</h1>
+          <p class="text-sm text-on-surface-variant mt-1">管理故事中的所有场景</p>
+        </div>
+        <button id="btn-new-scene" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>新建场景
+        </button>
+      </div>
+
+      <!-- 场景列表 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- 场景卡片1 -->
+        <div class="glass rounded-xl p-5 glass-hover transition-all">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-base font-semibold text-on-surface">青云客栈</h3>
+            <div class="flex items-center gap-2">
+              <button class="scene-btn-edit text-on-surface-variant hover:text-primary transition-colors" data-id="1">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button class="scene-btn-delete text-on-surface-variant hover:text-error transition-colors" data-id="1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+            <span class="text-sm text-on-surface-variant">江南水乡 · 青石镇</span>
+          </div>
+          <p class="text-sm text-on-surface mb-4 line-clamp-3">小镇中心的百年老店，来往客商络绎不绝。店内陈设古朴，二楼设有雅间，是江湖人物密谈的绝佳场所。</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/15 text-primary">古风</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-warning/15 text-warning">热闹</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">神秘</span>
+          </div>
+          <button class="scene-btn-view text-primary text-sm font-medium hover:underline w-fit" data-id="1">查看详情</button>
+        </div>
+
+        <!-- 场景卡片2 -->
+        <div class="glass rounded-xl p-5 glass-hover transition-all">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-base font-semibold text-on-surface">绝情谷底</h3>
+            <div class="flex items-center gap-2">
+              <button class="scene-btn-edit text-on-surface-variant hover:text-primary transition-colors" data-id="2">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button class="scene-btn-delete text-on-surface-variant hover:text-error transition-colors" data-id="2">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+            <span class="text-sm text-on-surface-variant">深山 · 绝情谷</span>
+          </div>
+          <p class="text-sm text-on-surface mb-4 line-clamp-3">深不见底的峡谷，终年云雾缭绕。谷底有一汪寒潭，潭边长满了奇异的白色花朵。传闻这里曾是一对恋人殉情之地。</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/15 text-primary">古风</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">悲伤</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-on-surface-variant/15 text-on-surface-variant">幽静</span>
+          </div>
+          <button class="scene-btn-view text-primary text-sm font-medium hover:underline w-fit" data-id="2">查看详情</button>
+        </div>
+
+        <!-- 场景卡片3 -->
+        <div class="glass rounded-xl p-5 glass-hover transition-all">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-base font-semibold text-on-surface">星空号甲板</h3>
+            <div class="flex items-center gap-2">
+              <button class="scene-btn-edit text-on-surface-variant hover:text-primary transition-colors" data-id="3">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button class="scene-btn-delete text-on-surface-variant hover:text-error transition-colors" data-id="3">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+            <span class="text-sm text-on-surface-variant">太空 · 星际飞船</span>
+          </div>
+          <p class="text-sm text-on-surface mb-4 line-clamp-3">宇宙飞船的观景甲板，360度全景舷窗展示着浩瀚星空。偶尔有流星划过，留下长长的光尾。这里是船员们放松心情的地方。</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/15 text-primary">科幻</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-400/15 text-cyan-400">浪漫</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-success/15 text-success">希望</span>
+          </div>
+          <button class="scene-btn-view text-primary text-sm font-medium hover:underline w-fit" data-id="3">查看详情</button>
+        </div>
+
+        <!-- 场景卡片4 -->
+        <div class="glass rounded-xl p-5 glass-hover transition-all">
+          <div class="flex items-start justify-between mb-4">
+            <h3 class="text-base font-semibold text-on-surface">古堡密室</h3>
+            <div class="flex items-center gap-2">
+              <button class="scene-btn-edit text-on-surface-variant hover:text-primary transition-colors" data-id="4">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button class="scene-btn-delete text-on-surface-variant hover:text-error transition-colors" data-id="4">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+            <span class="text-sm text-on-surface-variant">欧洲 · 暗夜古堡</span>
+          </div>
+          <p class="text-sm text-on-surface mb-4 line-clamp-3">古堡地下的秘密房间，墙壁上挂满了古老的画像。烛光摇曳，照亮了中央的石棺。空气中弥漫着陈旧的气息。</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/15 text-primary">魔幻</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-error/15 text-error">恐怖</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-on-surface-variant/15 text-on-surface-variant">紧张</span>
+          </div>
+          <button class="scene-btn-view text-primary text-sm font-medium hover:underline w-fit" data-id="4">查看详情</button>
+        </div>
+
+      </div>
+
+      <!-- 新建/编辑场景模态框 -->
+      <div id="scene-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass rounded-xl shadow-dialog max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 id="modal-title" class="text-lg font-semibold text-on-surface">新建场景</h3>
+            <button id="btn-close-modal" class="text-on-surface-variant hover:text-on-surface transition-colors">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <form id="scene-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1.5">场景名称</label>
+              <input id="input-scene-name" type="text" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" placeholder="输入场景名称">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1.5">地点</label>
+              <input id="input-scene-location" type="text" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" placeholder="输入地点">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1.5">氛围标签（用逗号分隔）</label>
+              <input id="input-scene-tags" type="text" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" placeholder="如：古风,神秘,热闹">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1.5">场景描述</label>
+              <textarea id="input-scene-description" rows="4" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors resize-none" placeholder="输入场景描述"></textarea>
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-4">
+              <button type="button" id="btn-cancel" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">取消</button>
+              <button type="submit" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all">保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 删除确认模态框 -->
+      <div id="delete-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass rounded-xl shadow-dialog max-w-md w-full p-6">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-full bg-error/20 flex items-center justify-center">
+              <i data-lucide="alert-triangle" class="w-6 h-6 text-error"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-on-surface">确认删除</h3>
+              <p class="text-sm text-on-surface-variant">此操作不可撤销，确定要删除这个场景吗？</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-3">
+            <button id="btn-cancel-delete" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">取消</button>
+            <button id="btn-confirm-delete" class="bg-error text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all">删除</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+    <!-- @main-content:end -->
+  </div>
+
+  <script>
+    $(function() {
+      lucide.createIcons();
+      
+      let currentEditId = null;
+      let currentDeleteId = null;
+
+      // 新建场景按钮
+      $('#btn-new-scene').on('click', function() {
+        currentEditId = null;
+        $('#modal-title').text('新建场景');
+        $('#scene-form')[0].reset();
+        $('#scene-modal').removeClass('hidden');
+      });
+
+      // 关闭模态框
+      $('#btn-close-modal, #btn-cancel').on('click', function() {
+        $('#scene-modal').addClass('hidden');
+      });
+
+      // 编辑场景按钮
+      $('.scene-btn-edit').on('click', function() {
+        currentEditId = $(this).data('id');
+        $('#modal-title').text('编辑场景');
+        // 模拟填充数据 - 实际应根据id获取对应数据
+        $('#input-scene-name').val('青云客栈');
+        $('#input-scene-location').val('江南水乡 · 青石镇');
+        $('#input-scene-tags').val('古风,热闹,神秘');
+        $('#input-scene-description').val('小镇中心的百年老店，来往客商络绎不绝。店内陈设古朴，二楼设有雅间，是江湖人物密谈的绝佳场所。');
+        $('#scene-modal').removeClass('hidden');
+      });
+
+      // 表单提交
+      $('#scene-form').on('submit', function(e) {
+        e.preventDefault();
+        console.log('保存场景:', currentEditId ? '编辑' : '新建');
+        $('#scene-modal').addClass('hidden');
+      });
+
+      // 删除场景按钮
+      $('.scene-btn-delete').on('click', function() {
+        currentDeleteId = $(this).data('id');
+        $('#delete-modal').removeClass('hidden');
+      });
+
+      // 取消删除
+      $('#btn-cancel-delete').on('click', function() {
+        $('#delete-modal').addClass('hidden');
+      });
+
+      // 确认删除
+      $('#btn-confirm-delete').on('click', function() {
+        console.log('删除场景:', currentDeleteId);
+        $('#delete-modal').addClass('hidden');
+      });
+
+      // 查看场景详情
+      $('.scene-btn-view').on('click', function() {
+        const sceneId = $(this).data('id');
+        console.log('查看场景详情:', sceneId);
+      });
+    });
+  </script>
+</body>
+
+</html>
