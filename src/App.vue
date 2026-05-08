@@ -11,7 +11,7 @@ onMounted(() => {
 
 // Expose pushToRemote so store can trigger remote sync after saves
 if (typeof window !== 'undefined') {
-  (window as Record<string, unknown>).__pushToRemote = pushToRemote;
+  (window as unknown as Record<string, unknown>).__pushToRemote = pushToRemote;
 }
 </script>
 

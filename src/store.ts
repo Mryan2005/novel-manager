@@ -61,7 +61,7 @@ function saveToStorage() {
     localStorage.setItem(TIMESTAMP_KEY, Date.now().toString());
     // Try to push to paired domain
     try {
-      const win = window as Record<string, unknown>;
+      const win = window as unknown as Record<string, unknown>;
       if (typeof win.__pushToRemote === 'function') {
         (win.__pushToRemote as (data: string) => void)(json);
       }
