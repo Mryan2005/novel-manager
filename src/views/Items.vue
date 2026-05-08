@@ -142,7 +142,7 @@ const form = ref({ name: '', type: '武器', description: '', owner: '', abiliti
 const filteredItems = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return items.value;
-  return items.value.filter(i =>
+  return items.value.filter((i: Item) =>
     i.name.toLowerCase().includes(q) ||
     i.type.toLowerCase().includes(q) ||
     i.description.toLowerCase().includes(q) ||

@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue';
-import type { Novel, Volume, Chapter, Character, Scene } from './types';
+import type { Novel, Volume, Chapter, Character, Scene, Item } from './types';
 
 const STORAGE_KEY = 'novel-workshop-data';
 const TIMESTAMP_KEY = 'novel-workshop-timestamp';
@@ -100,6 +100,7 @@ export const useStore = () => {
 
   const characters = computed(() => state.novel.characters);
   const scenes = computed(() => state.novel.scenes);
+  const items = computed(() => state.novel.items);
   const currentChapter = computed(() => 
     state.novel.chapters.find(c => c.id === state.currentChapterId)
   );
@@ -565,6 +566,7 @@ export const useStore = () => {
     chapters,
     characters,
     scenes,
+    items,
     currentChapter,
     setNovelTitle,
     addVolume,

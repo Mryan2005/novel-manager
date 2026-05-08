@@ -35,7 +35,7 @@
           icon="Package"
           :value="totalItems"
           label="物品数量"
-          color="warning"
+          color="accent"
         />
       </div>
 
