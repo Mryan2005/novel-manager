@@ -4,6 +4,14 @@
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
           <select
+            v-if="currentChapter"
+            :value="currentChapter.volumeId"
+            @change="changeChapterVolume(($event.target as HTMLSelectElement).value)"
+            class="input w-36"
+          >
+            <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
+          </select>
+          <select
             v-model="selectedChapterId"
             @change="onChapterChange"
             class="input w-72"
@@ -339,5 +347,10 @@ const confirmCreateChapter = () => {
   showNewChapterModal.value = false;
   selectedChapterId.value = newChapter.id;
   router.push(`/editor/${newChapter.id}`);
+};
+
+const changeChapterVolume = (volumeId: string) => {
+  if (!selectedChapterId.value) return;
+  updateChapter(selectedChapterId.value, { volumeId });
 };
 </script>

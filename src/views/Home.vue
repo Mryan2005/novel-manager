@@ -6,7 +6,7 @@
         <p class="text-[var(--text-light)] text-lg">继续你的创作之旅</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatCard 
           icon="FileText" 
           :value="totalChapters" 
@@ -25,11 +25,17 @@
           label="角色数量" 
           color="accent"
         />
-        <StatCard 
-          icon="Map" 
-          :value="totalScenes" 
-          label="场景数量" 
+        <StatCard
+          icon="Map"
+          :value="totalScenes"
+          label="场景数量"
           color="success"
+        />
+        <StatCard
+          icon="Package"
+          :value="totalItems"
+          label="物品数量"
+          color="warning"
         />
       </div>
 
@@ -79,7 +85,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { FileText, Type, Users, Map, Edit, Plus, UserPlus, ChevronRight } from 'lucide-vue-next';
+import { FileText, Type, Users, Map, Package, Edit, Plus, UserPlus, ChevronRight } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import StatCard from '../components/StatCard.vue';
 import { useStore } from '../store';
@@ -90,7 +96,8 @@ const {
   totalChapters, 
   totalWords, 
   totalCharacters, 
-  totalScenes, 
+  totalScenes,
+  totalItems,
   chapters,
   setCurrentChapter 
 } = useStore();

@@ -40,6 +40,10 @@ function loadFromStorage(): Novel {
           if (!c.tags) c.tags = [];
         });
       }
+      // Backward compat: ensure items exists
+      if (!novel.items || !Array.isArray(novel.items)) {
+        novel.items = [];
+      }
       return novel;
     }
   } catch (e) {
@@ -51,6 +55,7 @@ function loadFromStorage(): Novel {
     chapters: [],
     characters: [],
     scenes: [],
+    items: [],
   };
 }
 
@@ -83,6 +88,7 @@ export const useStore = () => {
   );
   const totalCharacters = computed(() => state.novel.characters.length);
   const totalScenes = computed(() => state.novel.scenes.length);
+  const totalItems = computed(() => state.novel.items.length);
 
   const volumes = computed(() =>
     [...state.novel.volumes].sort((a, b) => a.order - b.order)
@@ -262,6 +268,34 @@ export const useStore = () => {
     }
   }
 
+  // === Item CRUD ===
+  function addItem(item: Omit<Item, 'id' | 'createdAt'>) {
+    const newItem: Item = {
+      ...item,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.items.push(newItem);
+    saveToStorage();
+    return newItem;
+  }
+
+  function updateItem(id: string, updates: Partial<Item>) {
+    const index = state.novel.items.findIndex(i => i.id === id);
+    if (index !== -1) {
+      state.novel.items[index] = { ...state.novel.items[index], ...updates } as Item;
+      saveToStorage();
+    }
+  }
+
+  function deleteItem(id: string) {
+    const index = state.novel.items.findIndex(i => i.id === id);
+    if (index !== -1) {
+      state.novel.items.splice(index, 1);
+      saveToStorage();
+    }
+  }
+
   function exportToTxt(): string {
     let content = `# ${state.novel.title}\n\n`;
     content += `## 角色设定\n\n`;
@@ -287,6 +321,18 @@ export const useStore = () => {
       content += `- 描述: ${scene.description}\n`;
       if (scene.atmosphere.length > 0) {
         content += `- 氛围: ${scene.atmosphere.join(', ')}\n`;
+      }
+      content += '\n';
+    });
+
+    content += `## 物品设定\n\n`;
+    state.novel.items.forEach(item => {
+      content += `### ${item.name}\n`;
+      content += `- 类型: ${item.type}\n`;
+      if (item.owner) content += `- 所属: ${item.owner}\n`;
+      content += `- 描述: ${item.description}\n`;
+      if (item.abilities.length > 0) {
+        content += `- 能力: ${item.abilities.join(', ')}\n`;
       }
       content += '\n';
     });
@@ -344,6 +390,7 @@ export const useStore = () => {
         chapters: Array.isArray(data.chapters) ? data.chapters : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
+        items: Array.isArray(data.items) ? data.items : [],
       };
       saveToStorage();
       return true;
@@ -468,6 +515,7 @@ export const useStore = () => {
         chapters: Array.isArray(entry.data.chapters) ? entry.data.chapters : [],
         characters: Array.isArray(entry.data.characters) ? entry.data.characters : [],
         scenes: Array.isArray(entry.data.scenes) ? entry.data.scenes : [],
+        items: Array.isArray(entry.data.items) ? entry.data.items : [],
       };
       saveToStorage();
       return true;
@@ -496,6 +544,7 @@ export const useStore = () => {
         chapters: Array.isArray(data.chapters) ? data.chapters : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
+        items: Array.isArray(data.items) ? data.items : [],
       };
       saveToStorage();
       return true;
@@ -511,6 +560,7 @@ export const useStore = () => {
     totalWords,
     totalCharacters,
     totalScenes,
+    totalItems,
     volumes,
     chapters,
     characters,
@@ -532,6 +582,9 @@ export const useStore = () => {
     addScene,
     updateScene,
     deleteScene,
+    addItem,
+    updateItem,
+    deleteItem,
     exportToTxt,
     downloadTxt,
     exportToJson,

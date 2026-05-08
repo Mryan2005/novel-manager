@@ -39,10 +39,21 @@ export interface Scene {
   createdAt: string;
 }
 
+export interface Item {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  owner: string;
+  abilities: string[];
+  createdAt: string;
+}
+
 export interface Novel {
   title: string;
   volumes: Volume[];
   chapters: Chapter[];
   characters: Character[];
   scenes: Scene[];
+  items: Item[];
 }

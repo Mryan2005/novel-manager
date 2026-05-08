@@ -163,10 +163,9 @@
           {{ editingChapter ? '编辑章节' : '新建章节' }}
         </h2>
         <div class="space-y-5">
-          <div v-if="!editingChapter && chapterForm.volumeId === ''">
+          <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
             <select v-model="chapterForm.volumeId" class="input">
-              <option value="" disabled>选择卷</option>
               <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
             </select>
           </div>
@@ -396,6 +395,7 @@ const saveChapter = () => {
     updateChapter(editingChapter.value.id, {
       title: chapterForm.value.title,
       status: chapterForm.value.status,
+      volumeId: chapterForm.value.volumeId,
     });
   } else {
     const vid = chapterForm.value.volumeId || volumes.value[0]?.id;

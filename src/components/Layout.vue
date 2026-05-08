@@ -84,6 +84,14 @@
             场景设定
           </router-link>
           <router-link
+            to="/items"
+            class="nav-link"
+            :class="$route.path === '/items' ? 'nav-link-active' : ''"
+          >
+            <Package class="w-5 h-5" />
+            物品设定
+          </router-link>
+          <router-link
             to="/editor"
             class="nav-link"
             :class="$route.path.startsWith('/editor') ? 'nav-link-active' : ''"
@@ -103,7 +111,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Edit, Download, Upload, ChevronDown, FileJson } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson } from 'lucide-vue-next';
 import { useStore } from '../store';
 
 const { downloadTxt, downloadJson, importFromFile } = useStore();
