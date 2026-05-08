@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storage Bridge</title>
+</head>
+<body>
+  <script>
+    var STORAGE_KEY = 'novel-workshop-data';
+    var TIMESTAMP_KEY = 'novel-workshop-timestamp';
+
+    var allowedOrigins = [
+      'https://novelmanager.mryan2005.top',
+      'https://novel-manager.mryan2005.top',
+      'http://localhost:5173',
+      'http://localhost:4173'
+    ];
+
+    window.addEventListener('message', function(event) {
+      if (allowedOrigins.indexOf(event.origin) === -1) return;
+
+      var msg = event.data;
+      if (!msg || !msg.action) return;
+
+      switch (msg.action) {
+        case 'get':
+          var data = localStorage.getItem(STORAGE_KEY);
+          var timestamp = localStorage.getItem(TIMESTAMP_KEY);
+          event.source.postMessage({
+            action: 'get-response',
+            data: data,
+            timestamp: timestamp
+          }, event.origin);
+          break;
+
+        case 'set':
+          if (msg.data) {
+            localStorage.setItem(STORAGE_KEY, msg.data);
+            localStorage.setItem(TIMESTAMP_KEY, msg.timestamp || Date.now().toString());
+          }
+          event.source.postMessage({ action: 'set-response', success: true }, event.origin);
+          break;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ import { reactive, computed } from 'vue';
 import type { Novel, Volume, Chapter, Character, Scene } from './types';
 
 const STORAGE_KEY = 'novel-workshop-data';
+const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DRAFT_PREFIX = 'novel-draft-';
 const BACKUP_PREFIX = 'novel-backup-';
 const MAX_BACKUPS = 5;
@@ -55,7 +56,16 @@ function loadFromStorage(): Novel {
 
 function saveToStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.novel));
+    const json = JSON.stringify(state.novel);
+    localStorage.setItem(STORAGE_KEY, json);
+    localStorage.setItem(TIMESTAMP_KEY, Date.now().toString());
+    // Try to push to paired domain
+    try {
+      const win = window as Record<string, unknown>;
+      if (typeof win.__pushToRemote === 'function') {
+        (win.__pushToRemote as (data: string) => void)(json);
+      }
+    } catch { /* cross-domain push is best-effort */ }
   } catch (e) {
     console.error('Failed to save data:', e);
   }
@@ -128,6 +138,18 @@ export const useStore = () => {
       state.novel.volumes.forEach((v, i) => { v.order = i; });
       saveToStorage();
     }
+  }
+
+  function moveVolume(id: string, direction: number) {
+    const sorted = [...state.novel.volumes].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(v => v.id === id);
+    if (idx === -1) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= sorted.length) return;
+    const target = sorted[newIdx]!;
+    const current = sorted[idx]!;
+    updateVolume(current.id, { order: target.order });
+    updateVolume(target.id, { order: current.order });
   }
 
   function getChaptersByVolume(volumeId: string): Chapter[] {
@@ -459,6 +481,30 @@ export const useStore = () => {
     localStorage.removeItem(BACKUP_PREFIX + id);
   }
 
+  // === Cross-domain sync ===
+  function getDataForSync(): string {
+    return JSON.stringify(state.novel);
+  }
+
+  function setDataFromSync(json: string): boolean {
+    try {
+      const data = JSON.parse(json);
+      if (!data || typeof data !== 'object') return false;
+      state.novel = {
+        title: data.title || '我的小说',
+        volumes: Array.isArray(data.volumes) ? data.volumes : [],
+        chapters: Array.isArray(data.chapters) ? data.chapters : [],
+        characters: Array.isArray(data.characters) ? data.characters : [],
+        scenes: Array.isArray(data.scenes) ? data.scenes : [],
+      };
+      saveToStorage();
+      return true;
+    } catch (e) {
+      console.error('Failed to sync data from remote:', e);
+      return false;
+    }
+  }
+
   return {
     novel: computed(() => state.novel),
     totalChapters,
@@ -474,6 +520,7 @@ export const useStore = () => {
     addVolume,
     updateVolume,
     deleteVolume,
+    moveVolume,
     getChaptersByVolume,
     addChapter,
     updateChapter,
@@ -498,5 +545,7 @@ export const useStore = () => {
     listBackups,
     restoreBackup,
     deleteBackup,
+    getDataForSync,
+    setDataFromSync,
   };
 };

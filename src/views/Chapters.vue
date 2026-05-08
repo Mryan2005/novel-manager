@@ -60,6 +60,24 @@
                 <Plus class="w-4 h-4" />
               </button>
               <button
+                v-if="volumes.length > 1"
+                @click="moveVolume(volume.id, -1)"
+                :disabled="volume.order === 0"
+                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                title="上移卷"
+              >
+                <ChevronUp class="w-4 h-4" />
+              </button>
+              <button
+                v-if="volumes.length > 1"
+                @click="moveVolume(volume.id, 1)"
+                :disabled="volume.order === volumes.length - 1"
+                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                title="下移卷"
+              >
+                <ChevronDown class="w-4 h-4" />
+              </button>
+              <button
                 @click="openEditVolume(volume)"
                 class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-colors"
                 title="编辑卷名"
@@ -84,7 +102,8 @@
             <div
               v-for="chapter in getVolumeChapters(volume.id)"
               :key="chapter.id"
-              class="p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors"
+              @click="goToEditor(chapter.id)"
+              class="p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors cursor-pointer"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -102,16 +121,16 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-1">
-                  <button @click="editChapter(chapter)" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
+                  <button @click.stop="editChapter(chapter)" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
                     <Edit class="w-4 h-4" />
                   </button>
-                  <button @click="moveChapter(chapter, -1)" :disabled="chapter.order === 0" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="上移">
+                  <button @click.stop="moveChapter(chapter, -1)" :disabled="chapter.order === 0" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="上移">
                     <ChevronUp class="w-4 h-4" />
                   </button>
-                  <button @click="moveChapter(chapter, 1)" :disabled="chapter.order === getVolumeChapterCount(chapter.volumeId) - 1" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="下移">
+                  <button @click.stop="moveChapter(chapter, 1)" :disabled="chapter.order === getVolumeChapterCount(chapter.volumeId) - 1" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="下移">
                     <ChevronDown class="w-4 h-4" />
                   </button>
-                  <button @click="confirmDeleteChapter(chapter)" class="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
+                  <button @click.stop="confirmDeleteChapter(chapter)" class="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
                     <Trash2 class="w-4 h-4" />
                   </button>
                 </div>
@@ -222,6 +241,7 @@ import type { Chapter, Volume } from '../types';
 const router = useRouter();
 const {
   volumes, chapters, addVolume, updateVolume, deleteVolume: deleteVolumeFromStore,
+  moveVolume,
   addChapter, updateChapter, deleteChapter: deleteChapterFromStore, setCurrentChapter
 } = useStore();
 
@@ -274,6 +294,10 @@ const toggleVolume = (id: string) => {
   } else {
     expandedVolumes.value.add(id);
   }
+};
+
+const goToEditor = (chapterId: string) => {
+  router.push(`/editor/${chapterId}`);
 };
 
 const formatDate = (dateStr: string): string => {
