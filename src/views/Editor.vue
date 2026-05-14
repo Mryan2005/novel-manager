@@ -84,7 +84,7 @@
         </div>
 
         <div class="w-80 shrink-0">
-          <div class="card p-8 h-full">
+          <div class="card pad-8 h-full">
             <button 
               @click="showSidebar = !showSidebar"
               class="flex items-center justify-between w-full text-[var(--text)] font-semibold mb-5"
@@ -109,12 +109,12 @@
                   <div 
                     v-for="char in characters" 
                     :key="char.id"
-                    class="p-3.5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+                    class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
                   >
                     <div class="font-semibold text-[var(--text)]">{{ char.name }}</div>
                     <div class="text-[var(--text-muted)] text-xs mt-1">{{ char.role }}</div>
                   </div>
-                  <div v-if="characters.length === 0" class="text-[var(--text-muted)] text-sm p-3.5">
+                  <div v-if="characters.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">
                     还没有角色
                   </div>
                 </div>
@@ -129,12 +129,12 @@
                   <div 
                     v-for="scene in scenes" 
                     :key="scene.id"
-                    class="p-3.5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+                    class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
                   >
                     <div class="font-semibold text-[var(--text)]">{{ scene.name }}</div>
                     <div class="text-[var(--text-muted)] text-xs mt-1">{{ scene.location }}</div>
                   </div>
-                  <div v-if="scenes.length === 0" class="text-[var(--text-muted)] text-sm p-3.5">
+                  <div v-if="scenes.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">
                     还没有场景
                   </div>
                 </div>
@@ -146,8 +146,8 @@
     </div>
 
     <!-- 新建章节模态框 -->
-    <div v-if="showNewChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showNewChapterModal = false">
-      <div class="card w-full max-w-md p-8">
+    <div v-if="showNewChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showNewChapterModal = false">
+      <div class="card w-full max-w-md pad-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">新建章节</h2>
         <div class="space-y-5">
           <div>

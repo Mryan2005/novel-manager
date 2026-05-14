@@ -56,12 +56,12 @@
         </button>
       </div>
 
-      <div v-if="filteredCharacters.length === 0 && characters.length > 0" class="card p-12 text-center">
+      <div v-if="filteredCharacters.length === 0 && characters.length > 0" class="card pad-12 text-center">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
         <p class="text-[var(--text-light)]">没有匹配的角色</p>
       </div>
 
-      <div v-else-if="characters.length === 0" class="card p-12 text-center">
+      <div v-else-if="characters.length === 0" class="card pad-12 text-center">
         <Users class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有角色</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个角色，让你的故事更生动</p>
@@ -71,7 +71,7 @@
         <div
           v-for="char in filteredCharacters"
           :key="char.id"
-          class="card p-8"
+          class="card pad-8"
         >
           <div class="flex items-start gap-4">
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0" style="background: var(--primary-gradient);">
@@ -115,14 +115,14 @@
           <div class="flex items-center justify-end gap-2 mt-5 pt-5 border-t border-[var(--border-light)]">
             <button
               @click="editCharacter(char)"
-              class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
+              class="pad-2-5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
               title="编辑"
             >
               <Edit class="w-5 h-5" />
             </button>
             <button
               @click="confirmDelete(char)"
-              class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
+              class="pad-2-5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
               title="删除"
             >
               <Trash2 class="w-5 h-5" />
@@ -133,8 +133,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full max-w-lg p-8 my-8">
+    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeModal">
+      <div class="card w-full max-w-lg pad-8 my-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑角色' : '新建角色' }}
         </h2>
@@ -212,8 +212,8 @@
     </div>
 
     <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteModal = false">
-      <div class="card w-full max-w-sm p-8">
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteModal = false">
+      <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
             <Trash2 class="w-8 h-8 text-[var(--error)]" />

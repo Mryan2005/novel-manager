@@ -60,7 +60,7 @@
         />
       </div>
 
-      <div v-if="recentChapters.length > 0" class="card p-8 recent-panel">
+      <div v-if="recentChapters.length > 0" class="card pad-8 recent-panel">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold text-[var(--text)]">最近编辑</h2>
         </div>
@@ -68,7 +68,7 @@
           <div 
             v-for="chapter in recentChapters" 
             :key="chapter.id"
-            class="recent-item flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all group"
+            class="recent-item flex items-center justify-between pad-4 rounded-xl cursor-pointer transition-all group"
             @click="editChapter(chapter.id)"
           >
             <div class="flex items-center gap-4">

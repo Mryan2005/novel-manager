@@ -284,3 +284,15 @@ select.input {
   background: var(--surface-alt);
   color: var(--text);
 }
+
+/* === Spacing utilities (semantic replacement for p-*) === */
+.pad-1 { padding: 0.25rem; }
+.pad-2 { padding: 0.5rem; }
+.pad-2-5 { padding: 0.625rem; }
+.pad-3-5 { padding: 0.875rem; }
+.pad-4 { padding: 1rem; }
+.pad-5 { padding: 1.25rem; }
+.pad-6 { padding: 1.5rem; }
+.pad-8 { padding: 2rem; }
+.pad-10 { padding: 2.5rem; }
+.pad-12 { padding: 3rem; }

@@ -21,18 +21,18 @@
         共找到 {{ totalCount }} 条结果
       </div>
 
-      <div v-if="query.trim() && totalCount === 0" class="card p-12 text-center">
+      <div v-if="query.trim() && totalCount === 0" class="card pad-12 text-center">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
         <p class="text-[var(--text-light)]">没有找到匹配内容</p>
       </div>
 
-      <div v-if="results.chapters.length > 0" class="card p-6">
+      <div v-if="results.chapters.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">章节（{{ results.chapters.length }}）</h2>
         <div class="space-y-3">
           <div
             v-for="chapter in results.chapters"
             :key="chapter.id"
-            class="p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 cursor-pointer"
+            class="pad-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 cursor-pointer"
             @click="goToChapter(chapter.id)"
           >
             <div class="font-semibold text-[var(--text)]">{{ chapter.title }}</div>
@@ -41,30 +41,30 @@
         </div>
       </div>
 
-      <div v-if="results.characters.length > 0" class="card p-6">
+      <div v-if="results.characters.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">角色（{{ results.characters.length }}）</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div v-for="character in results.characters" :key="character.id" class="p-4 rounded-xl border border-[var(--border)]">
+          <div v-for="character in results.characters" :key="character.id" class="pad-4 rounded-xl border border-[var(--border)]">
             <div class="font-semibold text-[var(--text)]">{{ character.name }} · {{ character.role }}</div>
             <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-3">{{ character.description || '（暂无描述）' }}</p>
           </div>
         </div>
       </div>
 
-      <div v-if="results.scenes.length > 0" class="card p-6">
+      <div v-if="results.scenes.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">场景（{{ results.scenes.length }}）</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div v-for="scene in results.scenes" :key="scene.id" class="p-4 rounded-xl border border-[var(--border)]">
+          <div v-for="scene in results.scenes" :key="scene.id" class="pad-4 rounded-xl border border-[var(--border)]">
             <div class="font-semibold text-[var(--text)]">{{ scene.name }} · {{ scene.location }}</div>
             <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-3">{{ scene.description || '（暂无描述）' }}</p>
           </div>
         </div>
       </div>
 
-      <div v-if="results.items.length > 0" class="card p-6">
+      <div v-if="results.items.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">物品（{{ results.items.length }}）</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div v-for="item in results.items" :key="item.id" class="p-4 rounded-xl border border-[var(--border)]">
+          <div v-for="item in results.items" :key="item.id" class="pad-4 rounded-xl border border-[var(--border)]">
             <div class="font-semibold text-[var(--text)]">{{ item.name }} · {{ item.type }}</div>
             <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-3">{{ item.description || '（暂无描述）' }}</p>
           </div>

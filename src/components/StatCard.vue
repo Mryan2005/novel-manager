@@ -1,5 +1,5 @@
 <template>
-  <div class="card p-8">
+  <div class="card pad-8">
     <div class="flex items-center justify-between">
       <div>
         <p class="text-3xl font-bold" :style="{ color: textColor }">{{ value }}</p>
