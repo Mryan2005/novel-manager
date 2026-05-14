@@ -117,9 +117,11 @@ export const useStore = () => {
       return EMPTY_SEARCH_RESULTS;
     }
 
+    const volumeTitleMap = new Map(state.novel.volumes.map(volume => [volume.id, volume.title]));
+
     const chapters = state.novel.chapters
       .filter((chapter) => {
-        const volumeTitle = state.novel.volumes.find(v => v.id === chapter.volumeId)?.title ?? '';
+        const volumeTitle = volumeTitleMap.get(chapter.volumeId) ?? '';
         return [
           chapter.title,
           chapter.content,
@@ -127,7 +129,9 @@ export const useStore = () => {
           volumeTitle,
         ].join(' ').toLowerCase().includes(keyword);
       })
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      .map(chapter => ({ chapter, updatedAtTs: Date.parse(chapter.updatedAt) || 0 }))
+      .sort((a, b) => b.updatedAtTs - a.updatedAtTs)
+      .map(({ chapter }) => chapter);
 
     const characters = state.novel.characters
       .filter((character) => {
