@@ -84,7 +84,7 @@ import { useStore } from '../store';
 const route = useRoute();
 const router = useRouter();
 const { fullTextSearch } = useStore();
-const MAX_PREVIEW_LENGTH = 200;
+const maxPreviewLength = 200;
 
 const query = ref(typeof route.query.q === 'string' ? route.query.q : '');
 const activeQuery = ref(query.value);
@@ -119,8 +119,8 @@ const goToChapter = (id: string) => {
 const previewText = (text: string) => {
   const cleanText = text.trim();
   if (!cleanText) return '（暂无正文）';
-  return cleanText.length > MAX_PREVIEW_LENGTH
-    ? `${cleanText.slice(0, MAX_PREVIEW_LENGTH)}...`
+  return cleanText.length > maxPreviewLength
+    ? `${cleanText.slice(0, maxPreviewLength)}...`
     : cleanText;
 };
 </script>

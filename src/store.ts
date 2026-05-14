@@ -111,6 +111,15 @@ export const useStore = () => {
     state.novel.chapters.find(c => c.id === state.currentChapterId)
   );
 
+  const parseSafeTimestamp = (dateString: string) => {
+    const ts = Date.parse(dateString);
+    return Number.isFinite(ts) ? ts : 0;
+  };
+
+  const sortByDateDesc = <T>(items: T[], getDate: (item: T) => string) => {
+    return [...items].sort((a, b) => parseSafeTimestamp(getDate(b)) - parseSafeTimestamp(getDate(a)));
+  };
+
   function fullTextSearch(query: string) {
     const keyword = query.trim().toLowerCase();
     if (!keyword) {
@@ -119,7 +128,8 @@ export const useStore = () => {
 
     const volumeTitleMap = new Map(state.novel.volumes.map(volume => [volume.id, volume.title]));
 
-    const chapters = state.novel.chapters
+    const chapters = sortByDateDesc(
+      state.novel.chapters
       .filter((chapter) => {
         const volumeTitle = volumeTitleMap.get(chapter.volumeId) ?? '';
         return [
@@ -128,10 +138,12 @@ export const useStore = () => {
           chapter.status,
           volumeTitle,
         ].join(' ').toLowerCase().includes(keyword);
-      })
-      .sort((a, b) => (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0));
+      }),
+      chapter => chapter.updatedAt
+    );
 
-    const characters = state.novel.characters
+    const characters = sortByDateDesc(
+      state.novel.characters
       .filter((character) => {
         return [
           character.name,
@@ -141,10 +153,12 @@ export const useStore = () => {
           character.traits.join(' '),
           character.tags.join(' '),
         ].join(' ').toLowerCase().includes(keyword);
-      })
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }),
+      character => character.createdAt
+    );
 
-    const scenes = state.novel.scenes
+    const scenes = sortByDateDesc(
+      state.novel.scenes
       .filter((scene) => {
         return [
           scene.name,
@@ -152,10 +166,12 @@ export const useStore = () => {
           scene.description,
           scene.atmosphere.join(' '),
         ].join(' ').toLowerCase().includes(keyword);
-      })
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }),
+      scene => scene.createdAt
+    );
 
-    const items = state.novel.items
+    const items = sortByDateDesc(
+      state.novel.items
       .filter((item) => {
         return [
           item.name,
@@ -164,8 +180,9 @@ export const useStore = () => {
           item.owner,
           item.abilities.join(' '),
         ].join(' ').toLowerCase().includes(keyword);
-      })
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }),
+      item => item.createdAt
+    );
 
     return { chapters, characters, scenes, items };
   }
