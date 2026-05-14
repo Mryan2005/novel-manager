@@ -8,15 +8,15 @@
           <p class="text-[var(--text-light)] text-lg mt-2">继续你的创作之旅</p>
         </div>
         <div class="hero-actions">
-          <button @click="goToEditor" class="btn btn-primary home-action-btn">
+          <button @click="goToEditor" class="btn btn-primary home-action-btn" aria-label="开始写作">
             <Edit class="w-4 h-4" />
             开始写作
           </button>
-          <button @click="goToChapters" class="btn btn-secondary home-action-btn">
+          <button @click="goToChapters" class="btn btn-secondary home-action-btn" aria-label="新建章节">
             <Plus class="w-4 h-4" />
             新建章节
           </button>
-          <button @click="goToCharacters" class="btn btn-secondary home-action-btn">
+          <button @click="goToCharacters" class="btn btn-secondary home-action-btn" aria-label="新建角色">
             <UserPlus class="w-4 h-4" />
             新建角色
           </button>
@@ -162,7 +162,8 @@ const editChapter = (id: string) => {
 .hero-banner {
   padding: 2rem;
   border-color: rgba(99, 102, 241, 0.15);
-  background: var(--hero-bg), var(--surface);
+  background-color: var(--surface);
+  background-image: var(--hero-bg);
   display: flex;
   gap: 1.5rem;
   justify-content: space-between;
