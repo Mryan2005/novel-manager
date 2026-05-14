@@ -6,7 +6,7 @@
         <p class="text-[var(--text-light)] mt-1 text-lg">搜索章节正文、角色描述、场景描述和物品信息</p>
       </div>
 
-      <div class="relative">
+      <div class="relative search-field-wrap">
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
         <input
           v-model="query"
@@ -21,7 +21,7 @@
         共找到 {{ totalCount }} 条结果
       </div>
 
-      <div v-if="query.trim() && totalCount === 0" class="card pad-12 text-center">
+      <div v-if="query.trim() && totalCount === 0" class="card pad-12 text-center empty-state-card">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
         <p class="text-[var(--text-light)]">没有找到匹配内容</p>
       </div>

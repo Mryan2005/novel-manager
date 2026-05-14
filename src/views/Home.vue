@@ -23,11 +23,11 @@
         </div>
       </section>
 
-      <div>
+      <div class="mb-1">
         <h2 class="section-title">创作概览</h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
         <StatCard 
           icon="FileText" 
           :value="totalChapters" 

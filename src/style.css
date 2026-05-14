@@ -289,6 +289,16 @@ select.input {
   color: var(--text);
 }
 
+.search-field-wrap {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.empty-state-card {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+}
+
 /* === Spacing utilities (semantic replacement for p-*) === */
 .pad-1 { padding: 0.25rem; }
 .pad-2 { padding: 0.5rem; }

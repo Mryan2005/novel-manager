@@ -18,7 +18,7 @@
         </div>
       </div>
 
-      <div class="relative">
+      <div class="relative search-field-wrap">
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
         <input
           v-model="searchQuery"
@@ -28,7 +28,7 @@
         />
       </div>
 
-      <div v-if="volumes.length === 0" class="card pad-12 text-center">
+      <div v-if="volumes.length === 0" class="card pad-12 text-center empty-state-card">
         <FileText class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有卷和章节</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">先创建一个卷，然后在卷中添加章节</p>

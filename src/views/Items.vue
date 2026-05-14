@@ -12,17 +12,17 @@
         </button>
       </div>
 
-      <div class="relative">
+      <div class="relative search-field-wrap">
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
         <input v-model="searchQuery" type="text" class="input input-with-left-icon" placeholder="搜索物品名称、类型、描述..." />
       </div>
 
-      <div v-if="filteredItems.length === 0 && items.length > 0" class="card pad-12 text-center">
+      <div v-if="filteredItems.length === 0 && items.length > 0" class="card pad-12 text-center empty-state-card">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
         <p class="text-[var(--text-light)]">没有匹配的物品</p>
       </div>
 
-      <div v-else-if="items.length === 0" class="card pad-12 text-center">
+      <div v-else-if="items.length === 0" class="card pad-12 text-center empty-state-card">
         <Package class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有物品</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">创建法宝、武器、丹药等物品设定</p>
