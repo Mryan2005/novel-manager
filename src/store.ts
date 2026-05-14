@@ -6,6 +6,12 @@ const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DRAFT_PREFIX = 'novel-draft-';
 const BACKUP_PREFIX = 'novel-backup-';
 const MAX_BACKUPS = 5;
+const EMPTY_SEARCH_RESULTS = Object.freeze({
+  chapters: [] as Chapter[],
+  characters: [] as Character[],
+  scenes: [] as Scene[],
+  items: [] as Item[],
+});
 
 function loadFromStorage(): Novel {
   try {
@@ -108,12 +114,7 @@ export const useStore = () => {
   function fullTextSearch(query: string) {
     const keyword = query.trim().toLowerCase();
     if (!keyword) {
-      return {
-        chapters: [] as Chapter[],
-        characters: [] as Character[],
-        scenes: [] as Scene[],
-        items: [] as Item[],
-      };
+      return EMPTY_SEARCH_RESULTS;
     }
 
     const chapters = state.novel.chapters
@@ -135,7 +136,6 @@ export const useStore = () => {
           character.role,
           character.description,
           character.gender,
-          String(character.age),
           character.traits.join(' '),
           character.tags.join(' '),
         ].join(' ').toLowerCase().includes(keyword);

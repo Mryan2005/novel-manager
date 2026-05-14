@@ -36,7 +36,7 @@
             @click="goToChapter(chapter.id)"
           >
             <div class="font-semibold text-[var(--text)]">{{ chapter.title }}</div>
-            <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-2">{{ chapter.content || '（暂无正文）' }}</p>
+            <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-2">{{ previewText(chapter.content) }}</p>
           </div>
         </div>
       </div>
@@ -109,5 +109,11 @@ const runSearch = () => {
 
 const goToChapter = (id: string) => {
   router.push(`/editor/${id}`);
+};
+
+const previewText = (text: string) => {
+  const cleanText = text.trim();
+  if (!cleanText) return '（暂无正文）';
+  return cleanText.length > 200 ? `${cleanText.slice(0, 200)}...` : cleanText;
 };
 </script>
