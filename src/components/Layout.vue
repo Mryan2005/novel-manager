@@ -8,6 +8,17 @@
         <span class="font-bold text-xl text-gradient">小说工坊</span>
       </div>
       <div class="flex items-center gap-3">
+        <div class="relative w-64">
+          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            v-model="globalSearchQuery"
+            type="text"
+            class="input pl-9 py-2"
+            placeholder="全文搜索..."
+            aria-label="全文搜索"
+            @keyup.enter="goToGlobalSearch"
+          />
+        </div>
         <div class="dropdown">
           <button
             @click="toggleDropdown"
@@ -92,6 +103,14 @@
             物品设定
           </router-link>
           <router-link
+            to="/search"
+            class="nav-link"
+            :class="$route.path === '/search' ? 'nav-link-active' : ''"
+          >
+            <Search class="w-5 h-5" />
+            全文搜索
+          </router-link>
+          <router-link
             to="/editor"
             class="nav-link"
             :class="$route.path.startsWith('/editor') ? 'nav-link-active' : ''"
@@ -110,16 +129,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson } from 'lucide-vue-next';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search } from 'lucide-vue-next';
 import { useStore } from '../store';
 
 const { downloadTxt, downloadJson, importFromFile } = useStore();
+const router = useRouter();
+const route = useRoute();
 
 const showDropdown = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const importMessage = ref('');
 const importSuccess = ref(false);
+const globalSearchQuery = ref('');
+
+watch(
+  () => route.query.q,
+  (value) => {
+    globalSearchQuery.value = typeof value === 'string' ? value : '';
+  },
+  { immediate: true }
+);
 
 const closeDropdown = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
@@ -147,6 +178,11 @@ const toggleDropdown = () => {
 
 const triggerImport = () => {
   fileInput.value?.click();
+};
+
+const goToGlobalSearch = () => {
+  const q = globalSearchQuery.value.trim();
+  router.push({ path: '/search', query: q ? { q } : {} });
 };
 
 const handleFileChange = async (e: Event) => {

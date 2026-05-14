@@ -6,6 +6,12 @@ const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DRAFT_PREFIX = 'novel-draft-';
 const BACKUP_PREFIX = 'novel-backup-';
 const MAX_BACKUPS = 5;
+const EMPTY_SEARCH_RESULTS = Object.freeze({
+  chapters: [] as Chapter[],
+  characters: [] as Character[],
+  scenes: [] as Scene[],
+  items: [] as Item[],
+});
 
 function loadFromStorage(): Novel {
   try {
@@ -104,6 +110,82 @@ export const useStore = () => {
   const currentChapter = computed(() => 
     state.novel.chapters.find(c => c.id === state.currentChapterId)
   );
+
+  const parseSafeTimestamp = (dateString: string) => {
+    const ts = Date.parse(dateString);
+    return Number.isFinite(ts) ? ts : 0;
+  };
+
+  const sortByDateDesc = <T>(items: T[], getDate: (item: T) => string) => {
+    return [...items].sort((a, b) => parseSafeTimestamp(getDate(b)) - parseSafeTimestamp(getDate(a)));
+  };
+
+  function fullTextSearch(query: string) {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) {
+      return EMPTY_SEARCH_RESULTS;
+    }
+
+    const volumeTitleMap = new Map(state.novel.volumes.map(volume => [volume.id, volume.title]));
+
+    const chapters = sortByDateDesc(
+      state.novel.chapters
+      .filter((chapter) => {
+        const volumeTitle = volumeTitleMap.get(chapter.volumeId) ?? '';
+        return [
+          chapter.title,
+          chapter.content,
+          chapter.status,
+          volumeTitle,
+        ].join(' ').toLowerCase().includes(keyword);
+      }),
+      chapter => chapter.updatedAt
+    );
+
+    const characters = sortByDateDesc(
+      state.novel.characters
+      .filter((character) => {
+        return [
+          character.name,
+          character.role,
+          character.description,
+          character.gender,
+          character.traits.join(' '),
+          character.tags.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      }),
+      character => character.createdAt
+    );
+
+    const scenes = sortByDateDesc(
+      state.novel.scenes
+      .filter((scene) => {
+        return [
+          scene.name,
+          scene.location,
+          scene.description,
+          scene.atmosphere.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      }),
+      scene => scene.createdAt
+    );
+
+    const items = sortByDateDesc(
+      state.novel.items
+      .filter((item) => {
+        return [
+          item.name,
+          item.type,
+          item.description,
+          item.owner,
+          item.abilities.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      }),
+      item => item.createdAt
+    );
+
+    return { chapters, characters, scenes, items };
+  }
 
   function setNovelTitle(title: string) {
     state.novel.title = title;
@@ -602,5 +684,6 @@ export const useStore = () => {
     deleteBackup,
     getDataForSync,
     setDataFromSync,
+    fullTextSearch,
   };
 };
