@@ -87,8 +87,9 @@ const { fullTextSearch } = useStore();
 const MAX_PREVIEW_LENGTH = 200;
 
 const query = ref(typeof route.query.q === 'string' ? route.query.q : '');
+const activeQuery = ref(query.value);
 
-const results = computed(() => fullTextSearch(query.value));
+const results = computed(() => fullTextSearch(activeQuery.value));
 const totalCount = computed(() =>
   results.value.chapters.length
   + results.value.characters.length
@@ -99,12 +100,15 @@ const totalCount = computed(() =>
 watch(
   () => route.query.q,
   (value) => {
-    query.value = typeof value === 'string' ? value : '';
+    const nextQuery = typeof value === 'string' ? value : '';
+    query.value = nextQuery;
+    activeQuery.value = nextQuery;
   }
 );
 
 const runSearch = () => {
   const q = query.value.trim();
+  activeQuery.value = q;
   router.replace({ path: '/search', query: q ? { q } : {} });
 };
 

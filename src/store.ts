@@ -129,9 +129,7 @@ export const useStore = () => {
           volumeTitle,
         ].join(' ').toLowerCase().includes(keyword);
       })
-      .map(chapter => ({ chapter, updatedAtTs: Date.parse(chapter.updatedAt) || 0 }))
-      .sort((a, b) => b.updatedAtTs - a.updatedAtTs)
-      .map(({ chapter }) => chapter);
+      .sort((a, b) => (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0));
 
     const characters = state.novel.characters
       .filter((character) => {
