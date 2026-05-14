@@ -14,7 +14,7 @@
 
       <div class="relative">
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-        <input v-model="searchQuery" type="text" class="input pl-10" placeholder="搜索物品名称、类型、描述..." />
+        <input v-model="searchQuery" type="text" class="input input-with-icon" placeholder="搜索物品名称、类型、描述..." />
       </div>
 
       <div v-if="filteredItems.length === 0 && items.length > 0" class="card pad-12 text-center">

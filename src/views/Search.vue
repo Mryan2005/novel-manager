@@ -11,7 +11,7 @@
         <input
           v-model="query"
           type="text"
-          class="input pl-10"
+          class="input input-with-icon"
           placeholder="输入关键词后回车搜索..."
           @keyup.enter="runSearch"
         />

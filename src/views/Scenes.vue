@@ -17,7 +17,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          class="input pl-10"
+          class="input input-with-icon"
           placeholder="搜索场景名称、地点、描述..."
         />
       </div>
