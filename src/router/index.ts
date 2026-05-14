@@ -4,6 +4,7 @@ import Chapters from '../views/Chapters.vue';
 import Characters from '../views/Characters.vue';
 import Scenes from '../views/Scenes.vue';
 import Items from '../views/Items.vue';
+import Search from '../views/Search.vue';
 import Editor from '../views/Editor.vue';
 
 const routes = [
@@ -13,6 +14,7 @@ const routes = [
   { path: '/characters', name: 'Characters', component: Characters },
   { path: '/scenes', name: 'Scenes', component: Scenes },
   { path: '/items', name: 'Items', component: Items },
+  { path: '/search', name: 'Search', component: Search },
   { path: '/editor', name: 'Editor', component: Editor },
   { path: '/editor/:id', name: 'EditorWithId', component: Editor },
 ];

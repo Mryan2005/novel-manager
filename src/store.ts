@@ -105,6 +105,69 @@ export const useStore = () => {
     state.novel.chapters.find(c => c.id === state.currentChapterId)
   );
 
+  function fullTextSearch(query: string) {
+    const keyword = query.trim().toLowerCase();
+    if (!keyword) {
+      return {
+        chapters: [] as Chapter[],
+        characters: [] as Character[],
+        scenes: [] as Scene[],
+        items: [] as Item[],
+      };
+    }
+
+    const chapters = state.novel.chapters
+      .filter((chapter) => {
+        const volumeTitle = state.novel.volumes.find(v => v.id === chapter.volumeId)?.title ?? '';
+        return [
+          chapter.title,
+          chapter.content,
+          chapter.status,
+          volumeTitle,
+        ].join(' ').toLowerCase().includes(keyword);
+      })
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    const characters = state.novel.characters
+      .filter((character) => {
+        return [
+          character.name,
+          character.role,
+          character.description,
+          character.gender,
+          String(character.age),
+          character.traits.join(' '),
+          character.tags.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    const scenes = state.novel.scenes
+      .filter((scene) => {
+        return [
+          scene.name,
+          scene.location,
+          scene.description,
+          scene.atmosphere.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    const items = state.novel.items
+      .filter((item) => {
+        return [
+          item.name,
+          item.type,
+          item.description,
+          item.owner,
+          item.abilities.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    return { chapters, characters, scenes, items };
+  }
+
   function setNovelTitle(title: string) {
     state.novel.title = title;
     saveToStorage();
@@ -602,5 +665,6 @@ export const useStore = () => {
     deleteBackup,
     getDataForSync,
     setDataFromSync,
+    fullTextSearch,
   };
 };
