@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">角色设定</h1>
@@ -12,7 +12,7 @@
         </button>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-3">
+      <div class="flex flex-col sm:flex-row gap-4">
         <div class="relative flex-1">
           <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
@@ -33,7 +33,7 @@
         </div>
       </div>
 
-      <div v-if="allTags.length > 0" class="flex flex-wrap gap-2">
+      <div v-if="allTags.length > 0" class="flex flex-wrap gap-3">
         <button
           v-for="tag in allTags"
           :key="tag"
@@ -67,7 +67,7 @@
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个角色，让你的故事更生动</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div
           v-for="char in filteredCharacters"
           :key="char.id"

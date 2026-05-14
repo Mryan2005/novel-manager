@@ -1,8 +1,8 @@
 <template>
   <Layout>
     <div class="h-full flex flex-col">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-4">
+      <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-5">
           <select
             v-if="currentChapter"
             :value="currentChapter.volumeId"
@@ -36,7 +36,7 @@
             新建章节
           </button>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-4">
           <span v-if="draftStatus" class="text-xs font-medium" :class="draftStatus === '已保存' ? 'text-green-500' : 'text-[var(--text-muted)]'">
             {{ draftStatus }}
           </span>
@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <div class="flex-1 flex gap-6 min-h-0">
+      <div class="flex-1 flex gap-8 min-h-0">
         <div class="flex-1 flex flex-col min-w-0">
           <input 
             v-if="currentChapter"
@@ -99,7 +99,7 @@
               />
             </button>
             
-            <div v-if="showSidebar" class="space-y-7 overflow-y-auto" style="max-height: calc(100% - 3rem);">
+            <div v-if="showSidebar" class="space-y-8 overflow-y-auto" style="max-height: calc(100% - 3rem);">
               <div>
                 <h4 class="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
                   <Users class="w-4 h-4" />

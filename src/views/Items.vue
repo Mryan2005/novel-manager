@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">物品设定</h1>
@@ -28,11 +28,11 @@
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">创建法宝、武器、丹药等物品设定</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div v-for="item in filteredItems" :key="item.id" class="card pad-8">
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="flex items-center gap-3 mb-2">
                 <h3 class="font-semibold text-[var(--text)] text-lg">{{ item.name }}</h3>
                 <span class="px-2 py-0.5 rounded-lg text-xs font-medium" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
                   {{ item.type }}

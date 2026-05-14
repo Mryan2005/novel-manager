@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">场景设定</h1>
@@ -33,7 +33,7 @@
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个场景，让故事发生在特定的地方</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div
           v-for="scene in filteredScenes"
           :key="scene.id"

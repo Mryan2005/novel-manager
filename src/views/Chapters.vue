@@ -1,12 +1,12 @@
 <template>
   <Layout>
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">章节管理</h1>
           <p class="text-[var(--text-light)] mt-1 text-lg">管理你的小说章节</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-4">
           <button @click="openAddVolume" class="btn btn-secondary">
             <FolderPlus class="w-4 h-4" />
             新建卷
@@ -38,10 +38,10 @@
         </button>
       </div>
 
-      <div v-else class="space-y-4">
+      <div v-else class="space-y-5">
         <div v-for="volume in filteredVolumes" :key="volume.id" class="card overflow-hidden">
           <div class="pad-5 flex items-center justify-between" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
               <button @click="toggleVolume(volume.id)" class="pad-1 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
                 <ChevronRight :class="['w-5 h-5 text-[var(--text-light)] transition-transform', { 'rotate-90': expandedVolumes.has(volume.id) }]" />
               </button>
@@ -51,7 +51,7 @@
                 {{ getVolumeChapterCount(volume.id) }} 章
               </span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
               <button
                 @click="openAddChapter(volume.id)"
                 class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--primary)] transition-colors"
@@ -95,7 +95,7 @@
             </div>
           </div>
 
-          <div v-if="expandedVolumes.has(volume.id)" class="pad-4 space-y-3">
+          <div v-if="expandedVolumes.has(volume.id)" class="pad-4 space-y-4">
             <div v-if="getVolumeChapters(volume.id).length === 0" class="text-center py-8 text-[var(--text-muted)]">
               <p>此卷暂无章节</p>
             </div>
@@ -111,7 +111,7 @@
                     <span class="text-[var(--primary)] font-bold text-sm">{{ chapter.order + 1 }}</span>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3 mb-0.5">
+                    <div class="flex items-center gap-4 mb-0.5">
                       <h3 class="font-semibold text-[var(--text)] truncate">{{ chapter.title }}</h3>
                       <span class="tag" :class="statusClass(chapter.status)">{{ statusText(chapter.status) }}</span>
                     </div>

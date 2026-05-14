@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div>
         <h1 class="text-3xl font-bold text-[var(--text)]">全文搜索</h1>
         <p class="text-[var(--text-light)] mt-1 text-lg">搜索章节正文、角色描述、场景描述和物品信息</p>
@@ -28,7 +28,7 @@
 
       <div v-if="results.chapters.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">章节（{{ results.chapters.length }}）</h2>
-        <div class="space-y-3">
+        <div class="space-y-4">
           <div
             v-for="chapter in results.chapters"
             :key="chapter.id"
@@ -43,7 +43,7 @@
 
       <div v-if="results.characters.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">角色（{{ results.characters.length }}）</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div v-for="character in results.characters" :key="character.id" class="pad-4 rounded-xl border border-[var(--border)]">
             <div class="font-semibold text-[var(--text)]">{{ character.name }} · {{ character.role }}</div>
             <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-3">{{ character.description || '（暂无描述）' }}</p>
@@ -53,7 +53,7 @@
 
       <div v-if="results.scenes.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">场景（{{ results.scenes.length }}）</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div v-for="scene in results.scenes" :key="scene.id" class="pad-4 rounded-xl border border-[var(--border)]">
             <div class="font-semibold text-[var(--text)]">{{ scene.name }} · {{ scene.location }}</div>
             <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-3">{{ scene.description || '（暂无描述）' }}</p>
@@ -63,7 +63,7 @@
 
       <div v-if="results.items.length > 0" class="card pad-6">
         <h2 class="text-xl font-semibold mb-4">物品（{{ results.items.length }}）</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div v-for="item in results.items" :key="item.id" class="pad-4 rounded-xl border border-[var(--border)]">
             <div class="font-semibold text-[var(--text)]">{{ item.name }} · {{ item.type }}</div>
             <p class="text-sm text-[var(--text-light)] mt-1 line-clamp-3">{{ item.description || '（暂无描述）' }}</p>
