@@ -13,7 +13,7 @@
           <input
             v-model="globalSearchQuery"
             type="text"
-            class="input pl-9 py-2"
+            class="input input-with-left-icon py-2"
             placeholder="全文搜索..."
             aria-label="全文搜索"
             @keyup.enter="goToGlobalSearch"
@@ -60,7 +60,7 @@
     </div>
 
     <div class="flex flex-1" style="height: calc(100vh - 4rem)">
-      <aside class="w-64 shrink-0 bg-white border-r border-[var(--border)] overflow-y-auto p-5">
+      <aside class="w-64 shrink-0 bg-white border-r border-[var(--border)] overflow-y-auto pad-5">
         <nav class="space-y-1">
           <router-link
             to="/home"
@@ -121,7 +121,7 @@
         </nav>
       </aside>
 
-      <main class="flex-1 min-w-0 overflow-y-auto p-10 bg-transparent">
+      <main class="flex-1 min-w-0 overflow-y-auto pad-10 bg-transparent">
         <slot />
       </main>
     </div>

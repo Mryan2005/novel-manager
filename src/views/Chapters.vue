@@ -23,12 +23,12 @@
         <input
           v-model="searchQuery"
           type="text"
-          class="input pl-10"
+          class="input input-with-left-icon"
           placeholder="搜索章节标题..."
         />
       </div>
 
-      <div v-if="volumes.length === 0" class="card p-12 text-center">
+      <div v-if="volumes.length === 0" class="card pad-12 text-center">
         <FileText class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有卷和章节</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">先创建一个卷，然后在卷中添加章节</p>
@@ -40,9 +40,9 @@
 
       <div v-else class="space-y-4">
         <div v-for="volume in filteredVolumes" :key="volume.id" class="card overflow-hidden">
-          <div class="p-5 flex items-center justify-between" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);">
+          <div class="pad-5 flex items-center justify-between" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);">
             <div class="flex items-center gap-3">
-              <button @click="toggleVolume(volume.id)" class="p-1 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
+              <button @click="toggleVolume(volume.id)" class="pad-1 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
                 <ChevronRight :class="['w-5 h-5 text-[var(--text-light)] transition-transform', { 'rotate-90': expandedVolumes.has(volume.id) }]" />
               </button>
               <FolderOpen class="w-5 h-5 text-[var(--primary)]" />
@@ -54,7 +54,7 @@
             <div class="flex items-center gap-2">
               <button
                 @click="openAddChapter(volume.id)"
-                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--primary)] transition-colors"
+                class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--primary)] transition-colors"
                 title="添加章节"
               >
                 <Plus class="w-4 h-4" />
@@ -63,7 +63,7 @@
                 v-if="volumes.length > 1"
                 @click="moveVolume(volume.id, -1)"
                 :disabled="volume.order === 0"
-                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 title="上移卷"
               >
                 <ChevronUp class="w-4 h-4" />
@@ -72,14 +72,14 @@
                 v-if="volumes.length > 1"
                 @click="moveVolume(volume.id, 1)"
                 :disabled="volume.order === volumes.length - 1"
-                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 title="下移卷"
               >
                 <ChevronDown class="w-4 h-4" />
               </button>
               <button
                 @click="openEditVolume(volume)"
-                class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-colors"
+                class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-colors"
                 title="编辑卷名"
               >
                 <Edit class="w-4 h-4" />
@@ -87,7 +87,7 @@
               <button
                 v-if="volumes.length > 1"
                 @click="confirmDeleteVolume(volume)"
-                class="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-colors"
+                class="pad-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-colors"
                 title="删除卷"
               >
                 <Trash2 class="w-4 h-4" />
@@ -95,7 +95,7 @@
             </div>
           </div>
 
-          <div v-if="expandedVolumes.has(volume.id)" class="p-4 space-y-3">
+          <div v-if="expandedVolumes.has(volume.id)" class="pad-4 space-y-3">
             <div v-if="getVolumeChapters(volume.id).length === 0" class="text-center py-8 text-[var(--text-muted)]">
               <p>此卷暂无章节</p>
             </div>
@@ -103,7 +103,7 @@
               v-for="chapter in getVolumeChapters(volume.id)"
               :key="chapter.id"
               @click="goToEditor(chapter.id)"
-              class="p-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors cursor-pointer"
+              class="pad-4 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors cursor-pointer"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -121,16 +121,16 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-1">
-                  <button @click.stop="editChapter(chapter)" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
+                  <button @click.stop="editChapter(chapter)" class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
                     <Edit class="w-4 h-4" />
                   </button>
-                  <button @click.stop="moveChapter(chapter, -1)" :disabled="chapter.order === 0" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="上移">
+                  <button @click.stop="moveChapter(chapter, -1)" :disabled="chapter.order === 0" class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="上移">
                     <ChevronUp class="w-4 h-4" />
                   </button>
-                  <button @click.stop="moveChapter(chapter, 1)" :disabled="chapter.order === getVolumeChapterCount(chapter.volumeId) - 1" class="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="下移">
+                  <button @click.stop="moveChapter(chapter, 1)" :disabled="chapter.order === getVolumeChapterCount(chapter.volumeId) - 1" class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="下移">
                     <ChevronDown class="w-4 h-4" />
                   </button>
-                  <button @click.stop="confirmDeleteChapter(chapter)" class="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
+                  <button @click.stop="confirmDeleteChapter(chapter)" class="pad-2 rounded-lg hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
                     <Trash2 class="w-4 h-4" />
                   </button>
                 </div>
@@ -142,8 +142,8 @@
     </div>
 
     <!-- 卷 添加/编辑模态框 -->
-    <div v-if="showVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeVolumeModal">
-      <div class="card w-full max-w-sm p-8">
+    <div v-if="showVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="closeVolumeModal">
+      <div class="card w-full max-w-sm pad-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingVolume ? '编辑卷名' : '新建卷' }}</h2>
         <div>
           <label class="block text-sm font-semibold text-[var(--text)] mb-2">卷名</label>
@@ -157,8 +157,8 @@
     </div>
 
     <!-- 章节 添加/编辑模态框 -->
-    <div v-if="showChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeChapterModal">
-      <div class="card w-full max-w-md p-8">
+    <div v-if="showChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="closeChapterModal">
+      <div class="card w-full max-w-md pad-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ editingChapter ? '编辑章节' : '新建章节' }}
         </h2>
@@ -190,8 +190,8 @@
     </div>
 
     <!-- 删除卷确认 -->
-    <div v-if="showDeleteVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteVolumeModal = false">
-      <div class="card w-full max-w-sm p-8">
+    <div v-if="showDeleteVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteVolumeModal = false">
+      <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
             <Trash2 class="w-8 h-8 text-[var(--error)]" />
@@ -209,8 +209,8 @@
     </div>
 
     <!-- 删除章节确认 -->
-    <div v-if="showDeleteChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteChapterModal = false">
-      <div class="card w-full max-w-sm p-8">
+    <div v-if="showDeleteChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteChapterModal = false">
+      <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
             <Trash2 class="w-8 h-8 text-[var(--error)]" />

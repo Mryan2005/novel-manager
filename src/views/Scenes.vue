@@ -17,17 +17,17 @@
         <input
           v-model="searchQuery"
           type="text"
-          class="input pl-10"
+          class="input input-with-left-icon"
           placeholder="搜索场景名称、地点、描述..."
         />
       </div>
 
-      <div v-if="filteredScenes.length === 0 && scenes.length > 0" class="card p-12 text-center">
+      <div v-if="filteredScenes.length === 0 && scenes.length > 0" class="card pad-12 text-center">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
         <p class="text-[var(--text-light)]">没有匹配的场景</p>
       </div>
 
-      <div v-else-if="scenes.length === 0" class="card p-12 text-center">
+      <div v-else-if="scenes.length === 0" class="card pad-12 text-center">
         <Map class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有场景</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个场景，让故事发生在特定的地方</p>
@@ -37,7 +37,7 @@
         <div
           v-for="scene in filteredScenes"
           :key="scene.id"
-          class="card p-8"
+          class="card pad-8"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -50,14 +50,14 @@
             <div class="flex items-center gap-1">
               <button
                 @click="editScene(scene)"
-                class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
+                class="pad-2-5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
                 title="编辑"
               >
                 <Edit class="w-5 h-5" />
               </button>
               <button
                 @click="confirmDelete(scene)"
-                class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
+                class="pad-2-5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
                 title="删除"
               >
                 <Trash2 class="w-5 h-5" />
@@ -80,8 +80,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full max-w-lg p-8 my-8">
+    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeModal">
+      <div class="card w-full max-w-lg pad-8 my-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑场景' : '新建场景' }}
         </h2>
@@ -130,8 +130,8 @@
     </div>
 
     <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteModal = false">
-      <div class="card w-full max-w-sm p-8">
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteModal = false">
+      <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
             <Trash2 class="w-8 h-8 text-[var(--error)]" />

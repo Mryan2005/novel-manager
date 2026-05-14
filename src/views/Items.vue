@@ -14,22 +14,22 @@
 
       <div class="relative">
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-        <input v-model="searchQuery" type="text" class="input pl-10" placeholder="搜索物品名称、类型、描述..." />
+        <input v-model="searchQuery" type="text" class="input input-with-left-icon" placeholder="搜索物品名称、类型、描述..." />
       </div>
 
-      <div v-if="filteredItems.length === 0 && items.length > 0" class="card p-12 text-center">
+      <div v-if="filteredItems.length === 0 && items.length > 0" class="card pad-12 text-center">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
         <p class="text-[var(--text-light)]">没有匹配的物品</p>
       </div>
 
-      <div v-else-if="items.length === 0" class="card p-12 text-center">
+      <div v-else-if="items.length === 0" class="card pad-12 text-center">
         <Package class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有物品</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">创建法宝、武器、丹药等物品设定</p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div v-for="item in filteredItems" :key="item.id" class="card p-8">
+        <div v-for="item in filteredItems" :key="item.id" class="card pad-8">
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
@@ -44,10 +44,10 @@
               </p>
             </div>
             <div class="flex items-center gap-1">
-              <button @click="editItem(item)" class="p-2.5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
+              <button @click="editItem(item)" class="pad-2-5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
                 <Edit class="w-5 h-5" />
               </button>
-              <button @click="confirmDelete(item)" class="p-2.5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
+              <button @click="confirmDelete(item)" class="pad-2-5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all" title="删除">
                 <Trash2 class="w-5 h-5" />
               </button>
             </div>
@@ -63,8 +63,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full max-w-lg p-8 my-8">
+    <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeModal">
+      <div class="card w-full max-w-lg pad-8 my-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingId ? '编辑物品' : '新建物品' }}</h2>
         <div class="space-y-5">
           <div>
@@ -103,8 +103,8 @@
     </div>
 
     <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="showDeleteModal = false">
-      <div class="card w-full max-w-sm p-8">
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteModal = false">
+      <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
             <Trash2 class="w-8 h-8 text-[var(--error)]" />
