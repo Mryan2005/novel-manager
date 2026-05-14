@@ -18,7 +18,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            class="input input-with-icon"
+            class="input input-with-left-icon"
             placeholder="搜索角色名称、身份、描述..."
           />
         </div>
@@ -27,7 +27,7 @@
           <input
             v-model="tagFilter"
             type="text"
-            class="input input-with-icon"
+            class="input input-with-left-icon"
             placeholder="按标签筛选..."
           />
         </div>

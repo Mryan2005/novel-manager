@@ -23,7 +23,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          class="input input-with-icon"
+          class="input input-with-left-icon"
           placeholder="搜索章节标题..."
         />
       </div>

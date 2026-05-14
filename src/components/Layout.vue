@@ -13,7 +13,7 @@
           <input
             v-model="globalSearchQuery"
             type="text"
-            class="input input-with-icon py-2"
+            class="input input-with-left-icon py-2"
             placeholder="全文搜索..."
             aria-label="全文搜索"
             @keyup.enter="goToGlobalSearch"
