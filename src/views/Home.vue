@@ -23,11 +23,11 @@
         </div>
       </section>
 
-      <div>
+      <div class="mb-1">
         <h2 class="section-title">创作概览</h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
         <StatCard 
           icon="FileText" 
           :value="totalChapters" 
@@ -64,7 +64,7 @@
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold text-[var(--text)]">最近编辑</h2>
         </div>
-        <div class="space-y-3">
+        <div class="space-y-4">
           <div 
             v-for="chapter in recentChapters" 
             :key="chapter.id"
@@ -165,7 +165,7 @@ const editChapter = (id: string) => {
   background-color: var(--surface);
   background-image: var(--hero-bg);
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   justify-content: space-between;
   align-items: center;
 }
@@ -186,7 +186,7 @@ const editChapter = (id: string) => {
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 1rem;
   justify-content: flex-end;
 }
 

@@ -7,7 +7,7 @@
         </div>
         <span class="font-bold text-xl text-gradient">小说工坊</span>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
         <div class="relative w-64">
           <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
@@ -61,7 +61,7 @@
 
     <div class="flex flex-1" style="height: calc(100vh - 4rem)">
       <aside class="w-64 shrink-0 bg-white border-r border-[var(--border)] overflow-y-auto pad-5">
-        <nav class="space-y-1">
+        <nav class="space-y-2">
           <router-link
             to="/home"
             class="nav-link"
