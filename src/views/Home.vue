@@ -1,9 +1,30 @@
 <template>
   <Layout>
-    <div class="space-y-8">
+    <div class="home-page space-y-8">
+      <section class="hero-banner card">
+        <div class="hero-title-wrap">
+          <p class="hero-kicker">小说工坊</p>
+          <h1 class="text-3xl font-bold text-[var(--text)]">欢迎回来！</h1>
+          <p class="text-[var(--text-light)] text-lg mt-2">继续你的创作之旅</p>
+        </div>
+        <div class="hero-actions">
+          <button @click="goToEditor" class="btn btn-primary home-action-btn">
+            <Edit class="w-4 h-4" />
+            开始写作
+          </button>
+          <button @click="goToChapters" class="btn btn-secondary home-action-btn">
+            <Plus class="w-4 h-4" />
+            新建章节
+          </button>
+          <button @click="goToCharacters" class="btn btn-secondary home-action-btn">
+            <UserPlus class="w-4 h-4" />
+            新建角色
+          </button>
+        </div>
+      </section>
+
       <div>
-        <h1 class="text-3xl font-bold text-[var(--text)] mb-2">欢迎回来！</h1>
-        <p class="text-[var(--text-light)] text-lg">继续你的创作之旅</p>
+        <h2 class="section-title">创作概览</h2>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -39,22 +60,7 @@
         />
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-4">
-        <button @click="goToEditor" class="btn btn-primary flex-1 sm:flex-none">
-          <Edit class="w-4 h-4" />
-          开始写作
-        </button>
-        <button @click="goToChapters" class="btn btn-secondary">
-          <Plus class="w-4 h-4" />
-          新建章节
-        </button>
-        <button @click="goToCharacters" class="btn btn-secondary">
-          <UserPlus class="w-4 h-4" />
-          新建角色
-        </button>
-      </div>
-
-      <div v-if="recentChapters.length > 0" class="card p-8">
+      <div v-if="recentChapters.length > 0" class="card p-8 recent-panel">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold text-[var(--text)]">最近编辑</h2>
         </div>
@@ -62,12 +68,12 @@
           <div 
             v-for="chapter in recentChapters" 
             :key="chapter.id"
-            class="flex items-center justify-between p-4 rounded-xl hover:bg-[var(--surface-hover)] cursor-pointer transition-all group"
+            class="recent-item flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all group"
             @click="editChapter(chapter.id)"
           >
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
-                <FileText class="w-6 h-6" style="color: var(--primary);" />
+              <div class="recent-icon w-12 h-12 rounded-xl flex items-center justify-center">
+                <FileText class="w-6 h-6 text-[var(--primary)]" />
               </div>
               <div>
                 <h3 class="font-semibold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors">{{ chapter.title }}</h3>
@@ -147,3 +153,81 @@ const editChapter = (id: string) => {
   router.push(`/editor/${id}`);
 };
 </script>
+
+<style scoped>
+.home-page {
+  --hero-bg: linear-gradient(125deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.06));
+}
+
+.hero-banner {
+  padding: 2rem;
+  border-color: rgba(99, 102, 241, 0.15);
+  background: var(--hero-bg), var(--surface);
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hero-kicker {
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.hero-title-wrap {
+  max-width: 38rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.home-action-btn {
+  min-width: 6.75rem;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.recent-panel {
+  border-color: rgba(99, 102, 241, 0.12);
+}
+
+.recent-item {
+  background: var(--surface);
+  border: 1px solid transparent;
+}
+
+.recent-item:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+  background: var(--surface-hover);
+}
+
+.recent-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(139, 92, 246, 0.1));
+}
+
+@media (max-width: 768px) {
+  .hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+
+  .hero-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+</style>
