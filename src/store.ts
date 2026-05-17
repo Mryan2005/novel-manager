@@ -112,6 +112,10 @@ const state = reactive({
   currentChapterId: null as string | null,
 });
 
+for (const ch of state.novel.chapters) {
+  lastChapterWordCount.set(ch.id, ch.wordCount);
+}
+
 export const useStore = () => {
   const totalChapters = computed(() => state.novel.chapters.length);
   const totalWords = computed(() => 
