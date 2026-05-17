@@ -503,6 +503,11 @@ export const useStore = () => {
       };
       if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
         rebuildDailyWordRecords();
+      } else {
+        lastChapterWordCount.clear();
+        for (const ch of state.novel.chapters) {
+          lastChapterWordCount.set(ch.id, ch.wordCount);
+        }
       }
       saveToStorage();
       return true;
@@ -632,6 +637,11 @@ export const useStore = () => {
       };
       if (!entry.data.dayCount || typeof entry.data.dayCount !== 'object' || Array.isArray(entry.data.dayCount) || Object.keys(entry.data.dayCount).length === 0) {
         rebuildDailyWordRecords();
+      } else {
+        lastChapterWordCount.clear();
+        for (const ch of state.novel.chapters) {
+          lastChapterWordCount.set(ch.id, ch.wordCount);
+        }
       }
       saveToStorage();
       return true;
@@ -732,6 +742,11 @@ export const useStore = () => {
       };
       if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
         rebuildDailyWordRecords();
+      } else {
+        lastChapterWordCount.clear();
+        for (const ch of state.novel.chapters) {
+          lastChapterWordCount.set(ch.id, ch.wordCount);
+        }
       }
       saveToStorage();
       return true;
