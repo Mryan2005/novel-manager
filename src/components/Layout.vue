@@ -118,6 +118,15 @@
             <Edit class="w-5 h-5" />
             小说编辑
           </router-link>
+          <div class="my-3 border-t border-[var(--border)]"></div>
+          <router-link
+            to="/settings"
+            class="nav-link"
+            :class="$route.path === '/settings' ? 'nav-link-active' : ''"
+          >
+            <Settings class="w-5 h-5" />
+            设置
+          </router-link>
         </nav>
       </aside>
 
@@ -131,7 +140,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings } from 'lucide-vue-next';
 import { useStore } from '../store';
 
 const { downloadTxt, downloadJson, importFromFile } = useStore();

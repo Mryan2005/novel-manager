@@ -60,6 +60,47 @@
         />
       </div>
 
+      <!-- Weekly stats -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="card pad-5">
+          <div class="flex items-center gap-2 mb-2">
+            <PenLine class="w-4 h-4" style="color: var(--primary);" />
+            <span class="text-xs font-medium text-[var(--text-muted)]">今日字数</span>
+          </div>
+          <div class="text-2xl font-bold text-[var(--text)]">{{ formatNumber(weeklyStats.today) }}</div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">今日写作量</div>
+        </div>
+        <div class="card pad-5">
+          <div class="flex items-center gap-2 mb-2">
+            <Hash class="w-4 h-4" style="color: var(--accent);" />
+            <span class="text-xs font-medium text-[var(--text-muted)]">七日平均</span>
+          </div>
+          <div class="text-2xl font-bold text-[var(--text)]">{{ formatNumber(weeklyStats.weekAvg) }}</div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">日均字数</div>
+        </div>
+        <div class="card pad-5">
+          <div class="flex items-center gap-2 mb-2">
+            <component :is="weeklyStats.trend === 'up' ? TrendingUp : weeklyStats.trend === 'down' ? TrendingDown : Minus" class="w-4 h-4" :style="{ color: weeklyStats.trend === 'up' ? 'var(--success)' : weeklyStats.trend === 'down' ? 'var(--error)' : 'var(--text-muted)' }" />
+            <span class="text-xs font-medium text-[var(--text-muted)]">写作趋势</span>
+          </div>
+          <div class="text-2xl font-bold text-[var(--text)]">{{ weeklyStats.trend === 'up' ? '上升中' : weeklyStats.trend === 'down' ? '下降中' : '平稳' }}</div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">近七日对比</div>
+        </div>
+        <div class="card pad-5">
+          <div class="flex items-center gap-2 mb-2">
+            <Trophy class="w-4 h-4" style="color: var(--warning);" />
+            <span class="text-xs font-medium text-[var(--text-muted)]">最佳单日</span>
+          </div>
+          <div class="text-2xl font-bold text-[var(--text)]">{{ weeklyStats.bestDay ? formatNumber(weeklyStats.bestDay.wordCount) : '—' }}</div>
+          <div class="text-xs text-[var(--text-muted)] mt-1">{{ weeklyStats.bestDay?.date ?? '暂无记录' }}</div>
+        </div>
+      </div>
+
+      <!-- Writing heatmap -->
+      <div class="card pad-6">
+        <WordHeatmap :records="dailyWordRecords" @export="exportDailyRecords" />
+      </div>
+
       <div v-if="recentChapters.length > 0" class="card pad-8 recent-panel">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold text-[var(--text)]">最近编辑</h2>
@@ -91,21 +132,25 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { FileText, Type, Users, Map, Package, Edit, Plus, UserPlus, ChevronRight } from 'lucide-vue-next';
+import { FileText, Type, Users, Map, Package, Edit, Plus, UserPlus, ChevronRight, PenLine, Hash, TrendingUp, TrendingDown, Minus, Trophy } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import StatCard from '../components/StatCard.vue';
+import WordHeatmap from '../components/WordHeatmap.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
 
 const router = useRouter();
-const { 
-  totalChapters, 
-  totalWords, 
-  totalCharacters, 
+const {
+  totalChapters,
+  totalWords,
+  totalCharacters,
   totalScenes,
   totalItems,
   chapters,
-  setCurrentChapter 
+  setCurrentChapter,
+  novel,
+  dailyWordRecords,
+  getWeeklyStats,
 } = useStore();
 
 const recentChapters = computed(() => {
@@ -147,6 +192,23 @@ const goToChapters = () => {
 const goToCharacters = () => {
   router.push('/characters');
 };
+
+const weeklyStats = computed(() => getWeeklyStats());
+
+function exportDailyRecords() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    dayCount: novel.value.dayCount,
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `daily-word-counts-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 const editChapter = (id: string) => {
   setCurrentChapter(id);

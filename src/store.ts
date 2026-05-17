@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue';
-import type { Novel, Volume, Chapter, Character, Scene, Item } from './types';
+import type { Novel, Volume, Chapter, Character, Scene, Item, DailyWordRecord, DayCount } from './types';
 
 const STORAGE_KEY = 'novel-workshop-data';
 const TIMESTAMP_KEY = 'novel-workshop-timestamp';
@@ -50,6 +50,10 @@ function loadFromStorage(): Novel {
       if (!novel.items || !Array.isArray(novel.items)) {
         novel.items = [];
       }
+      // Backward compat: ensure dayCount exists
+      if (!novel.dayCount || typeof novel.dayCount !== 'object' || Array.isArray(novel.dayCount)) {
+        novel.dayCount = {};
+      }
       return novel;
     }
   } catch (e) {
@@ -62,11 +66,32 @@ function loadFromStorage(): Novel {
     characters: [],
     scenes: [],
     items: [],
+    dayCount: {},
   };
 }
 
+// Per-chapter word count snapshot for delta calculation
+const lastChapterWordCount = new Map<string, number>();
+
 function saveToStorage() {
   try {
+    // Track per-chapter word deltas into dayCount
+    const today = new Date().toISOString().slice(0, 10);
+    if (!state.novel.dayCount[today]) {
+      state.novel.dayCount[today] = {};
+    }
+    const todayEntry = state.novel.dayCount[today]!;
+
+    for (const ch of state.novel.chapters) {
+      const prev = lastChapterWordCount.get(ch.id) ?? 0;
+      const delta = ch.wordCount - prev;
+      if (delta !== 0) {
+        const title = ch.title || '(无标题)';
+        todayEntry[title] = (todayEntry[title] ?? 0) + delta;
+        lastChapterWordCount.set(ch.id, ch.wordCount);
+      }
+    }
+
     const json = JSON.stringify(state.novel);
     localStorage.setItem(STORAGE_KEY, json);
     localStorage.setItem(TIMESTAMP_KEY, Date.now().toString());
@@ -474,7 +499,11 @@ export const useStore = () => {
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
         items: Array.isArray(data.items) ? data.items : [],
+        dayCount: (data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) ? data.dayCount : {},
       };
+      if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
+        rebuildDailyWordRecords();
+      }
       saveToStorage();
       return true;
     } catch (e) {
@@ -599,7 +628,11 @@ export const useStore = () => {
         characters: Array.isArray(entry.data.characters) ? entry.data.characters : [],
         scenes: Array.isArray(entry.data.scenes) ? entry.data.scenes : [],
         items: Array.isArray(entry.data.items) ? entry.data.items : [],
+        dayCount: (entry.data.dayCount && typeof entry.data.dayCount === 'object' && !Array.isArray(entry.data.dayCount)) ? entry.data.dayCount : {},
       };
+      if (!entry.data.dayCount || typeof entry.data.dayCount !== 'object' || Array.isArray(entry.data.dayCount) || Object.keys(entry.data.dayCount).length === 0) {
+        rebuildDailyWordRecords();
+      }
       saveToStorage();
       return true;
     } catch (e) {
@@ -610,6 +643,73 @@ export const useStore = () => {
 
   function deleteBackup(id: string) {
     localStorage.removeItem(BACKUP_PREFIX + id);
+  }
+
+  // === Daily word count ===
+  function getDayTotal(date: string): number {
+    const entry = state.novel.dayCount[date];
+    if (!entry) return 0;
+    return Object.values(entry).reduce((s, v) => s + v, 0);
+  }
+
+  function rebuildDailyWordRecords() {
+    state.novel.dayCount = {};
+    for (const ch of state.novel.chapters) {
+      const date = ch.createdAt.slice(0, 10);
+      if (!state.novel.dayCount[date]) state.novel.dayCount[date] = {};
+      const title = ch.title || '(无标题)';
+      state.novel.dayCount[date]![title] = (state.novel.dayCount[date]![title] ?? 0) + ch.wordCount;
+    }
+    lastChapterWordCount.clear();
+    for (const ch of state.novel.chapters) {
+      lastChapterWordCount.set(ch.id, ch.wordCount);
+    }
+  }
+
+  const dailyWordRecords = computed(() => {
+    const result: DailyWordRecord[] = [];
+    for (const date of Object.keys(state.novel.dayCount).sort()) {
+      result.push({ date, wordCount: getDayTotal(date) });
+    }
+    return result;
+  });
+
+  function getDailyRecordsForDays(days: number): DailyWordRecord[] {
+    const now = new Date();
+    const result: DailyWordRecord[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      result.push({ date: dateStr, wordCount: getDayTotal(dateStr) });
+    }
+    return result;
+  }
+
+  function getTodayWordCount(): number {
+    const today = new Date().toISOString().slice(0, 10);
+    return getDayTotal(today);
+  }
+
+  function getWeeklyStats(): { today: number; weekAvg: number; trend: 'up' | 'down' | 'flat'; bestDay: DailyWordRecord | null } {
+    const records = getDailyRecordsForDays(7);
+    const today = records[records.length - 1]?.wordCount ?? 0;
+    const sum = records.reduce((s, r) => s + r.wordCount, 0);
+    const weekAvg = sum > 0 ? Math.round(sum / 7) : 0;
+
+    const mid = Math.floor(records.length / 2);
+    const firstHalf = records.slice(0, mid).reduce((s, r) => s + r.wordCount, 0);
+    const secondHalf = records.slice(mid).reduce((s, r) => s + r.wordCount, 0);
+    let trend: 'up' | 'down' | 'flat' = 'flat';
+    if (secondHalf > firstHalf) trend = 'up';
+    else if (secondHalf < firstHalf) trend = 'down';
+
+    let bestDay: DailyWordRecord | null = null;
+    for (const r of records) {
+      if (!bestDay || r.wordCount > bestDay.wordCount) bestDay = r;
+    }
+
+    return { today, weekAvg, trend, bestDay };
   }
 
   // === Cross-domain sync ===
@@ -628,7 +728,11 @@ export const useStore = () => {
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
         items: Array.isArray(data.items) ? data.items : [],
+        dayCount: (data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) ? data.dayCount : {},
       };
+      if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
+        rebuildDailyWordRecords();
+      }
       saveToStorage();
       return true;
     } catch (e) {
@@ -685,5 +789,9 @@ export const useStore = () => {
     getDataForSync,
     setDataFromSync,
     fullTextSearch,
+    dailyWordRecords,
+    getDailyRecordsForDays,
+    getTodayWordCount,
+    getWeeklyStats,
   };
 };

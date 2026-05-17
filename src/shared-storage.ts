@@ -4,7 +4,6 @@ const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DOMAIN_PAIRS: Record<string, string> = {
   'novelmanager.mryan2005.top': 'https://novel-manager.mryan2005.top',
   'novel-manager.mryan2005.top': 'https://novelmanager.mryan2005.top',
-  'localhost': 'http://localhost:5173',
 };
 
 function getOtherDomain(): string | null {

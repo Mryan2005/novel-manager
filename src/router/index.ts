@@ -6,6 +6,7 @@ import Scenes from '../views/Scenes.vue';
 import Items from '../views/Items.vue';
 import Search from '../views/Search.vue';
 import Editor from '../views/Editor.vue';
+import Settings from '../views/Settings.vue';
 
 const routes = [
   { path: '/', redirect: '/home' },
@@ -17,6 +18,7 @@ const routes = [
   { path: '/search', name: 'Search', component: Search },
   { path: '/editor', name: 'Editor', component: Editor },
   { path: '/editor/:id', name: 'EditorWithId', component: Editor },
+  { path: '/settings', name: 'Settings', component: Settings },
 ];
 
 const router = createRouter({

@@ -49,6 +49,16 @@ export interface Item {
   createdAt: string;
 }
 
+// dayCount: { "2026-05-17": { "章节标题": 字数变化, ... }, ... }
+export interface DayCount {
+  [date: string]: { [chapterTitle: string]: number };
+}
+
+export interface DailyWordRecord {
+  date: string;
+  wordCount: number;
+}
+
 export interface Novel {
   title: string;
   volumes: Volume[];
@@ -56,4 +66,5 @@ export interface Novel {
   characters: Character[];
   scenes: Scene[];
   items: Item[];
+  dayCount: DayCount;
 }
