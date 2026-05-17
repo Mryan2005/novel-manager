@@ -70,28 +70,8 @@ function loadFromStorage(): Novel {
   };
 }
 
-// Per-chapter word count snapshot for delta calculation
-const lastChapterWordCount = new Map<string, number>();
-
 function saveToStorage() {
   try {
-    // Track per-chapter word deltas into dayCount
-    const today = new Date().toISOString().slice(0, 10);
-    if (!state.novel.dayCount[today]) {
-      state.novel.dayCount[today] = {};
-    }
-    const todayEntry = state.novel.dayCount[today]!;
-
-    for (const ch of state.novel.chapters) {
-      const prev = lastChapterWordCount.get(ch.id) ?? 0;
-      const delta = ch.wordCount - prev;
-      if (delta !== 0) {
-        const title = ch.title || '(无标题)';
-        todayEntry[title] = (todayEntry[title] ?? 0) + delta;
-        lastChapterWordCount.set(ch.id, ch.wordCount);
-      }
-    }
-
     const json = JSON.stringify(state.novel);
     localStorage.setItem(STORAGE_KEY, json);
     localStorage.setItem(TIMESTAMP_KEY, Date.now().toString());
@@ -111,10 +91,6 @@ const state = reactive({
   novel: loadFromStorage(),
   currentChapterId: null as string | null,
 });
-
-for (const ch of state.novel.chapters) {
-  lastChapterWordCount.set(ch.id, ch.wordCount);
-}
 
 export const useStore = () => {
   const totalChapters = computed(() => state.novel.chapters.length);
@@ -293,8 +269,19 @@ export const useStore = () => {
   function updateChapter(id: string, updates: Partial<Chapter>) {
     const index = state.novel.chapters.findIndex(c => c.id === id);
     if (index !== -1) {
+      const chapter = state.novel.chapters[index]!;
+
+      // Calculate word count delta before updating
+      if (updates.wordCount !== undefined && updates.wordCount !== chapter.wordCount) {
+        const delta = updates.wordCount - chapter.wordCount;
+        const today = new Date().toISOString().slice(0, 10);
+        if (!state.novel.dayCount[today]) state.novel.dayCount[today] = {};
+        const title = (updates.title ?? chapter.title) || '(无标题)';
+        state.novel.dayCount[today]![title] = (state.novel.dayCount[today]![title] ?? 0) + delta;
+      }
+
       state.novel.chapters[index] = {
-        ...state.novel.chapters[index],
+        ...chapter,
         ...updates,
         updatedAt: new Date().toISOString(),
       } as Chapter;
@@ -507,11 +494,6 @@ export const useStore = () => {
       };
       if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
         rebuildDailyWordRecords();
-      } else {
-        lastChapterWordCount.clear();
-        for (const ch of state.novel.chapters) {
-          lastChapterWordCount.set(ch.id, ch.wordCount);
-        }
       }
       saveToStorage();
       return true;
@@ -641,11 +623,6 @@ export const useStore = () => {
       };
       if (!entry.data.dayCount || typeof entry.data.dayCount !== 'object' || Array.isArray(entry.data.dayCount) || Object.keys(entry.data.dayCount).length === 0) {
         rebuildDailyWordRecords();
-      } else {
-        lastChapterWordCount.clear();
-        for (const ch of state.novel.chapters) {
-          lastChapterWordCount.set(ch.id, ch.wordCount);
-        }
       }
       saveToStorage();
       return true;
@@ -673,10 +650,6 @@ export const useStore = () => {
       if (!state.novel.dayCount[date]) state.novel.dayCount[date] = {};
       const title = ch.title || '(无标题)';
       state.novel.dayCount[date]![title] = (state.novel.dayCount[date]![title] ?? 0) + ch.wordCount;
-    }
-    lastChapterWordCount.clear();
-    for (const ch of state.novel.chapters) {
-      lastChapterWordCount.set(ch.id, ch.wordCount);
     }
   }
 
@@ -746,11 +719,6 @@ export const useStore = () => {
       };
       if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
         rebuildDailyWordRecords();
-      } else {
-        lastChapterWordCount.clear();
-        for (const ch of state.novel.chapters) {
-          lastChapterWordCount.set(ch.id, ch.wordCount);
-        }
       }
       saveToStorage();
       return true;
