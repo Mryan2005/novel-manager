@@ -44,8 +44,17 @@
             {{ wordCount.toLocaleString() }} 字
           </span>
           <button
+            v-if="currentChapter"
+            @click="previewMode = !previewMode"
+            class="btn btn-secondary"
+            :title="previewMode ? '编辑' : '预览'"
+          >
+            <Eye class="w-4 h-4" />
+            {{ previewMode ? '编辑' : '预览' }}
+          </button>
+          <button
             @click="save"
-            :disabled="saving"
+            :disabled="saving || !hasChanges"
             class="btn btn-primary disabled:opacity-50"
           >
             <Save class="w-4 h-4" />
@@ -64,14 +73,20 @@
             placeholder="章节标题"
             style="font-size: 1.5rem; padding: 0.875rem 1rem;"
           />
-          <textarea 
-            v-if="currentChapter"
+          <textarea
+            v-if="currentChapter && !previewMode"
             v-model="chapterContent"
             class="input flex-1 resize-none text-base leading-relaxed"
             placeholder="在这里开始写作..."
             @input="updateWordCount"
             style="font-size: 1rem; line-height: 1.8; padding: 1.25rem;"
           ></textarea>
+          <div
+            v-if="currentChapter && previewMode"
+            class="input flex-1 overflow-y-auto text-base leading-relaxed preview-content"
+            style="font-size: 1rem; line-height: 1.8; padding: 1.25rem;"
+            v-html="renderedContent"
+          ></div>
           <div v-else class="flex-1 flex items-center justify-center">
             <div class="text-center">
               <div class="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
@@ -178,7 +193,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown } from 'lucide-vue-next';
+import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
@@ -205,12 +220,39 @@ const chapterTitle = ref('');
 const chapterContent = ref('');
 const wordCount = ref(0);
 const saving = ref(false);
+const previewMode = ref(false);
 const showSidebar = ref(true);
 const showNewChapterModal = ref(false);
 const newChapterTitle = ref('');
 const newChapterVolumeId = ref('');
 const draftStatus = ref('');
+const lastSavedTitle = ref('');
+const lastSavedContent = ref('');
 let draftTimer: ReturnType<typeof setTimeout> | null = null;
+
+const hasChanges = computed(() => {
+  return chapterTitle.value !== lastSavedTitle.value || chapterContent.value !== lastSavedContent.value;
+});
+
+const renderedContent = computed(() => {
+  const text = chapterContent.value;
+  if (!text) return '<p class="preview-empty">暂无内容</p>';
+  return text
+    .split(/\n\n+/)
+    .map(block => {
+      const trimmed = block.trim();
+      if (!trimmed) return '';
+      if (/^### /.test(trimmed)) return `<h3>${escapeHtml(trimmed.slice(4))}</h3>`;
+      if (/^## /.test(trimmed)) return `<h2>${escapeHtml(trimmed.slice(3))}</h2>`;
+      if (/^# /.test(trimmed)) return `<h1>${escapeHtml(trimmed.slice(2))}</h1>`;
+      let html = escapeHtml(trimmed);
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      return `<p>${html}</p>`;
+    })
+    .filter(Boolean)
+    .join('\n');
+});
 
 const sortedChapters = computed(() => {
   return [...chapters.value].sort((a, b) => a.order - b.order);
@@ -222,8 +264,10 @@ const getVolumeChapters = (volumeId: string) => {
 
 const triggerAutoSave = () => {
   if (!selectedChapterId.value) return;
+  if (!hasChanges.value) return;
   if (draftTimer) clearTimeout(draftTimer);
   draftTimer = setTimeout(() => {
+    if (!hasChanges.value) return;
     saveDraft(selectedChapterId.value, chapterTitle.value, chapterContent.value, wordCount.value);
     draftStatus.value = '已保存';
     setTimeout(() => { draftStatus.value = ''; }, 2000);
@@ -276,6 +320,8 @@ const loadChapterData = (id: string) => {
       chapterTitle.value = draft.title;
       chapterContent.value = draft.content;
       wordCount.value = draft.wordCount;
+      lastSavedTitle.value = chapter.title;
+      lastSavedContent.value = chapter.content;
       draftStatus.value = '已恢复草稿';
       setTimeout(() => { draftStatus.value = ''; }, 3000);
       return;
@@ -286,9 +332,13 @@ const loadChapterData = (id: string) => {
     chapterTitle.value = draft.title;
     chapterContent.value = draft.content;
     wordCount.value = draft.wordCount;
+    lastSavedTitle.value = chapter.title;
+    lastSavedContent.value = chapter.content;
     return;
   }
   if (chapter) {
+    lastSavedTitle.value = chapter.title;
+    lastSavedContent.value = chapter.content;
     chapterTitle.value = chapter.title;
     chapterContent.value = chapter.content;
     wordCount.value = chapter.wordCount;
@@ -310,6 +360,7 @@ const updateWordCount = () => {
 
 const save = async () => {
   if (!selectedChapterId.value) return;
+  if (!hasChanges.value) return;
 
   saving.value = true;
   try {
@@ -319,6 +370,8 @@ const save = async () => {
       wordCount: wordCount.value,
     });
     removeDraft(selectedChapterId.value);
+    lastSavedTitle.value = chapterTitle.value;
+    lastSavedContent.value = chapterContent.value;
     saveBackup();
     draftStatus.value = '已保存';
     setTimeout(() => { draftStatus.value = ''; }, 2000);
@@ -353,4 +406,64 @@ const changeChapterVolume = (volumeId: string) => {
   if (!selectedChapterId.value) return;
   updateChapter(selectedChapterId.value, { volumeId });
 };
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 </script>
+
+<style scoped>
+.preview-content {
+  background: var(--surface);
+  border-color: var(--border);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.preview-content :deep(h1) {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  color: var(--text);
+}
+
+.preview-content :deep(h2) {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--text);
+}
+
+.preview-content :deep(h3) {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  color: var(--text);
+}
+
+.preview-content :deep(p) {
+  margin: 0 0 0.75rem;
+  text-indent: 2em;
+  color: var(--text);
+}
+
+.preview-content :deep(strong) {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.preview-content :deep(em) {
+  font-style: italic;
+  color: var(--text-light);
+}
+
+.preview-content :deep(.preview-empty) {
+  color: var(--text-muted);
+  font-style: italic;
+  text-indent: 0;
+}
+</style>
