@@ -488,13 +488,13 @@ const deleteFromDetail = () => {
 <style scoped>
 .detail-window {
   position: fixed;
-  left: calc(50% + 8rem);
+  left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 51;
   display: flex;
   flex-direction: column;
-  width: min(560px, calc(100vw - 20rem));
+  width: min(560px, calc(100vw - 2rem));
   max-height: 90vh;
   background: var(--surface);
   border-radius: var(--radius-2xl);
@@ -548,11 +548,11 @@ const deleteFromDetail = () => {
 
 .form-modal-window {
   position: fixed;
-  left: calc(50% + 8rem);
+  left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 51;
-  width: min(560px, calc(100vw - 20rem));
+  width: min(560px, calc(100vw - 2rem));
   max-height: 90vh;
   padding: 1.5rem;
   overflow-y: auto;
