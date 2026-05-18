@@ -141,6 +141,19 @@
                   代码
                 </button>
               </template>
+              <select
+                v-if="activeAIConfig.thinkingLevel || activeAIConfig.provider === 'gemini'"
+                :value="activeAIConfig.thinkingLevel"
+                @change="setThinking(($event.target as HTMLSelectElement).value)"
+                class="ai-tool-select"
+                title="思考程度"
+              >
+                <option value="">思考: 默认</option>
+                <option value="MINIMAL">MINIMAL</option>
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+              </select>
             </div>
             <div v-if="contextText" class="ai-context-area">
               <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
@@ -198,7 +211,7 @@ import {
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { useAIChat } from '../composables/useAIChat';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 
 defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -283,6 +296,12 @@ function hasGeminiTool(name: string): boolean {
   return parseTools().some(t => t[name] !== undefined);
 }
 
+function setThinking(level: string) {
+  const cfg = activeAIConfig.value;
+  if (!cfg) return;
+  cfg.thinkingLevel = level;
+}
+
 function toggleGeminiTool(name: string) {
   const cfg = activeAIConfig.value;
   if (!cfg) return;
@@ -364,9 +383,9 @@ async function callAI(userContent: string, previousMessages: { role: string; con
   if (!cfg) throw new Error('未选择 AI 配置。');
 
   if (cfg.provider === 'gemini') {
-    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode);
+    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode, cfg.thinkingLevel);
   }
-  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode);
+  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode, cfg.thinkingLevel);
 }
 
 async function callOpenAiLike(
@@ -378,6 +397,7 @@ async function callOpenAiLike(
   systemPrompt: string,
   toolsJson: string,
   enableJsonMode: boolean,
+  thinkingLevel: string,
 ): Promise<{ content: string; thinking?: string }> {
   const sp = systemPrompt.trim();
   const messages: Record<string, unknown>[] = [
@@ -398,6 +418,10 @@ async function callOpenAiLike(
   const body: Record<string, unknown> = { model: model.trim(), messages, temperature: 0.7 };
   if (tools && tools.length > 0) body.tools = tools;
   if (enableJsonMode) body.response_format = { type: 'json_object' };
+  if (thinkingLevel) {
+    body.reasoning_effort = thinkingLevel.toLowerCase();
+    body.thinking = { type: 'enabled' };
+  }
 
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -458,6 +482,7 @@ async function callGemini(
   systemPrompt: string,
   toolsJson: string,
   enableJsonMode: boolean,
+  thinkingLevel: string,
 ): Promise<{ content: string; thinking?: string }> {
   const sp = systemPrompt.trim();
   const ai = new GoogleGenAI({ apiKey: token.trim() });
@@ -471,6 +496,15 @@ async function callGemini(
       const parsed = JSON.parse(toolsJson);
       if (Array.isArray(parsed) && parsed.length > 0) config.tools = parsed;
     } catch { /* ignore */ }
+  }
+
+  if (thinkingLevel) {
+    const tl = ThinkingLevel[thinkingLevel as keyof typeof ThinkingLevel];
+    if (tl) config.thinkingConfig = { thinkingLevel: tl };
+  }
+
+  if (enableJsonMode) {
+    config.responseSchema = { type: 'JSON' };
   }
 
   const contents = [
@@ -833,6 +867,22 @@ watch(() => activeSession.value?.messages.length, () => {
   background: rgba(99, 102, 241, 0.1);
   border-color: var(--primary);
   color: var(--primary);
+}
+
+.ai-tool-select {
+  padding: 0.1875rem 0.375rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.ai-tool-select:focus {
+  border-color: var(--primary);
 }
 
 .ai-context-tag {

@@ -14,6 +14,7 @@ export interface AIConfig {
   systemPrompt: string;
   tools: string;
   enableJsonMode: boolean;
+  thinkingLevel: string;
 }
 
 export interface AppSettings {
@@ -42,6 +43,7 @@ function createDefaultConfig(name?: string): AIConfig {
     systemPrompt: '',
     tools: '',
     enableJsonMode: false,
+    thinkingLevel: '',
   };
 }
 
@@ -76,6 +78,7 @@ function normalizeConfig(config: Partial<AIConfig> & { id?: string }): AIConfig 
     systemPrompt: typeof config.systemPrompt === 'string' ? config.systemPrompt : '',
     tools: typeof config.tools === 'string' ? config.tools : '',
     enableJsonMode: typeof config.enableJsonMode === 'boolean' ? config.enableJsonMode : false,
+    thinkingLevel: typeof config.thinkingLevel === 'string' ? config.thinkingLevel : '',
   };
 }
 
