@@ -65,28 +65,29 @@
 
       <div class="flex-1 flex gap-8 min-h-0">
         <div class="flex-1 flex flex-col min-w-0">
-          <input 
-            v-if="currentChapter"
-            v-model="chapterTitle"
-            type="text"
-            class="input text-2xl font-bold mb-4"
-            placeholder="章节标题"
-            style="font-size: 1.5rem; padding: 0.875rem 1rem;"
-          />
-          <textarea
-            v-if="currentChapter && !previewMode"
-            v-model="chapterContent"
-            class="input flex-1 resize-none text-base leading-relaxed"
-            placeholder="在这里开始写作..."
-            @input="updateWordCount"
-            style="font-size: 1rem; line-height: 1.8; padding: 1.25rem;"
-          ></textarea>
-          <div
-            v-if="currentChapter && previewMode"
-            class="input flex-1 overflow-y-auto text-base leading-relaxed preview-content"
-            style="font-size: 1rem; line-height: 1.8; padding: 1.25rem;"
-            v-html="renderedContent"
-          ></div>
+          <template v-if="currentChapter">
+            <input
+              v-model="chapterTitle"
+              type="text"
+              class="input text-2xl font-bold mb-4"
+              placeholder="章节标题"
+              style="font-size: 1.5rem; padding: 0.875rem 1rem;"
+            />
+            <textarea
+              v-if="!previewMode"
+              v-model="chapterContent"
+              class="input flex-1 resize-none text-base leading-relaxed"
+              placeholder="在这里开始写作..."
+              @input="updateWordCount"
+              style="font-size: 1rem; line-height: 1.8; padding: 1.25rem;"
+            ></textarea>
+            <div
+              v-else
+              class="input flex-1 overflow-y-auto text-base leading-relaxed preview-content"
+              style="font-size: 1rem; line-height: 1.8; padding: 1.25rem;"
+              v-html="renderedContent"
+            ></div>
+          </template>
           <div v-else class="flex-1 flex items-center justify-center">
             <div class="text-center">
               <div class="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
