@@ -90,16 +90,6 @@
               </p>
             </div>
           </div>
-          <p class="text-[var(--text-light)] mt-5 line-clamp-3 leading-relaxed">{{ char.description }}</p>
-          <div v-if="char.traits.length > 0" class="flex flex-wrap gap-2 mt-5">
-            <span
-              v-for="trait in char.traits"
-              :key="trait"
-              class="px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-alt)] text-[var(--text-light)] font-medium"
-            >
-              {{ trait }}
-            </span>
-          </div>
           <div v-if="char.tags.length > 0" class="flex flex-wrap gap-2 mt-2">
             <span
               v-for="tag in char.tags"

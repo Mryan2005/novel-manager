@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="h-full flex flex-col">
+    <div class="flex flex-col" style="height: calc(100vh - 9rem);">
       <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-3">
           <select
