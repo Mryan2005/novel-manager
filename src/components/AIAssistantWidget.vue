@@ -171,6 +171,9 @@
                 placeholder='[
   {
     "googleSearch": {}
+  },
+  {
+    "codeExecution": {}
   }
 ]'
               ></textarea>
