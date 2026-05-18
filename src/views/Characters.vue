@@ -69,7 +69,7 @@
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div
-          v-for="char in filteredCharacters"
+          v-for="char in pagedCharacters"
           :key="char.id"
           :id="`character-${char.id}`"
           class="card pad-8 cursor-pointer hover:shadow-md transition-shadow"
@@ -132,6 +132,12 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
+        <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="btn btn-secondary text-sm">上一页</button>
+        <span class="text-sm font-medium text-[var(--text)]">{{ currentPage }} / {{ totalPages }}</span>
+        <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="btn btn-secondary text-sm">下一页</button>
       </div>
     </div>
 
@@ -215,7 +221,7 @@
     </div>
 
     <!-- 角色详情弹窗 -->
-    <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
+    <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
       <div class="detail-window">
         <div class="detail-header">
           <div class="flex items-center gap-2 min-w-0">
@@ -299,6 +305,8 @@ const searchQuery = ref('');
 const tagFilter = ref('');
 const selectedTags = ref(new Set<string>());
 const focusedId = ref('');
+const currentPage = ref(1);
+const PAGE_SIZE = 3;
 
 const form = ref({
   name: '',
@@ -337,13 +345,28 @@ const filteredCharacters = computed(() => {
   });
 });
 
+const totalPages = computed(() => Math.ceil(filteredCharacters.value.length / PAGE_SIZE));
+const pagedCharacters = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE;
+  return filteredCharacters.value.slice(start, start + PAGE_SIZE);
+});
+
 const toggleTag = (tag: string) => {
   if (selectedTags.value.has(tag)) {
     selectedTags.value.delete(tag);
   } else {
     selectedTags.value.add(tag);
   }
+  currentPage.value = 1;
 };
+
+function changePage(page: number) {
+  currentPage.value = Math.max(1, Math.min(totalPages.value, page));
+}
+
+watch([searchQuery, tagFilter], () => {
+  currentPage.value = 1;
+});
 
 const syncFromQuery = () => {
   searchQuery.value = typeof route.query.q === 'string' ? route.query.q : '';
@@ -474,11 +497,15 @@ const deleteFromDetail = () => {
 
 <style scoped>
 .detail-window {
+  position: fixed;
+  left: calc(50% + 8rem);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 51;
   display: flex;
   flex-direction: column;
-  width: min(90vw, 560px);
+  width: min(560px, calc(100vw - 20rem));
   max-height: 90vh;
-  margin: 0 auto;
   background: var(--surface);
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border);

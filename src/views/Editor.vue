@@ -98,23 +98,23 @@
           </div>
         </div>
 
-        <div class="w-80 shrink-0">
-          <div class="card pad-8 h-full">
-            <button 
+        <div class="w-80 shrink-0 min-h-0">
+          <div class="card pad-8 h-full flex flex-col overflow-hidden">
+            <button
               @click="showSidebar = !showSidebar"
-              class="flex items-center justify-between w-full text-[var(--text)] font-semibold mb-5"
+              class="flex items-center justify-between w-full text-[var(--text)] font-semibold mb-5 shrink-0"
             >
               <span class="flex items-center gap-2 text-lg">
                 <BookOpen class="w-5 h-5" />
                 写作助手
               </span>
-              <ChevronDown 
+              <ChevronDown
                 class="w-5 h-5 transition-transform"
                 :class="showSidebar ? 'rotate-180' : ''"
               />
             </button>
-            
-            <div v-if="showSidebar" class="space-y-6 overflow-y-auto" style="max-height: calc(100% - 3rem);">
+
+            <div v-if="showSidebar" class="space-y-6 flex-1 overflow-y-auto min-h-0">
               <div class="space-y-3">
                 <div class="relative">
                   <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -254,15 +254,15 @@
       </div>
     </div>
 
-    <div v-if="selectedKnowledge" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null">
-      <div style="display: flex; flex-direction: column; width: min(90vw, 560px); max-height: 90vh; background: var(--surface); border-radius: var(--radius-2xl); border: 1px solid var(--border); box-shadow: var(--shadow-lg); overflow: hidden;">
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.625rem 1.25rem; border-bottom: 1px solid var(--border);">
+    <div v-if="selectedKnowledge" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null">
+      <div class="editor-knowledge-window">
+        <div>
           <span class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</span>
-          <button class="text-[var(--text-muted)] hover:text-[var(--text)]" @click="selectedKnowledge = null" style="width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--radius); border: none; background: transparent; cursor: pointer;">
+          <button class="editor-kw-close" @click="selectedKnowledge = null">
             <X class="w-4 h-4" />
           </button>
         </div>
-        <div style="flex: 1; overflow-y: auto; padding: 1.25rem;">
+        <div>
           <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ knowledgeTitle }}</h3>
           <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
         </div>
@@ -749,5 +749,54 @@ function escapeHtml(text: string): string {
   color: var(--text-muted);
   font-style: italic;
   text-indent: 0;
+}
+
+.editor-knowledge-window {
+  position: fixed;
+  left: calc(50% + 8rem);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 20rem));
+  max-height: 90vh;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.editor-knowledge-window > :first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-knowledge-window > :last-child {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.editor-kw-close {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.editor-kw-close:hover {
+  background: var(--surface-alt);
+  color: var(--text);
 }
 </style>

@@ -30,7 +30,7 @@
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div
-          v-for="item in filteredItems"
+          v-for="item in pagedItems"
           :key="item.id"
           :id="`item-${item.id}`"
           class="card pad-8"
@@ -66,6 +66,12 @@
           </div>
         </div>
       </div>
+    </div>
+
+      <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
+        <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="btn btn-secondary text-sm">上一页</button>
+        <span class="text-sm font-medium text-[var(--text)]">{{ currentPage }} / {{ totalPages }}</span>
+        <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="btn btn-secondary text-sm">下一页</button>
     </div>
 
     <!-- 添加/编辑模态框 -->
@@ -150,6 +156,8 @@ const editingId = ref<string | null>(null);
 const abilitiesInput = ref('');
 const searchQuery = ref('');
 const focusedId = ref('');
+const currentPage = ref(1);
+const PAGE_SIZE = 3;
 
 const form = ref({ name: '', type: '武器', description: '', owner: '', abilities: [] as string[] });
 
@@ -162,6 +170,20 @@ const filteredItems = computed(() => {
     i.description.toLowerCase().includes(q) ||
     i.owner.toLowerCase().includes(q)
   );
+});
+
+const totalPages = computed(() => Math.ceil(filteredItems.value.length / PAGE_SIZE));
+const pagedItems = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE;
+  return filteredItems.value.slice(start, start + PAGE_SIZE);
+});
+
+function changePage(page: number) {
+  currentPage.value = Math.max(1, Math.min(totalPages.value, page));
+}
+
+watch(searchQuery, () => {
+  currentPage.value = 1;
 });
 
 const openAdd = () => {
