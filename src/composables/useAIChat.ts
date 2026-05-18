@@ -7,6 +7,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  thinking?: string;
   timestamp: number;
 }
 
@@ -103,13 +104,14 @@ export function useAIChat() {
     }
   }
 
-  function addMessage(sessionId: string, role: ChatMessage['role'], content: string) {
+  function addMessage(sessionId: string, role: ChatMessage['role'], content: string, thinking?: string) {
     const session = sessions.value.find(s => s.id === sessionId);
     if (!session) return;
     const msg: ChatMessage = {
       id: generateId(),
       role,
       content,
+      thinking,
       timestamp: Date.now(),
     };
     session.messages.push(msg);

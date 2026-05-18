@@ -70,7 +70,7 @@
 
     <!-- 添加/编辑模态框 -->
     <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full max-w-lg pad-8 my-8">
+      <div class="card w-full pad-8 overflow-y-auto" style="max-width: min(32rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem);">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingId ? '编辑物品' : '新建物品' }}</h2>
         <div class="space-y-5">
           <div>

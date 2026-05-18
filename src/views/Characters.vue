@@ -137,7 +137,7 @@
 
     <!-- 添加/编辑模态框 -->
     <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full max-w-lg pad-8 my-8">
+      <div class="card w-full pad-8 overflow-y-auto" style="max-width: min(32rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem);">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑角色' : '新建角色' }}
         </h2>
@@ -216,7 +216,7 @@
 
     <!-- 角色详情弹窗 -->
     <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeDetailModal">
-      <div class="card w-full max-w-lg pad-8 max-h-[90vh] overflow-y-auto my-8">
+      <div class="card w-full pad-8 overflow-y-auto" style="max-width: min(32rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem);">
         <div class="flex items-start justify-between gap-3">
           <div>
             <div class="text-xs text-[var(--text-muted)]">角色信息</div>

@@ -70,6 +70,14 @@
               class="ai-message"
               :class="msg.role"
             >
+              <div v-if="msg.thinking" class="ai-thinking">
+                <button class="ai-thinking-toggle" @click="toggleThinking(msg.id)">
+                  <Brain class="w-3.5 h-3.5" />
+                  <span>思考过程</span>
+                  <ChevronDown class="w-3 h-3 transition-transform" :class="expandedThinking.has(msg.id) ? 'rotate-180' : ''" />
+                </button>
+                <div v-if="expandedThinking.has(msg.id)" class="ai-thinking-content">{{ msg.thinking }}</div>
+              </div>
               <div class="ai-bubble">{{ msg.content }}</div>
               <div class="ai-msg-actions" v-if="msg.role === 'assistant'">
                 <button class="ai-action-btn" @click="copyText(msg.content)" title="复制">
@@ -141,7 +149,7 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   X, History, Plus, Trash2, Send, Copy, CornerDownLeft,
-  MessageSquare, MessageSquarePlus, Paperclip,
+  MessageSquare, MessageSquarePlus, Paperclip, Brain, ChevronDown,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { useAIChat } from '../composables/useAIChat';
@@ -163,6 +171,7 @@ const loading = ref(false);
 const errorMessage = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
+const expandedThinking = ref(new Set<string>());
 
 const hasConfig = computed(() =>
   settings.value.aiApiUrl.trim() !== '' &&
@@ -251,8 +260,8 @@ async function sendMessage() {
   scrollToBottom();
 
   try {
-    const response = await callAI(fullMessage, session.messages.slice(0, -1));
-    addMessage(session.id, 'assistant', response);
+    const { content, thinking } = await callAI(fullMessage, session.messages.slice(0, -1));
+    addMessage(session.id, 'assistant', content, thinking);
   } catch (e) {
     errorMessage.value = e instanceof Error ? e.message : '请求失败，请检查配置。';
   } finally {
@@ -261,7 +270,7 @@ async function sendMessage() {
   }
 }
 
-async function callAI(userContent: string, previousMessages: { role: string; content: string }[]) {
+async function callAI(userContent: string, previousMessages: { role: string; content: string }[]): Promise<{ content: string; thinking?: string }> {
   const provider = settings.value.aiProvider;
   const apiUrl = settings.value.aiApiUrl;
   const token = settings.value.aiToken;
@@ -279,7 +288,7 @@ async function callOpenAiLike(
   apiUrl: string,
   token: string,
   model: string,
-) {
+): Promise<{ content: string; thinking?: string }> {
   const messages = [
     { role: 'system', content: '你是小说写作助手，请给出可直接用于创作的建议。' },
     ...previousMessages.map(m => ({ role: m.role, content: m.content })),
@@ -300,9 +309,11 @@ async function callOpenAiLike(
   if (!res.ok) {
     throw new Error(data?.error?.message || `请求失败：${res.status}`);
   }
-  const text = data?.choices?.[0]?.message?.content;
+  const msg = data?.choices?.[0]?.message;
+  const text = msg?.content;
   if (!text) throw new Error('模型未返回可用内容。');
-  return String(text).trim();
+  const thinking = msg?.reasoning_content || msg?.reasoning || undefined;
+  return { content: String(text).trim(), thinking: thinking ? String(thinking).trim() : undefined };
 }
 
 async function callGemini(
@@ -311,7 +322,7 @@ async function callGemini(
   apiUrl: string,
   token: string,
   model: string,
-) {
+): Promise<{ content: string; thinking?: string }> {
   const contents = [
     ...previousMessages.map(m => ({
       role: m.role,
@@ -335,12 +346,15 @@ async function callGemini(
   if (!res.ok) {
     throw new Error(data?.error?.message || `请求失败：${res.status}`);
   }
-  const parts = data?.candidates?.[0]?.content?.parts;
-  const text = Array.isArray(parts)
-    ? parts.map((part: { text?: string }) => part?.text || '').join('\n').trim()
-    : '';
+  const parts: Array<{ text?: string; thought?: boolean }> = data?.candidates?.[0]?.content?.parts ?? [];
+  const thoughtParts = parts.filter(p => p.thought === true);
+  const textParts = parts.filter(p => !p.thought);
+  const thinking = thoughtParts.length > 0
+    ? thoughtParts.map(p => p.text || '').join('\n').trim()
+    : undefined;
+  const text = textParts.map(p => p.text || '').join('\n').trim();
   if (!text) throw new Error('模型未返回可用内容。');
-  return text;
+  return { content: text, thinking };
 }
 
 async function copyText(text: string) {
@@ -349,6 +363,14 @@ async function copyText(text: string) {
 
 function insertToEditor(text: string) {
   window.dispatchEvent(new CustomEvent('novel-ai-insert', { detail: text }));
+}
+
+function toggleThinking(msgId: string) {
+  if (expandedThinking.value.has(msgId)) {
+    expandedThinking.value.delete(msgId);
+  } else {
+    expandedThinking.value.add(msgId);
+  }
 }
 
 watch(() => activeSession.value?.messages.length, () => {
@@ -562,6 +584,43 @@ watch(() => activeSession.value?.messages.length, () => {
 .ai-action-btn:hover {
   color: var(--primary);
   background: rgba(99, 102, 241, 0.08);
+}
+
+.ai-thinking {
+  margin-bottom: 0.375rem;
+}
+
+.ai-thinking-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  border: none;
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--primary-light);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ai-thinking-toggle:hover {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.ai-thinking-content {
+  margin-top: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius);
+  background: rgba(139, 92, 246, 0.04);
+  border-left: 2px solid rgba(139, 92, 246, 0.3);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .ai-error {
