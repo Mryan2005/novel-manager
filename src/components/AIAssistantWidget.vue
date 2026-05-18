@@ -121,6 +121,15 @@
                 <Braces class="w-3.5 h-3.5" />
                 JSON
               </button>
+              <button
+                class="ai-tool-btn"
+                :class="{ active: showToolsEditor }"
+                @click="showToolsEditor = !showToolsEditor"
+                title="编辑 Tools(JSON)"
+              >
+                <Terminal class="w-3.5 h-3.5" />
+                Tools
+              </button>
               <template v-if="activeAIConfig.provider === 'gemini'">
                 <button
                   class="ai-tool-btn"
@@ -142,7 +151,7 @@
                 </button>
               </template>
               <select
-                v-if="activeAIConfig.thinkingLevel || activeAIConfig.provider === 'gemini'"
+                v-if="activeAIConfig"
                 :value="activeAIConfig.thinkingLevel"
                 @change="setThinking(($event.target as HTMLSelectElement).value)"
                 class="ai-tool-select"
@@ -154,6 +163,18 @@
                 <option value="MEDIUM">MEDIUM</option>
                 <option value="HIGH">HIGH</option>
               </select>
+            </div>
+            <div v-if="activeAIConfig && showToolsEditor" class="space-y-2 mb-2">
+              <textarea
+                v-model="activeAIConfig.tools"
+                class="input text-xs min-h-[96px] font-mono"
+                placeholder='[
+  {
+    "googleSearch": {}
+  }
+]'
+              ></textarea>
+              <p class="text-xs text-[var(--text-muted)]">Tools(JSON) 在聊天框内设置；留空表示不启用工具。</p>
             </div>
             <div v-if="contextText" class="ai-context-area">
               <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
@@ -232,6 +253,7 @@ const errorMessage = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 const expandedThinking = ref(new Set<string>());
+const showToolsEditor = ref(false);
 
 const hasConfig = computed(() => {
   const cfg = activeAIConfig.value;
