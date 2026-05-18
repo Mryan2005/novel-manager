@@ -99,7 +99,7 @@ export function useAIChat() {
     if (idx === -1) return;
     sessions.value.splice(idx, 1);
     if (activeSessionId.value === id) {
-      activeSessionId.value = sessions.value.length > 0 ? sessions.value[0].id : null;
+      activeSessionId.value = sessions.value.length > 0 ? sessions.value[0]!.id : null;
     }
   }
 
