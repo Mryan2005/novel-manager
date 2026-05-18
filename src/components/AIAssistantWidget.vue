@@ -168,16 +168,9 @@
               <textarea
                 v-model="activeAIConfig.tools"
                 class="input text-xs min-h-[96px] font-mono"
-                placeholder='[
-  {
-    "googleSearch": {}
-  },
-  {
-    "codeExecution": {}
-  }
-]'
+                :placeholder="toolsPlaceholder"
               ></textarea>
-              <p class="text-xs text-[var(--text-muted)]">Tools(JSON) 在聊天框内设置；留空表示不启用工具。</p>
+              <p class="text-xs text-[var(--text-muted)]">配置工具的 JSON 格式；留空表示不启用工具。</p>
             </div>
             <div v-if="contextText" class="ai-context-area">
               <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
@@ -257,6 +250,14 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 const expandedThinking = ref(new Set<string>());
 const showToolsEditor = ref(false);
+const toolsPlaceholder = `[
+  {
+    "googleSearch": {}
+  },
+  {
+    "codeExecution": {}
+  }
+]`;
 
 const hasConfig = computed(() => {
   const cfg = activeAIConfig.value;
