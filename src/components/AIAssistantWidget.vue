@@ -170,7 +170,7 @@
                 class="input text-xs min-h-[96px] font-mono"
                 :placeholder="toolsPlaceholder"
               ></textarea>
-              <p class="text-xs text-[var(--text-muted)]">使用 JSON 数组格式，每个元素为一个工具对象（如 { "googleSearch": {} }）；留空表示不启用工具。</p>
+              <p class="text-xs text-[var(--text-muted)]">使用 JSON 数组格式，每个元素为一个工具对象（如 { "googleSearch": {} } 或 { "google_search": {} }）；留空表示不启用工具。</p>
             </div>
             <div v-if="contextText" class="ai-context-area">
               <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
