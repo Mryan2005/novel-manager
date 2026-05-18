@@ -309,11 +309,6 @@ const previewMode = ref(false);
 const showSidebar = ref(false);
 const showNewChapterModal = ref(false);
 
-const anyModalOpenEditor = computed(() => showNewChapterModal.value || selectedKnowledge.value !== null);
-watch(anyModalOpenEditor, (open) => {
-  document.body.style.overflow = open ? 'hidden' : '';
-});
-
 const newChapterTitle = ref('');
 const newChapterVolumeId = ref('');
 const draftStatus = ref('');
@@ -324,6 +319,11 @@ const selectedAssistantTags = ref(new Set<string>());
 const activeQuickAdd = ref<'character' | 'scene' | 'item' | null>(null);
 const quickAddForm = ref({ name: '', extra: '', tags: '' });
 const selectedKnowledge = ref<{ type: 'character' | 'scene' | 'item'; id: string } | null>(null);
+
+const anyModalOpenEditor = computed(() => showNewChapterModal.value || selectedKnowledge.value !== null);
+watch(anyModalOpenEditor, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
+});
 let draftTimer: ReturnType<typeof setTimeout> | null = null;
 
 const hasChanges = computed(() => {
