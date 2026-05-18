@@ -104,10 +104,17 @@
           </div>
 
           <div class="ai-input-area">
-            <div v-if="contextText" class="ai-context-tag">
-              <span class="text-xs text-[var(--text-muted)] truncate flex-1">已附加页面上下文</span>
-              <button class="ai-icon-btn-sm" @click="contextText = ''" title="清除上下文">
-                <X class="w-3 h-3" />
+            <div v-if="contextText" class="ai-context-area">
+              <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
+                <Paperclip class="w-3.5 h-3.5" />
+                <span class="text-xs font-medium flex-1 text-left truncate">已附加页面上下文</span>
+                <ChevronDown class="w-3 h-3 transition-transform" :class="contextExpanded ? 'rotate-180' : ''" />
+              </button>
+              <div v-if="contextExpanded" class="ai-context-body">
+                <pre class="ai-context-text">{{ contextText }}</pre>
+              </div>
+              <button v-if="contextExpanded" class="ai-context-remove" @click="contextText = ''">
+                清除上下文
               </button>
             </div>
             <div class="ai-input-row">
@@ -167,6 +174,7 @@ const {
 const showHistory = ref(false);
 const inputText = ref('');
 const contextText = ref('');
+const contextExpanded = ref(false);
 const loading = ref(false);
 const errorMessage = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -233,6 +241,7 @@ function attachContext() {
   const ctx = getContextForRoute(route.path);
   if (ctx) {
     contextText.value = ctx;
+    contextExpanded.value = true;
   }
 }
 
@@ -255,6 +264,7 @@ async function sendMessage() {
   addMessage(session.id, 'user', text);
   inputText.value = '';
   contextText.value = '';
+  contextExpanded.value = false;
   errorMessage.value = '';
   loading.value = true;
   scrollToBottom();
@@ -645,6 +655,67 @@ watch(() => activeSession.value?.messages.length, () => {
   background: rgba(99, 102, 241, 0.06);
   border-radius: var(--radius-sm);
   margin-bottom: 0.5rem;
+}
+
+.ai-context-area {
+  margin-bottom: 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.ai-context-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border: none;
+  background: rgba(99, 102, 241, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ai-context-header:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.ai-context-body {
+  padding: 0.5rem 0.625rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.ai-context-text {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow-y: auto;
+  font-family: inherit;
+}
+
+.ai-context-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem;
+  border: none;
+  border-top: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ai-context-remove:hover {
+  background: rgba(239, 68, 68, 0.06);
+  color: var(--error);
 }
 
 .ai-input-row {

@@ -230,7 +230,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
@@ -260,6 +260,11 @@ const editingChapter = ref<Chapter | null>(null);
 const chapterForm = ref({ title: '', status: 'draft' as Chapter['status'], volumeId: '' });
 const showDeleteChapterModal = ref(false);
 const chapterToDelete = ref<Chapter | null>(null);
+
+const anyModalOpen = computed(() => showVolumeModal.value || showChapterModal.value || showDeleteVolumeModal.value || showDeleteChapterModal.value);
+watch(anyModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
+});
 
 // Init: expand all volumes
 volumes.value.forEach(v => expandedVolumes.value.add(v.id));

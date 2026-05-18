@@ -167,6 +167,11 @@ const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
 const sceneToDelete = ref<Scene | null>(null);
+
+const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDeleteModal.value);
+watch(anyModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
+});
 const editingId = ref<string | null>(null);
 const atmosphereInput = ref('');
 const searchQuery = ref('');

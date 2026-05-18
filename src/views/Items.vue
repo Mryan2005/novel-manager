@@ -141,6 +141,11 @@ const route = useRoute();
 const showModal = ref(false);
 const showDeleteModal = ref(false);
 const itemToDelete = ref<Item | null>(null);
+
+const anyModalOpen = computed(() => showModal.value || showDeleteModal.value);
+watch(anyModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
+});
 const editingId = ref<string | null>(null);
 const abilitiesInput = ref('');
 const searchQuery = ref('');

@@ -308,6 +308,12 @@ const saving = ref(false);
 const previewMode = ref(false);
 const showSidebar = ref(false);
 const showNewChapterModal = ref(false);
+
+const anyModalOpenEditor = computed(() => showNewChapterModal.value);
+watch(anyModalOpenEditor, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
+});
+
 const newChapterTitle = ref('');
 const newChapterVolumeId = ref('');
 const draftStatus = ref('');

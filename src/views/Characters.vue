@@ -216,25 +216,27 @@
 
     <!-- 角色详情弹窗 -->
     <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
-      <div class="card w-full pad-8 overflow-y-auto" style="width: min(90vw, 560px); max-height: 90vh;">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="text-xs text-[var(--text-muted)]">角色信息</div>
-            <h3 class="text-xl font-bold text-[var(--text)] mt-1">{{ detailCharacter.name }}</h3>
+      <div class="detail-window">
+        <div class="detail-header">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-xs text-[var(--text-muted)]">角色信息</span>
           </div>
-          <button @click="closeDetailModal" class="text-[var(--text-muted)] hover:text-[var(--text)]">
-            <X class="w-5 h-5" />
+          <button class="detail-close-btn" @click="closeDetailModal">
+            <X class="w-4 h-4" />
           </button>
         </div>
-        <div class="mt-5 text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">
-          <p v-if="detailCharacter.role">定位：{{ detailCharacter.role }}</p>
-          <p v-if="detailCharacter.gender">性别：{{ detailCharacter.gender }}</p>
-          <p v-if="detailCharacter.age">年龄：{{ detailCharacter.age }}岁</p>
-          <p v-if="detailCharacter.tags.length > 0">标签：{{ detailCharacter.tags.join('、') }}</p>
-          <p v-if="detailCharacter.traits.length > 0">性格特点：{{ detailCharacter.traits.join('、') }}</p>
-          <p v-if="detailCharacter.description" class="mt-3">{{ detailCharacter.description }}</p>
+        <div class="detail-body">
+          <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ detailCharacter.name }}</h3>
+          <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed space-y-1">
+            <p v-if="detailCharacter.role">定位：{{ detailCharacter.role }}</p>
+            <p v-if="detailCharacter.gender">性别：{{ detailCharacter.gender }}</p>
+            <p v-if="detailCharacter.age">年龄：{{ detailCharacter.age }}岁</p>
+            <p v-if="detailCharacter.tags.length > 0">标签：{{ detailCharacter.tags.join('、') }}</p>
+            <p v-if="detailCharacter.traits.length > 0">性格特点：{{ detailCharacter.traits.join('、') }}</p>
+            <p v-if="detailCharacter.description" class="!mt-3">{{ detailCharacter.description }}</p>
+          </div>
         </div>
-        <div class="flex justify-end gap-3 mt-6 pt-5 border-t border-[var(--border-light)]">
+        <div class="detail-footer">
           <button @click="editFromDetail" class="btn btn-secondary">
             <Edit class="w-4 h-4" />
             编辑
@@ -283,6 +285,11 @@ const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
 const showDetailModal = ref(false);
+
+const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDetailModal.value || showDeleteModal.value);
+watch(anyModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
+});
 const characterToDelete = ref<Character | null>(null);
 const detailCharacter = ref<Character | null>(null);
 const editingId = ref<string | null>(null);
@@ -464,3 +471,60 @@ const deleteFromDetail = () => {
   }
 };
 </script>
+
+<style scoped>
+.detail-window {
+  display: flex;
+  flex-direction: column;
+  width: min(90vw, 560px);
+  max-height: 90vh;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.detail-close-btn {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.detail-close-btn:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+</style>
