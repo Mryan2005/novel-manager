@@ -58,10 +58,6 @@ apply(settings.value);
 
 watch(settings, (v) => {
   const normalized = normalize(v);
-  if (normalized.fontSize !== v.fontSize || normalized.displayScale !== v.displayScale) {
-    settings.value = normalized;
-    return;
-  }
   save(normalized);
   apply(normalized);
 }, { deep: true });

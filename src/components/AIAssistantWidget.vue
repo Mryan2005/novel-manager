@@ -54,6 +54,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 type ProviderType = 'openai' | 'openai-like' | 'gemini';
+const VALID_PROVIDERS: ProviderType[] = ['openai', 'openai-like', 'gemini'];
 
 interface AIConfig {
   provider: ProviderType;
@@ -87,7 +88,7 @@ function loadConfig(): AIConfig {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        provider: parsed.provider === 'gemini' || parsed.provider === 'openai-like' ? parsed.provider : 'openai',
+        provider: isValidProvider(parsed.provider) ? parsed.provider : 'openai',
         apiUrl: typeof parsed.apiUrl === 'string' ? parsed.apiUrl : '',
         token: typeof parsed.token === 'string' ? parsed.token : '',
         model: typeof parsed.model === 'string' ? parsed.model : '',
@@ -102,6 +103,10 @@ function loadConfig(): AIConfig {
     token: '',
     model: '',
   };
+}
+
+function isValidProvider(value: unknown): value is ProviderType {
+  return typeof value === 'string' && VALID_PROVIDERS.includes(value as ProviderType);
 }
 
 function normalizeUrl(base: string, suffix: string) {
