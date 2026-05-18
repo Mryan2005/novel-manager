@@ -156,6 +156,35 @@
             ></textarea>
           </div>
 
+          <!-- JSON 模式 -->
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="text-sm font-medium text-[var(--text-light)]">JSON 结构化输出</label>
+              <p class="text-xs text-[var(--text-muted)]">强制模型返回 JSON 格式</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" v-model="activeConfig.enableJsonMode" class="sr-only peer" />
+              <div class="w-9 h-5 rounded-full peer-checked:bg-[var(--primary)] bg-[var(--border)] transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
+            </label>
+          </div>
+
+          <!-- Tools（函数调用） -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">Tools / 函数调用（JSON 数组）</label>
+            <p class="text-xs text-[var(--text-muted)]">
+              定义 AI 可调用的函数。对于 Gemini 模型，还可以使用内置工具如 Google 搜索（google_search）、代码执行（code_execution）等。
+            </p>
+            <textarea
+              v-model="activeConfig.tools"
+              class="input text-sm min-h-[120px] font-mono"
+              placeholder='[{"type":"function","function":{"name":"get_character","description":"获取角色信息","parameters":{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}}}]'
+            ></textarea>
+            <p class="text-xs text-[var(--text-muted)]">
+              示例（Gemini 内置工具）：<code>[{"google_search":{}}]</code> 或 <code>[{"code_execution":{}}]</code>
+            </p>
+          </div>
+
           <div v-if="hasAiConfig" class="p-3 rounded-xl text-xs" style="background: rgba(16, 185, 129, 0.08); color: var(--success);">
             当前配置已完成，可以点击 Header 中的「AI 助手」按钮开始使用。
           </div>

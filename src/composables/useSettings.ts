@@ -12,6 +12,8 @@ export interface AIConfig {
   token: string;
   model: string;
   systemPrompt: string;
+  tools: string;
+  enableJsonMode: boolean;
 }
 
 export interface AppSettings {
@@ -38,6 +40,8 @@ function createDefaultConfig(name?: string): AIConfig {
     token: '',
     model: '',
     systemPrompt: '',
+    tools: '',
+    enableJsonMode: false,
   };
 }
 
@@ -70,6 +74,8 @@ function normalizeConfig(config: Partial<AIConfig> & { id?: string }): AIConfig 
     token: typeof config.token === 'string' ? config.token : '',
     model: typeof config.model === 'string' ? config.model : '',
     systemPrompt: typeof config.systemPrompt === 'string' ? config.systemPrompt : '',
+    tools: typeof config.tools === 'string' ? config.tools : '',
+    enableJsonMode: typeof config.enableJsonMode === 'boolean' ? config.enableJsonMode : false,
   };
 }
 
@@ -108,6 +114,7 @@ function load(): AppSettings {
         migrated.token = typeof parsed.aiToken === 'string' ? parsed.aiToken : '';
         migrated.model = typeof parsed.aiModel === 'string' ? parsed.aiModel : '';
         migrated.systemPrompt = typeof parsed.aiSystemPrompt === 'string' ? parsed.aiSystemPrompt : '';
+        migrated.tools = typeof parsed.aiTools === 'string' ? parsed.aiTools : '';
         parsed.aiConfigs = [migrated];
         parsed.aiActiveConfigId = migrated.id;
       }

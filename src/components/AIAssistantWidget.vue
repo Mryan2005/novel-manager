@@ -37,13 +37,20 @@
 
         <div class="ai-main">
           <div class="ai-header">
-            <div class="flex items-center gap-2 min-w-0">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
               <button class="ai-icon-btn" @click="showHistory = !showHistory" title="历史记录">
                 <History class="w-4 h-4" />
               </button>
-              <h3 class="text-sm font-semibold text-[var(--text)] truncate">
-                {{ activeSession?.title || 'AI 写作助手' }}
-              </h3>
+              <select
+                v-if="settings.aiConfigs.length > 1"
+                :value="settings.aiActiveConfigId"
+                @change="switchConfig(($event.target as HTMLSelectElement).value)"
+                class="ai-model-select"
+                title="切换 AI 配置"
+              >
+                <option v-for="cfg in settings.aiConfigs" :key="cfg.id" :value="cfg.id">{{ cfg.name }}</option>
+              </select>
+              <span v-else class="text-xs text-[var(--text-muted)] truncate">{{ activeAIConfig?.name || 'AI 助手' }}</span>
             </div>
             <div class="flex items-center gap-1">
               <button class="ai-icon-btn" @click="startNewChat" title="新对话">
@@ -104,6 +111,37 @@
           </div>
 
           <div class="ai-input-area">
+            <div v-if="activeAIConfig" class="ai-toolbar">
+              <button
+                class="ai-tool-btn"
+                :class="{ active: activeAIConfig.enableJsonMode }"
+                @click="toggleJsonMode"
+                title="JSON 结构化输出"
+              >
+                <Braces class="w-3.5 h-3.5" />
+                JSON
+              </button>
+              <template v-if="activeAIConfig.provider === 'gemini'">
+                <button
+                  class="ai-tool-btn"
+                  :class="{ active: hasGeminiTool('google_search') }"
+                  @click="toggleGeminiTool('google_search')"
+                  title="Google 搜索接地"
+                >
+                  <Globe class="w-3.5 h-3.5" />
+                  搜索
+                </button>
+                <button
+                  class="ai-tool-btn"
+                  :class="{ active: hasGeminiTool('code_execution') }"
+                  @click="toggleGeminiTool('code_execution')"
+                  title="代码执行"
+                >
+                  <Terminal class="w-3.5 h-3.5" />
+                  代码
+                </button>
+              </template>
+            </div>
             <div v-if="contextText" class="ai-context-area">
               <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
                 <Paperclip class="w-3.5 h-3.5" />
@@ -156,7 +194,7 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   X, History, Plus, Trash2, Send, Copy, CornerDownLeft,
-  MessageSquare, MessageSquarePlus, Paperclip, Brain, ChevronDown,
+  MessageSquare, MessageSquarePlus, Paperclip, Brain, ChevronDown, Braces, Globe, Terminal,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { useAIChat } from '../composables/useAIChat';
@@ -166,7 +204,7 @@ defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const route = useRoute();
-const { activeAIConfig } = useSettings();
+const { settings, activeAIConfig, setActiveAIConfig } = useSettings();
 const {
   sessions, activeSession, activeSessionId,
   createSession, ensureSession, selectSession, deleteSession, addMessage, getContextForRoute,
@@ -220,6 +258,42 @@ function autoResize() {
       el.style.height = Math.min(el.scrollHeight, 120) + 'px';
     }
   });
+}
+
+function switchConfig(id: string) {
+  setActiveAIConfig(id);
+}
+
+function toggleJsonMode() {
+  const cfg = activeAIConfig.value;
+  if (!cfg) return;
+  cfg.enableJsonMode = !cfg.enableJsonMode;
+}
+
+function parseTools(): Record<string, unknown>[] {
+  const cfg = activeAIConfig.value;
+  if (!cfg || !cfg.tools.trim()) return [];
+  try {
+    const parsed = JSON.parse(cfg.tools);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+function hasGeminiTool(name: string): boolean {
+  return parseTools().some(t => t[name] !== undefined);
+}
+
+function toggleGeminiTool(name: string) {
+  const cfg = activeAIConfig.value;
+  if (!cfg) return;
+  const tools = parseTools();
+  const idx = tools.findIndex(t => t[name] !== undefined);
+  if (idx >= 0) {
+    tools.splice(idx, 1);
+  } else {
+    tools.push({ [name]: {} });
+  }
+  cfg.tools = tools.length > 0 ? JSON.stringify(tools, null, 2) : '';
 }
 
 function startNewChat() {
@@ -290,9 +364,9 @@ async function callAI(userContent: string, previousMessages: { role: string; con
   if (!cfg) throw new Error('未选择 AI 配置。');
 
   if (cfg.provider === 'gemini') {
-    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt);
+    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode);
   }
-  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt);
+  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode);
 }
 
 async function callOpenAiLike(
@@ -302,29 +376,74 @@ async function callOpenAiLike(
   token: string,
   model: string,
   systemPrompt: string,
+  toolsJson: string,
+  enableJsonMode: boolean,
 ): Promise<{ content: string; thinking?: string }> {
   const sp = systemPrompt.trim();
-  const messages = [
+  const messages: Record<string, unknown>[] = [
     ...(sp ? [{ role: 'system', content: sp }] : []),
     ...previousMessages.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userContent },
   ];
 
+  let tools: unknown[] | undefined;
+  if (toolsJson.trim()) {
+    try {
+      const parsed = JSON.parse(toolsJson);
+      if (Array.isArray(parsed) && parsed.length > 0) tools = parsed;
+    } catch { /* ignore invalid JSON */ }
+  }
+
   const endpoint = normalizeUrl(apiUrl, '/chat/completions');
+  const body: Record<string, unknown> = { model: model.trim(), messages, temperature: 0.7 };
+  if (tools && tools.length > 0) body.tools = tools;
+  if (enableJsonMode) body.response_format = { type: 'json_object' };
+
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token.trim()}`,
     },
-    body: JSON.stringify({ model: model.trim(), messages, temperature: 0.7 }),
+    body: JSON.stringify(body),
   });
 
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data?.error?.message || `请求失败：${res.status}`);
   }
-  const msg = data?.choices?.[0]?.message;
+  const msg = data?.choices?.[0]?.message as Record<string, unknown> | undefined;
+  const toolCalls = msg?.tool_calls as Array<{ id: string; function: { name: string; arguments: string } }> | undefined;
+
+  // Handle tool calls
+  if (toolCalls && toolCalls.length > 0 && !msg?.content) {
+    messages.push({ role: 'assistant', tool_calls: toolCalls });
+    for (const tc of toolCalls) {
+      messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: `工具 "${tc.function.name}" 未在当前环境实现。参数: ${tc.arguments}`,
+      });
+    }
+    const followUp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token.trim()}`,
+      },
+      body: JSON.stringify({ model: model.trim(), messages, temperature: 0.7 }),
+    });
+    const followData = await followUp.json();
+    if (!followUp.ok) {
+      throw new Error(followData?.error?.message || `请求失败：${followUp.status}`);
+    }
+    const followMsg = followData?.choices?.[0]?.message as Record<string, unknown> | undefined;
+    const text = followMsg?.content;
+    if (!text) throw new Error('模型未返回可用内容。');
+    const thinking = (followMsg as { reasoning_content?: string })?.reasoning_content || (followMsg as { reasoning?: string })?.reasoning || undefined;
+    return { content: String(text).trim(), thinking: thinking ? String(thinking).trim() : undefined };
+  }
+
   const text = msg?.content;
   if (!text) throw new Error('模型未返回可用内容。');
   const thinking = msg?.reasoning_content || msg?.reasoning || undefined;
@@ -337,6 +456,8 @@ async function callGemini(
   token: string,
   model: string,
   systemPrompt: string,
+  toolsJson: string,
+  enableJsonMode: boolean,
 ): Promise<{ content: string; thinking?: string }> {
   const sp = systemPrompt.trim();
   const ai = new GoogleGenAI({ apiKey: token.trim() });
@@ -344,6 +465,12 @@ async function callGemini(
   const config: Record<string, unknown> = {};
   if (sp) {
     config.systemInstruction = { parts: [{ text: sp }] };
+  }
+  if (toolsJson.trim()) {
+    try {
+      const parsed = JSON.parse(toolsJson);
+      if (Array.isArray(parsed) && parsed.length > 0) config.tools = parsed;
+    } catch { /* ignore */ }
   }
 
   const contents = [
@@ -508,6 +635,26 @@ watch(() => activeSession.value?.messages.length, () => {
   padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  gap: 0.5rem;
+}
+
+.ai-model-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.375rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  max-width: 200px;
+}
+
+.ai-model-select:focus {
+  border-color: var(--primary);
 }
 
 .ai-messages {
@@ -653,6 +800,39 @@ watch(() => activeSession.value?.messages.length, () => {
   padding: 0.75rem 1rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.ai-toolbar {
+  display: flex;
+  gap: 0.375rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ai-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ai-tool-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.ai-tool-btn.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .ai-context-tag {
