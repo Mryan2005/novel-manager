@@ -299,9 +299,9 @@ async function callOpenAiLike(
   token: string,
   model: string,
 ): Promise<{ content: string; thinking?: string }> {
-  const systemPrompt = settings.value.aiSystemPrompt || '你是小说写作助手，请给出可直接用于创作的建议。';
+  const systemPrompt = settings.value.aiSystemPrompt.trim();
   const messages = [
-    { role: 'system', content: systemPrompt },
+    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
     ...previousMessages.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userContent },
   ];
@@ -334,8 +334,13 @@ async function callGemini(
   token: string,
   model: string,
 ): Promise<{ content: string; thinking?: string }> {
-  const systemPrompt = settings.value.aiSystemPrompt || '你是小说写作助手，请给出可直接用于创作的建议。';
+  const systemPrompt = settings.value.aiSystemPrompt.trim();
   const ai = new GoogleGenAI({ apiKey: token.trim() });
+
+  const config: Record<string, unknown> = {};
+  if (systemPrompt) {
+    config.systemInstruction = { parts: [{ text: systemPrompt }] };
+  }
 
   const contents = [
     ...previousMessages.map(m => ({
@@ -348,9 +353,7 @@ async function callGemini(
   const response = await ai.models.generateContent({
     model: model.trim(),
     contents,
-    config: {
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-    },
+    config,
   });
 
   if (!response.candidates || response.candidates.length === 0) {

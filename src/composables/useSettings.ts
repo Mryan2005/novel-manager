@@ -23,7 +23,7 @@ const defaults: AppSettings = {
   aiApiUrl: '',
   aiToken: '',
   aiModel: '',
-  aiSystemPrompt: '你是小说写作助手，请给出可直接用于创作的建议。',
+  aiSystemPrompt: '',
 };
 
 const DISPLAY_SCALE_MIN = 0.75;
