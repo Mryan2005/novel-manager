@@ -121,11 +121,20 @@
                 <Braces class="w-3.5 h-3.5" />
                 JSON
               </button>
+              <button
+                class="ai-tool-btn"
+                :class="{ active: showToolsEditor }"
+                @click="showToolsEditor = !showToolsEditor"
+                title="编辑 Tools(JSON)"
+              >
+                <Terminal class="w-3.5 h-3.5" />
+                Tools
+              </button>
               <template v-if="activeAIConfig.provider === 'gemini'">
                 <button
                   class="ai-tool-btn"
-                  :class="{ active: hasGeminiTool('google_search') }"
-                  @click="toggleGeminiTool('google_search')"
+                  :class="{ active: hasGeminiTool('googleSearch') }"
+                  @click="toggleGeminiTool('googleSearch')"
                   title="Google 搜索接地"
                 >
                   <Globe class="w-3.5 h-3.5" />
@@ -133,8 +142,8 @@
                 </button>
                 <button
                   class="ai-tool-btn"
-                  :class="{ active: hasGeminiTool('code_execution') }"
-                  @click="toggleGeminiTool('code_execution')"
+                  :class="{ active: hasGeminiTool('codeExecution') }"
+                  @click="toggleGeminiTool('codeExecution')"
                   title="代码执行"
                 >
                   <Terminal class="w-3.5 h-3.5" />
@@ -142,7 +151,7 @@
                 </button>
               </template>
               <select
-                v-if="activeAIConfig.thinkingLevel || activeAIConfig.provider === 'gemini'"
+                v-if="activeAIConfig"
                 :value="activeAIConfig.thinkingLevel"
                 @change="setThinking(($event.target as HTMLSelectElement).value)"
                 class="ai-tool-select"
@@ -154,6 +163,14 @@
                 <option value="MEDIUM">MEDIUM</option>
                 <option value="HIGH">HIGH</option>
               </select>
+            </div>
+            <div v-if="activeAIConfig && showToolsEditor" class="space-y-2 mb-2">
+              <textarea
+                v-model="activeAIConfig.tools"
+                class="input text-xs min-h-[96px] font-mono"
+                :placeholder="toolsPlaceholder"
+              ></textarea>
+              <p class="text-xs text-[var(--text-muted)]">使用 JSON 数组格式，每个元素为一个工具对象（如 { "googleSearch": {} } 或 { "google_search": {} }）；留空表示不启用工具。</p>
             </div>
             <div v-if="contextText" class="ai-context-area">
               <button class="ai-context-header" @click="contextExpanded = !contextExpanded">
@@ -232,6 +249,15 @@ const errorMessage = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 const expandedThinking = ref(new Set<string>());
+const showToolsEditor = ref(false);
+const toolsPlaceholder = `[
+  {
+    "googleSearch": {}
+  },
+  {
+    "codeExecution": {}
+  }
+]`;
 
 const hasConfig = computed(() => {
   const cfg = activeAIConfig.value;
@@ -292,8 +318,15 @@ function parseTools(): Record<string, unknown>[] {
   } catch { return []; }
 }
 
+function getGeminiToolAliases(name: string): string[] {
+  if (name === 'googleSearch') return ['googleSearch', 'google_search'];
+  if (name === 'codeExecution') return ['codeExecution', 'code_execution'];
+  return [name];
+}
+
 function hasGeminiTool(name: string): boolean {
-  return parseTools().some(t => t[name] !== undefined);
+  const aliases = getGeminiToolAliases(name);
+  return parseTools().some(t => aliases.some(alias => t[alias] !== undefined));
 }
 
 function setThinking(level: string) {
@@ -305,8 +338,9 @@ function setThinking(level: string) {
 function toggleGeminiTool(name: string) {
   const cfg = activeAIConfig.value;
   if (!cfg) return;
+  const aliases = getGeminiToolAliases(name);
   const tools = parseTools();
-  const idx = tools.findIndex(t => t[name] !== undefined);
+  const idx = tools.findIndex(t => aliases.some(alias => t[alias] !== undefined));
   if (idx >= 0) {
     tools.splice(idx, 1);
   } else {
