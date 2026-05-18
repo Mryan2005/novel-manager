@@ -2,19 +2,19 @@
   <Layout>
     <div class="h-full flex flex-col">
       <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-5">
+        <div class="flex items-center gap-3">
           <select
             v-if="currentChapter"
             :value="currentChapter.volumeId"
             @change="changeChapterVolume(($event.target as HTMLSelectElement).value)"
-            class="input w-36"
+            class="input w-32"
           >
             <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
           </select>
           <select
             v-model="selectedChapterId"
             @change="onChapterChange"
-            class="input w-72"
+            class="input w-64"
           >
             <option value="">选择章节...</option>
             <optgroup v-for="volume in volumes" :key="volume.id" :label="volume.title">
@@ -27,26 +27,26 @@
               </option>
             </optgroup>
           </select>
-          <button 
+          <button
             v-if="!selectedChapterId"
             @click="createNewChapter"
-            class="btn btn-primary"
+            class="btn btn-primary shrink-0"
           >
             <Plus class="w-4 h-4" />
             新建章节
           </button>
         </div>
         <div class="flex items-center gap-4">
-          <span v-if="draftStatus" class="text-xs font-medium" :class="draftStatus === '已保存' ? 'text-green-500' : 'text-[var(--text-muted)]'">
+          <span v-if="draftStatus" class="text-xs font-medium shrink-0" :class="draftStatus === '已保存' ? 'text-green-500' : 'text-[var(--text-muted)]'">
             {{ draftStatus }}
           </span>
-          <span class="text-[var(--text-light)] text-sm font-medium">
+          <span class="text-[var(--text-light)] text-sm font-medium shrink-0 tabular-nums bg-[var(--surface-alt)] px-3 py-1 rounded-lg">
             {{ wordCount.toLocaleString() }} 字
           </span>
           <button
             v-if="currentChapter"
             @click="previewMode = !previewMode"
-            class="btn btn-secondary"
+            class="btn btn-secondary shrink-0"
             :title="previewMode ? '编辑' : '预览'"
           >
             <Eye class="w-4 h-4" />
@@ -55,7 +55,7 @@
           <button
             @click="save"
             :disabled="saving || !hasChanges"
-            class="btn btn-primary disabled:opacity-50"
+            class="btn btn-primary disabled:opacity-50 shrink-0"
           >
             <Save class="w-4 h-4" />
             {{ saving ? '保存中...' : '保存' }}

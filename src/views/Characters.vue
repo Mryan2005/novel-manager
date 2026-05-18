@@ -72,8 +72,9 @@
           v-for="char in filteredCharacters"
           :key="char.id"
           :id="`character-${char.id}`"
-          class="card pad-8"
+          class="card pad-8 cursor-pointer hover:shadow-md transition-shadow"
           :class="focusedId === char.id ? 'ring-2 ring-[var(--primary)]/35' : ''"
+          @click="viewCharacter(char)"
         >
           <div class="flex items-start gap-4">
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0" style="background: var(--primary-gradient);">
@@ -103,7 +104,7 @@
             <span
               v-for="tag in char.tags"
               :key="tag"
-              @click="toggleTag(tag)"
+              @click.stop="toggleTag(tag)"
               :class="[
                 'px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors',
                 selectedTags.has(tag)
@@ -116,14 +117,14 @@
           </div>
           <div class="flex items-center justify-end gap-2 mt-5 pt-5 border-t border-[var(--border-light)]">
             <button
-              @click="editCharacter(char)"
+              @click.stop="editCharacter(char)"
               class="pad-2-5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
               title="编辑"
             >
               <Edit class="w-5 h-5" />
             </button>
             <button
-              @click="confirmDelete(char)"
+              @click.stop="confirmDelete(char)"
               class="pad-2-5 rounded-xl hover:bg-red-500/10 text-[var(--text-light)] hover:text-[var(--error)] transition-all"
               title="删除"
             >
@@ -213,6 +214,39 @@
       </div>
     </div>
 
+    <!-- 角色详情弹窗 -->
+    <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeDetailModal">
+      <div class="card w-full max-w-lg pad-8 max-h-[90vh] overflow-y-auto my-8">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-xs text-[var(--text-muted)]">角色信息</div>
+            <h3 class="text-xl font-bold text-[var(--text)] mt-1">{{ detailCharacter.name }}</h3>
+          </div>
+          <button @click="closeDetailModal" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+        <div class="mt-5 text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">
+          <p v-if="detailCharacter.role">定位：{{ detailCharacter.role }}</p>
+          <p v-if="detailCharacter.gender">性别：{{ detailCharacter.gender }}</p>
+          <p v-if="detailCharacter.age">年龄：{{ detailCharacter.age }}岁</p>
+          <p v-if="detailCharacter.tags.length > 0">标签：{{ detailCharacter.tags.join('、') }}</p>
+          <p v-if="detailCharacter.traits.length > 0">性格特点：{{ detailCharacter.traits.join('、') }}</p>
+          <p v-if="detailCharacter.description" class="mt-3">{{ detailCharacter.description }}</p>
+        </div>
+        <div class="flex justify-end gap-3 mt-6 pt-5 border-t border-[var(--border-light)]">
+          <button @click="editFromDetail" class="btn btn-secondary">
+            <Edit class="w-4 h-4" />
+            编辑
+          </button>
+          <button @click="deleteFromDetail" class="btn" style="background: var(--error); color: white;">
+            <Trash2 class="w-4 h-4" />
+            删除
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 删除确认 -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteModal = false">
       <div class="card w-full max-w-sm pad-8">
@@ -237,7 +271,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { Users, Plus, Edit, Trash2, Search, Tag } from 'lucide-vue-next';
+import { Users, Plus, Edit, Trash2, Search, Tag, X } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Character } from '../types';
@@ -248,7 +282,9 @@ const route = useRoute();
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
+const showDetailModal = ref(false);
 const characterToDelete = ref<Character | null>(null);
+const detailCharacter = ref<Character | null>(null);
 const editingId = ref<string | null>(null);
 const traitsInput = ref('');
 const tagsInput = ref('');
@@ -398,7 +434,33 @@ const deleteCharacter = () => {
   if (characterToDelete.value) {
     deleteCharacterFromStore(characterToDelete.value.id);
     showDeleteModal.value = false;
+    showDetailModal.value = false;
     characterToDelete.value = null;
+    detailCharacter.value = null;
+  }
+};
+
+const viewCharacter = (char: Character) => {
+  detailCharacter.value = char;
+  showDetailModal.value = true;
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  detailCharacter.value = null;
+};
+
+const editFromDetail = () => {
+  if (detailCharacter.value) {
+    editCharacter(detailCharacter.value);
+    showDetailModal.value = false;
+  }
+};
+
+const deleteFromDetail = () => {
+  if (detailCharacter.value) {
+    confirmDelete(detailCharacter.value);
+    showDetailModal.value = false;
   }
 };
 </script>
