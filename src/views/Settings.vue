@@ -76,6 +76,61 @@
 
       <section class="card p-6 space-y-6">
         <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+          <Sparkles class="w-5 h-5" style="color: var(--primary);" />
+          AI 助手设置
+        </h2>
+
+        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+          API URL、Token、模型等配置只保存在本地浏览器，不会上传到本项目服务器。
+        </p>
+
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-[var(--text-light)]">AI 格式</label>
+          <select v-model="settings.aiProvider" class="input text-sm">
+            <option value="openai">OpenAI</option>
+            <option value="openai-like">类 OpenAI（兼容接口）</option>
+            <option value="gemini">Gemini AI</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-[var(--text-light)]">API URL / Base URL</label>
+          <input
+            v-model="settings.aiApiUrl"
+            class="input text-sm"
+            :placeholder="settings.aiProvider === 'gemini' ? 'https://generativelanguage.googleapis.com/v1beta' : 'https://api.openai.com/v1'"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-[var(--text-light)]">Token / API Key</label>
+          <input
+            v-model="settings.aiToken"
+            class="input text-sm"
+            type="password"
+            placeholder="sk-..."
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-[var(--text-light)]">模型名称</label>
+          <input
+            v-model="settings.aiModel"
+            class="input text-sm"
+            :placeholder="settings.aiProvider === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'"
+          />
+        </div>
+
+        <div v-if="hasAiConfig" class="p-3 rounded-xl text-xs" style="background: rgba(16, 185, 129, 0.08); color: var(--success);">
+          AI 配置已完成，可以点击 Header 中的「AI 助手」按钮开始使用。
+        </div>
+        <div v-else class="p-3 rounded-xl text-xs" style="background: var(--surface-alt); color: var(--text-muted);">
+          填写 API URL、Token 和模型名称后即可使用 AI 助手。
+        </div>
+      </section>
+
+      <section class="card p-6 space-y-6">
+        <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
           <HardDrive class="w-5 h-5" style="color: var(--warning);" />
           缓存管理
         </h2>
@@ -131,13 +186,19 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert } from 'lucide-vue-next';
+import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useSettings } from '../composables/useSettings';
 
 const { settings, resetFontSize, resetDisplayScale, clearAllCache, clearNovelData, clearDrafts, clearBackups, getCacheStats, formatSize } = useSettings();
 
 const stats = computed(() => getCacheStats());
+
+const hasAiConfig = computed(() =>
+  settings.value.aiApiUrl.trim() !== '' &&
+  settings.value.aiToken.trim() !== '' &&
+  settings.value.aiModel.trim() !== ''
+);
 
 const confirmAction = ref<(() => void) | null>(null);
 const confirmMessage = ref('');

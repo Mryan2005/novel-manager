@@ -7,8 +7,8 @@
         </div>
         <span class="font-bold text-xl text-gradient">小说工坊</span>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="relative w-64">
+      <div class="flex items-center gap-3">
+        <div class="relative w-56">
           <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             v-model="globalSearchQuery"
@@ -19,6 +19,15 @@
             @keyup.enter="goToGlobalSearch"
           />
         </div>
+        <button
+          @click="aiVisible = !aiVisible"
+          class="btn"
+          :class="aiVisible ? 'btn-primary' : 'btn-secondary'"
+          title="AI 写作助手"
+        >
+          <Sparkles class="w-4 h-4" />
+          AI 助手
+        </button>
         <div class="dropdown">
           <button
             @click="toggleDropdown"
@@ -134,14 +143,14 @@
         <slot />
       </main>
     </div>
-    <AIAssistantWidget />
+    <AIAssistantWidget :visible="aiVisible" @close="aiVisible = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings, Sparkles } from 'lucide-vue-next';
 import { useStore } from '../store';
 import AIAssistantWidget from './AIAssistantWidget.vue';
 
@@ -154,6 +163,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const importMessage = ref('');
 const importSuccess = ref(false);
 const globalSearchQuery = ref('');
+const aiVisible = ref(false);
 
 watch(
   () => route.query.q,

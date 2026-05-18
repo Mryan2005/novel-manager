@@ -2,14 +2,26 @@ import { ref, watch } from 'vue';
 
 const SETTINGS_KEY = 'novel-workshop-settings';
 
+export type AIProvider = 'openai' | 'openai-like' | 'gemini';
+
 export interface AppSettings {
   fontSize: number;
   displayScale: number;
+  aiProvider: AIProvider;
+  aiApiUrl: string;
+  aiToken: string;
+  aiModel: string;
 }
+
+const VALID_PROVIDERS: AIProvider[] = ['openai', 'openai-like', 'gemini'];
 
 const defaults: AppSettings = {
   fontSize: 16,
   displayScale: 1,
+  aiProvider: 'openai',
+  aiApiUrl: '',
+  aiToken: '',
+  aiModel: '',
 };
 
 const DISPLAY_SCALE_MIN = 0.75;
@@ -19,6 +31,10 @@ const FONT_SIZE_MAX = 24;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeProvider(value: unknown): AIProvider {
+  return typeof value === 'string' && VALID_PROVIDERS.includes(value as AIProvider) ? value as AIProvider : defaults.aiProvider;
 }
 
 function normalize(input: Partial<AppSettings>): AppSettings {
@@ -31,6 +47,10 @@ function normalize(input: Partial<AppSettings>): AppSettings {
   return {
     fontSize: nextFontSize,
     displayScale: Number(nextScale.toFixed(2)),
+    aiProvider: normalizeProvider(input.aiProvider),
+    aiApiUrl: typeof input.aiApiUrl === 'string' ? input.aiApiUrl : defaults.aiApiUrl,
+    aiToken: typeof input.aiToken === 'string' ? input.aiToken : defaults.aiToken,
+    aiModel: typeof input.aiModel === 'string' ? input.aiModel : defaults.aiModel,
   };
 }
 

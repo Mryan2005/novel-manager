@@ -1,112 +1,230 @@
 <template>
-  <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-    <div v-if="open" class="card ai-panel pad-5 space-y-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold text-[var(--text)]">AI 写作浮窗</h3>
-        <button class="text-xs text-[var(--text-muted)] hover:text-[var(--text)]" @click="open = false">收起</button>
+  <Teleport to="body">
+    <div v-if="visible" class="ai-overlay" @click.self="$emit('close')">
+      <div class="ai-chat-window" :class="{ 'history-open': showHistory }">
+        <div class="ai-sidebar">
+          <div class="ai-sidebar-header">
+            <span class="text-sm font-semibold text-[var(--text)]">对话历史</span>
+            <button class="ai-icon-btn" @click="showHistory = false">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+          <div class="ai-sidebar-list">
+            <button class="ai-new-chat-btn" @click="startNewChat">
+              <Plus class="w-4 h-4" />
+              新对话
+            </button>
+            <div v-if="sessions.length === 0" class="text-xs text-[var(--text-muted)] text-center py-8">
+              暂无对话记录
+            </div>
+            <button
+              v-for="session in sessions"
+              :key="session.id"
+              class="ai-session-item"
+              :class="{ active: session.id === activeSessionId }"
+              @click="switchSession(session.id)"
+            >
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-[var(--text)] truncate">{{ session.title }}</div>
+                <div class="text-xs text-[var(--text-muted)]">{{ formatTime(session.updatedAt) }}</div>
+              </div>
+              <button class="ai-icon-btn-sm" @click.stop="handleDeleteSession(session.id)" title="删除对话">
+                <Trash2 class="w-3 h-3" />
+              </button>
+            </button>
+          </div>
+        </div>
+
+        <div class="ai-main">
+          <div class="ai-header">
+            <div class="flex items-center gap-2 min-w-0">
+              <button class="ai-icon-btn" @click="showHistory = !showHistory" title="历史记录">
+                <History class="w-4 h-4" />
+              </button>
+              <h3 class="text-sm font-semibold text-[var(--text)] truncate">
+                {{ activeSession?.title || 'AI 写作助手' }}
+              </h3>
+            </div>
+            <div class="flex items-center gap-1">
+              <button class="ai-icon-btn" @click="startNewChat" title="新对话">
+                <MessageSquarePlus class="w-4 h-4" />
+              </button>
+              <button class="ai-icon-btn" @click="$emit('close')" title="关闭">
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-messages" ref="messagesContainer">
+            <div v-if="!activeSession || activeSession.messages.length === 0" class="ai-empty">
+              <MessageSquare class="w-10 h-10 text-[var(--text-muted)] mb-3 opacity-30" />
+              <p class="text-sm text-[var(--text-muted)]">开始和 AI 对话，获取写作灵感与建议</p>
+              <p v-if="!hasConfig" class="text-xs text-[var(--warning)] mt-2">
+                请先在设置页面配置 AI 的 API URL、Token 和模型
+              </p>
+            </div>
+
+            <div
+              v-for="msg in activeSession?.messages ?? []"
+              :key="msg.id"
+              class="ai-message"
+              :class="msg.role"
+            >
+              <div class="ai-bubble">{{ msg.content }}</div>
+              <div class="ai-msg-actions" v-if="msg.role === 'assistant'">
+                <button class="ai-action-btn" @click="copyText(msg.content)" title="复制">
+                  <Copy class="w-3 h-3" />
+                </button>
+                <button
+                  v-if="isEditorRoute"
+                  class="ai-action-btn"
+                  @click="insertToEditor(msg.content)"
+                  title="插入到编辑器"
+                >
+                  <CornerDownLeft class="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <div v-if="loading" class="ai-message assistant">
+              <div class="ai-bubble ai-loading">
+                <span class="ai-dot-pulse">思考中</span>
+              </div>
+            </div>
+
+            <div v-if="errorMessage" class="ai-error">{{ errorMessage }}</div>
+          </div>
+
+          <div class="ai-input-area">
+            <div v-if="contextText" class="ai-context-tag">
+              <span class="text-xs text-[var(--text-muted)] truncate flex-1">已附加页面上下文</span>
+              <button class="ai-icon-btn-sm" @click="contextText = ''" title="清除上下文">
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+            <div class="ai-input-row">
+              <button
+                class="ai-icon-btn"
+                @click="attachContext"
+                :title="isEditorRoute ? '附加当前章节内容' : '附加当前页面数据'"
+                :disabled="!hasConfig"
+              >
+                <Paperclip class="w-4 h-4" />
+              </button>
+              <textarea
+                v-model="inputText"
+                class="ai-input"
+                :placeholder="hasConfig ? '输入消息...' : '请先在设置中配置 AI'"
+                rows="1"
+                :disabled="!hasConfig"
+                @keydown.enter.exact.prevent="sendMessage"
+                @input="autoResize"
+                ref="inputEl"
+              />
+              <button
+                class="ai-send-btn"
+                :disabled="!inputText.trim() || loading || !hasConfig"
+                @click="sendMessage"
+              >
+                <Send class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-        API URL、Token、模型等配置只保存在本地浏览器，不会上传到本项目服务器。
-      </p>
-
-      <div class="grid grid-cols-2 gap-3">
-        <select v-model="config.provider" class="input text-sm">
-          <option value="openai">OpenAI</option>
-          <option value="openai-like">类 OpenAI</option>
-          <option value="gemini">Gemini</option>
-        </select>
-        <input v-model="config.model" class="input text-sm" placeholder="模型名，如 gpt-4o-mini" />
-      </div>
-
-      <input v-model="config.apiUrl" class="input text-sm" placeholder="API URL / Base URL" />
-      <input v-model="config.token" class="input text-sm" placeholder="Token / API Key" type="password" />
-
-      <textarea v-model="prompt" class="input text-sm min-h-[92px]" placeholder="输入你的提示词..." />
-
-      <div class="flex items-center gap-2">
-        <button class="btn btn-primary flex-1" :disabled="loading" @click="askAi">
-          {{ loading ? '生成中...' : '生成建议' }}
-        </button>
-        <button class="btn btn-secondary" :disabled="!responseText" @click="copyResult">复制</button>
-      </div>
-
-      <button
-        v-if="isEditorRoute && responseText"
-        class="btn btn-secondary w-full"
-        @click="insertToEditor"
-      >
-        插入到当前编辑内容
-      </button>
-
-      <p v-if="errorMessage" class="text-xs text-[var(--error)] leading-relaxed">{{ errorMessage }}</p>
-      <textarea v-if="responseText" v-model="responseText" class="input text-sm min-h-[140px]" />
     </div>
-
-    <button class="btn btn-primary ai-fab" @click="open = !open">
-      {{ open ? '关闭 AI' : 'AI 助手' }}
-    </button>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
+import {
+  X, History, Plus, Trash2, Send, Copy, CornerDownLeft,
+  MessageSquare, MessageSquarePlus, Paperclip,
+} from 'lucide-vue-next';
+import { useSettings } from '../composables/useSettings';
+import { useAIChat } from '../composables/useAIChat';
 
-type ProviderType = 'openai' | 'openai-like' | 'gemini';
-const VALID_PROVIDERS: ProviderType[] = ['openai', 'openai-like', 'gemini'];
+defineProps<{ visible: boolean }>();
+const emit = defineEmits<{ close: [] }>();
 
-interface AIConfig {
-  provider: ProviderType;
-  apiUrl: string;
-  token: string;
-  model: string;
-}
-
-const STORAGE_KEY = 'novel-workshop-ai-config';
 const route = useRoute();
-const open = ref(false);
+const { settings } = useSettings();
+const {
+  sessions, activeSession, activeSessionId,
+  createSession, selectSession, deleteSession, addMessage, getContextForRoute,
+} = useAIChat();
+
+const showHistory = ref(false);
+const inputText = ref('');
+const contextText = ref('');
 const loading = ref(false);
-const prompt = ref('');
-const responseText = ref('');
 const errorMessage = ref('');
+const messagesContainer = ref<HTMLElement | null>(null);
+const inputEl = ref<HTMLTextAreaElement | null>(null);
 
-const config = reactive<AIConfig>(loadConfig());
-const isEditorRoute = computed(() => route.path.startsWith('/editor'));
-
-watch(
-  () => ({ ...config }),
-  (value) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-  },
-  { deep: true }
+const hasConfig = computed(() =>
+  settings.value.aiApiUrl.trim() !== '' &&
+  settings.value.aiToken.trim() !== '' &&
+  settings.value.aiModel.trim() !== ''
 );
 
-function loadConfig(): AIConfig {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        provider: isValidProvider(parsed.provider) ? parsed.provider : 'openai',
-        apiUrl: typeof parsed.apiUrl === 'string' ? parsed.apiUrl : '',
-        token: typeof parsed.token === 'string' ? parsed.token : '',
-        model: typeof parsed.model === 'string' ? parsed.model : '',
-      };
-    }
-  } catch {
-    // ignore
-  }
-  return {
-    provider: 'openai',
-    apiUrl: '',
-    token: '',
-    model: '',
-  };
+const isEditorRoute = computed(() => route.path.startsWith('/editor'));
+
+function formatTime(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
-function isValidProvider(value: unknown): value is ProviderType {
-  return typeof value === 'string' && VALID_PROVIDERS.includes(value as ProviderType);
+function scrollToBottom() {
+  nextTick(() => {
+    const el = messagesContainer.value;
+    if (el) el.scrollTop = el.scrollHeight;
+  });
+}
+
+function autoResize() {
+  nextTick(() => {
+    const el = inputEl.value;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+  });
+}
+
+function startNewChat() {
+  createSession();
+  showHistory.value = false;
+  errorMessage.value = '';
+  contextText.value = '';
+  scrollToBottom();
+}
+
+function switchSession(id: string) {
+  selectSession(id);
+  showHistory.value = false;
+  errorMessage.value = '';
+  contextText.value = '';
+  scrollToBottom();
+}
+
+function handleDeleteSession(id: string) {
+  deleteSession(id);
+  errorMessage.value = '';
+}
+
+function attachContext() {
+  const ctx = getContextForRoute(route.path);
+  if (ctx) {
+    contextText.value = ctx;
+  }
 }
 
 function normalizeUrl(base: string, suffix: string) {
@@ -114,128 +232,456 @@ function normalizeUrl(base: string, suffix: string) {
   return clean.endsWith(suffix) ? clean : `${clean}${suffix}`;
 }
 
-function ensureGeminiEndpoint(base: string, model: string, token: string) {
-  const trimmed = base.trim();
-  if (!trimmed) return '';
-  const withPath = trimmed.includes(':generateContent')
-    ? trimmed
-    : normalizeUrl(trimmed, `/models/${model}:generateContent`);
-  if (!token) return withPath;
-  const sep = withPath.includes('?') ? '&' : '?';
-  return `${withPath}${sep}key=${encodeURIComponent(token)}`;
-}
+async function sendMessage() {
+  const text = inputText.value.trim();
+  if (!text || loading.value || !hasConfig.value) return;
 
-async function askAi() {
+  const session = activeSession.value;
+  if (!session) return;
+
+  const fullMessage = contextText.value
+    ? `[上下文信息]\n${contextText.value}\n\n[用户消息]\n${text}`
+    : text;
+
+  addMessage(session.id, 'user', text);
+  inputText.value = '';
+  contextText.value = '';
   errorMessage.value = '';
-  responseText.value = '';
-
-  const content = prompt.value.trim();
-  if (!content) {
-    errorMessage.value = '请输入提示词。';
-    return;
-  }
-  if (!config.apiUrl.trim() || !config.model.trim()) {
-    errorMessage.value = '请先填写 API URL 与模型名。';
-    return;
-  }
-  if (!config.token.trim()) {
-    errorMessage.value = '请先填写 Token / API Key。';
-    return;
-  }
-
   loading.value = true;
+  scrollToBottom();
+
   try {
-    if (config.provider === 'gemini') {
-      await askGemini(content);
-    } else {
-      await askOpenAiLike(content);
-    }
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '请求失败，请检查配置。';
+    const response = await callAI(fullMessage, session.messages.slice(0, -1));
+    addMessage(session.id, 'assistant', response);
+  } catch (e) {
+    errorMessage.value = e instanceof Error ? e.message : '请求失败，请检查配置。';
   } finally {
     loading.value = false;
+    scrollToBottom();
   }
 }
 
-async function askOpenAiLike(content: string) {
-  const endpoint = normalizeUrl(config.apiUrl, '/chat/completions');
+async function callAI(userContent: string, previousMessages: { role: string; content: string }[]) {
+  const provider = settings.value.aiProvider;
+  const apiUrl = settings.value.aiApiUrl;
+  const token = settings.value.aiToken;
+  const model = settings.value.aiModel;
+
+  if (provider === 'gemini') {
+    return callGemini(userContent, previousMessages, apiUrl, token, model);
+  }
+  return callOpenAiLike(userContent, previousMessages, apiUrl, token, model);
+}
+
+async function callOpenAiLike(
+  userContent: string,
+  previousMessages: { role: string; content: string }[],
+  apiUrl: string,
+  token: string,
+  model: string,
+) {
+  const messages = [
+    { role: 'system', content: '你是小说写作助手，请给出可直接用于创作的建议。' },
+    ...previousMessages.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userContent },
+  ];
+
+  const endpoint = normalizeUrl(apiUrl, '/chat/completions');
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.token.trim()}`,
+      Authorization: `Bearer ${token.trim()}`,
     },
-    body: JSON.stringify({
-      model: config.model.trim(),
-      messages: [
-        { role: 'system', content: '你是小说写作助手，请给出可直接用于创作的建议。' },
-        { role: 'user', content },
-      ],
-      temperature: 0.7,
-    }),
+    body: JSON.stringify({ model: model.trim(), messages, temperature: 0.7 }),
   });
 
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data?.error?.message || `请求失败：${res.status}`);
   }
-
   const text = data?.choices?.[0]?.message?.content;
   if (!text) throw new Error('模型未返回可用内容。');
-  responseText.value = String(text).trim();
+  return String(text).trim();
 }
 
-async function askGemini(content: string) {
-  const endpoint = ensureGeminiEndpoint(config.apiUrl, config.model.trim(), config.token.trim());
-  if (!endpoint) throw new Error('Gemini API URL 无效。');
+async function callGemini(
+  userContent: string,
+  previousMessages: { role: string; content: string }[],
+  apiUrl: string,
+  token: string,
+  model: string,
+) {
+  const contents = [
+    ...previousMessages.map(m => ({
+      role: m.role,
+      parts: [{ text: m.content }],
+    })),
+    { role: 'user', parts: [{ text: userContent }] },
+  ];
+
+  const trimmed = apiUrl.trim();
+  const base = trimmed.includes(':generateContent') ? trimmed : normalizeUrl(trimmed, `/models/${model}:generateContent`);
+  const sep = base.includes('?') ? '&' : '?';
+  const endpoint = token ? `${base}${sep}key=${encodeURIComponent(token.trim())}` : base;
 
   const res = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: content }],
-        },
-      ],
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents }),
   });
 
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data?.error?.message || `请求失败：${res.status}`);
   }
-
   const parts = data?.candidates?.[0]?.content?.parts;
   const text = Array.isArray(parts)
     ? parts.map((part: { text?: string }) => part?.text || '').join('\n').trim()
     : '';
   if (!text) throw new Error('模型未返回可用内容。');
-  responseText.value = text;
+  return text;
 }
 
-async function copyResult() {
-  if (!responseText.value) return;
-  await navigator.clipboard.writeText(responseText.value);
+async function copyText(text: string) {
+  await navigator.clipboard.writeText(text);
 }
 
-function insertToEditor() {
-  if (!responseText.value) return;
-  window.dispatchEvent(new CustomEvent('novel-ai-insert', { detail: responseText.value }));
+function insertToEditor(text: string) {
+  window.dispatchEvent(new CustomEvent('novel-ai-insert', { detail: text }));
 }
+
+watch(() => activeSession.value?.messages.length, () => {
+  scrollToBottom();
+});
 </script>
 
 <style scoped>
-.ai-panel {
-  width: min(26rem, calc(100vw - 3rem));
-  max-height: min(78vh, 42rem);
-  overflow: auto;
+.ai-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
 }
 
-.ai-fab {
+.ai-chat-window {
+  display: flex;
+  width: min(90vw, 800px);
+  height: min(85vh, 650px);
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.ai-sidebar {
+  width: 240px;
+  border-right: 1px solid var(--border);
+  background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.history-open .ai-sidebar {
+  display: flex;
+}
+
+.ai-chat-window:not(.history-open) .ai-sidebar {
+  display: none;
+}
+
+.ai-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ai-new-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+}
+
+.ai-new-chat-btn:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.ai-session-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ai-session-item:hover {
+  background: var(--surface-hover);
+}
+
+.ai-session-item.active {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.ai-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ai-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.ai-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.ai-message.user {
+  align-self: flex-end;
+}
+
+.ai-message.assistant {
+  align-self: flex-start;
+}
+
+.ai-bubble {
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-message.user .ai-bubble {
+  background: var(--primary-gradient);
+  color: white;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.ai-message.assistant .ai-bubble {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 0.25rem;
+}
+
+.ai-loading {
+  color: var(--text-muted) !important;
+  background: var(--surface-alt) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.ai-dot-pulse::after {
+  content: '';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+.ai-msg-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.ai-action-btn {
+  padding: 0.125rem 0.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.ai-action-btn:hover {
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.ai-error {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--error);
+  font-size: 0.8125rem;
+}
+
+.ai-input-area {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ai-context-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+}
+
+.ai-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.ai-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  max-height: 120px;
+}
+
+.ai-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.ai-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ai-send-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--primary-gradient);
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.ai-send-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.ai-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ai-icon-btn {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ai-icon-btn:hover:not(:disabled) {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.ai-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ai-icon-btn-sm {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ai-icon-btn-sm:hover {
+  background: var(--surface-alt);
+  color: var(--error);
 }
 </style>
