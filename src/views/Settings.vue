@@ -121,6 +121,15 @@
           />
         </div>
 
+        <div class="space-y-2">
+          <label class="text-sm font-medium text-[var(--text-light)]">系统提示词</label>
+          <textarea
+            v-model="settings.aiSystemPrompt"
+            class="input text-sm min-h-[80px]"
+            placeholder="设定 AI 的角色和行为，例如：你是小说写作助手..."
+          ></textarea>
+        </div>
+
         <div v-if="hasAiConfig" class="p-3 rounded-xl text-xs" style="background: rgba(16, 185, 129, 0.08); color: var(--success);">
           AI 配置已完成，可以点击 Header 中的「AI 助手」按钮开始使用。
         </div>

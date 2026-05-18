@@ -11,6 +11,7 @@ export interface AppSettings {
   aiApiUrl: string;
   aiToken: string;
   aiModel: string;
+  aiSystemPrompt: string;
 }
 
 const VALID_PROVIDERS: AIProvider[] = ['openai', 'openai-like', 'gemini'];
@@ -22,6 +23,7 @@ const defaults: AppSettings = {
   aiApiUrl: '',
   aiToken: '',
   aiModel: '',
+  aiSystemPrompt: '你是小说写作助手，请给出可直接用于创作的建议。',
 };
 
 const DISPLAY_SCALE_MIN = 0.75;
@@ -51,6 +53,7 @@ function normalize(input: Partial<AppSettings>): AppSettings {
     aiApiUrl: typeof input.aiApiUrl === 'string' ? input.aiApiUrl : defaults.aiApiUrl,
     aiToken: typeof input.aiToken === 'string' ? input.aiToken : defaults.aiToken,
     aiModel: typeof input.aiModel === 'string' ? input.aiModel : defaults.aiModel,
+    aiSystemPrompt: typeof input.aiSystemPrompt === 'string' ? input.aiSystemPrompt : defaults.aiSystemPrompt,
   };
 }
 

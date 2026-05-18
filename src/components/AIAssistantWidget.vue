@@ -160,6 +160,7 @@ import {
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { useAIChat } from '../composables/useAIChat';
+import { GoogleGenAI } from '@google/genai';
 
 defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -168,7 +169,7 @@ const route = useRoute();
 const { settings } = useSettings();
 const {
   sessions, activeSession, activeSessionId,
-  createSession, selectSession, deleteSession, addMessage, getContextForRoute,
+  createSession, ensureSession, selectSession, deleteSession, addMessage, getContextForRoute,
 } = useAIChat();
 
 const showHistory = ref(false);
@@ -254,8 +255,7 @@ async function sendMessage() {
   const text = inputText.value.trim();
   if (!text || loading.value || !hasConfig.value) return;
 
-  const session = activeSession.value;
-  if (!session) return;
+  const session = ensureSession();
 
   const fullMessage = contextText.value
     ? `[上下文信息]\n${contextText.value}\n\n[用户消息]\n${text}`
@@ -299,8 +299,9 @@ async function callOpenAiLike(
   token: string,
   model: string,
 ): Promise<{ content: string; thinking?: string }> {
+  const systemPrompt = settings.value.aiSystemPrompt || '你是小说写作助手，请给出可直接用于创作的建议。';
   const messages = [
-    { role: 'system', content: '你是小说写作助手，请给出可直接用于创作的建议。' },
+    { role: 'system', content: systemPrompt },
     ...previousMessages.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userContent },
   ];
@@ -329,36 +330,36 @@ async function callOpenAiLike(
 async function callGemini(
   userContent: string,
   previousMessages: { role: string; content: string }[],
-  apiUrl: string,
+  _apiUrl: string,
   token: string,
   model: string,
 ): Promise<{ content: string; thinking?: string }> {
+  const systemPrompt = settings.value.aiSystemPrompt || '你是小说写作助手，请给出可直接用于创作的建议。';
+  const ai = new GoogleGenAI({ apiKey: token.trim() });
+
   const contents = [
     ...previousMessages.map(m => ({
-      role: m.role,
+      role: m.role as 'user' | 'model',
       parts: [{ text: m.content }],
     })),
-    { role: 'user', parts: [{ text: userContent }] },
+    { role: 'user' as const, parts: [{ text: userContent }] },
   ];
 
-  const trimmed = apiUrl.trim();
-  const base = trimmed.includes(':generateContent') ? trimmed : normalizeUrl(trimmed, `/models/${model}:generateContent`);
-  const sep = base.includes('?') ? '&' : '?';
-  const endpoint = token ? `${base}${sep}key=${encodeURIComponent(token.trim())}` : base;
-
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents }),
+  const response = await ai.models.generateContent({
+    model: model.trim(),
+    contents,
+    config: {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+    },
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.error?.message || `请求失败：${res.status}`);
+  if (!response.candidates || response.candidates.length === 0) {
+    throw new Error('模型未返回可用内容。');
   }
-  const parts: Array<{ text?: string; thought?: boolean }> = data?.candidates?.[0]?.content?.parts ?? [];
-  const thoughtParts = parts.filter(p => p.thought === true);
-  const textParts = parts.filter(p => !p.thought);
+
+  const parts = response.candidates[0]?.content?.parts ?? [];
+  const thoughtParts = parts.filter(p => (p as { thought?: boolean }).thought === true);
+  const textParts = parts.filter(p => !(p as { thought?: boolean }).thought);
   const thinking = thoughtParts.length > 0
     ? thoughtParts.map(p => p.text || '').join('\n').trim()
     : undefined;
