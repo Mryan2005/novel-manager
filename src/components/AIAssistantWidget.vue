@@ -422,7 +422,7 @@ async function callOpenAiLike(
       messages.push({
         role: 'tool',
         tool_call_id: tc.id,
-        content: `工具 "${tc.function.name}" 未在当前环境实现。参数: ${tc.arguments}`,
+        content: `工具 "${tc.function.name}" 未在当前环境实现。参数: ${tc.function.arguments}`,
       });
     }
     const followUp = await fetch(endpoint, {
