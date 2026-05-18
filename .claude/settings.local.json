@@ -12,7 +12,8 @@
       "Bash(pnpm add *)",
       "Bash(npm install *)",
       "Bash(node -e \"const g = require\\('@google/genai'\\); console.log\\(Object.keys\\(g\\)\\)\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npx pnpm *)"
     ]
   }
 }
