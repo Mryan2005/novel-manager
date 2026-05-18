@@ -93,12 +93,12 @@
           </select>
         </div>
 
-        <div class="space-y-2">
+        <div v-if="settings.aiProvider !== 'gemini'" class="space-y-2">
           <label class="text-sm font-medium text-[var(--text-light)]">API URL / Base URL</label>
           <input
             v-model="settings.aiApiUrl"
             class="input text-sm"
-            :placeholder="settings.aiProvider === 'gemini' ? 'https://generativelanguage.googleapis.com/v1beta' : 'https://api.openai.com/v1'"
+            placeholder="https://api.openai.com/v1"
           />
         </div>
 
@@ -134,7 +134,7 @@
           AI 配置已完成，可以点击 Header 中的「AI 助手」按钮开始使用。
         </div>
         <div v-else class="p-3 rounded-xl text-xs" style="background: var(--surface-alt); color: var(--text-muted);">
-          填写 API URL、Token 和模型名称后即可使用 AI 助手。
+          {{ settings.aiProvider === 'gemini' ? '填写 Token 和模型名称后即可使用 AI 助手。' : '填写 API URL、Token 和模型名称后即可使用 AI 助手。' }}
         </div>
       </section>
 
@@ -203,11 +203,14 @@ const { settings, resetFontSize, resetDisplayScale, clearAllCache, clearNovelDat
 
 const stats = computed(() => getCacheStats());
 
-const hasAiConfig = computed(() =>
-  settings.value.aiApiUrl.trim() !== '' &&
-  settings.value.aiToken.trim() !== '' &&
-  settings.value.aiModel.trim() !== ''
-);
+const hasAiConfig = computed(() => {
+  const hasToken = settings.value.aiToken.trim() !== '';
+  const hasModel = settings.value.aiModel.trim() !== '';
+  if (settings.value.aiProvider === 'gemini') {
+    return hasToken && hasModel;
+  }
+  return settings.value.aiApiUrl.trim() !== '' && hasToken && hasModel;
+});
 
 const confirmAction = ref<(() => void) | null>(null);
 const confirmMessage = ref('');

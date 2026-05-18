@@ -182,11 +182,14 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 const expandedThinking = ref(new Set<string>());
 
-const hasConfig = computed(() =>
-  settings.value.aiApiUrl.trim() !== '' &&
-  settings.value.aiToken.trim() !== '' &&
-  settings.value.aiModel.trim() !== ''
-);
+const hasConfig = computed(() => {
+  const hasToken = settings.value.aiToken.trim() !== '';
+  const hasModel = settings.value.aiModel.trim() !== '';
+  if (settings.value.aiProvider === 'gemini') {
+    return hasToken && hasModel;
+  }
+  return settings.value.aiApiUrl.trim() !== '' && hasToken && hasModel;
+});
 
 const isEditorRoute = computed(() => route.path.startsWith('/editor'));
 
