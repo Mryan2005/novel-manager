@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-8">
+    <div class="page-space">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">角色设定</h1>
@@ -71,7 +71,9 @@
         <div
           v-for="char in filteredCharacters"
           :key="char.id"
+          :id="`character-${char.id}`"
           class="card pad-8"
+          :class="focusedId === char.id ? 'ring-2 ring-[var(--primary)]/35' : ''"
         >
           <div class="flex items-start gap-4">
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0" style="background: var(--primary-gradient);">
@@ -233,13 +235,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { Users, Plus, Edit, Trash2, Search, Tag } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Character } from '../types';
 
 const { characters, addCharacter, updateCharacter, deleteCharacter: deleteCharacterFromStore } = useStore();
+const route = useRoute();
 
 const showAddModal = ref(false);
 const showEditModal = ref(false);
@@ -251,6 +255,7 @@ const tagsInput = ref('');
 const searchQuery = ref('');
 const tagFilter = ref('');
 const selectedTags = ref(new Set<string>());
+const focusedId = ref('');
 
 const form = ref({
   name: '',
@@ -296,6 +301,38 @@ const toggleTag = (tag: string) => {
     selectedTags.value.add(tag);
   }
 };
+
+const syncFromQuery = () => {
+  searchQuery.value = typeof route.query.q === 'string' ? route.query.q : '';
+  focusedId.value = typeof route.query.focus === 'string' ? route.query.focus : '';
+  const tagValue = typeof route.query.tag === 'string' ? route.query.tag.trim() : '';
+  selectedTags.value.clear();
+  if (tagValue) {
+    tagValue
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .forEach((tag) => selectedTags.value.add(tag));
+  }
+};
+
+const scrollToFocusedCard = async () => {
+  if (!focusedId.value) return;
+  await nextTick();
+  document.getElementById(`character-${focusedId.value}`)?.scrollIntoView({
+    block: 'center',
+    behavior: 'smooth',
+  });
+};
+
+watch(
+  () => route.query,
+  () => {
+    syncFromQuery();
+    void scrollToFocusedCard();
+  },
+  { immediate: true, deep: true }
+);
 
 const closeModal = () => {
   showAddModal.value = false;

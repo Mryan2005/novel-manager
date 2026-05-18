@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-8">
+    <div class="page-space">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">场景设定</h1>
@@ -37,7 +37,9 @@
         <div
           v-for="scene in filteredScenes"
           :key="scene.id"
+          :id="`scene-${scene.id}`"
           class="card pad-8"
+          :class="focusedId === scene.id ? 'ring-2 ring-[var(--primary)]/35' : ''"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -151,13 +153,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { Map, MapPin, Plus, Edit, Trash2, Search } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Scene } from '../types';
 
 const { scenes, addScene, updateScene, deleteScene: deleteSceneFromStore } = useStore();
+const route = useRoute();
 
 const showAddModal = ref(false);
 const showEditModal = ref(false);
@@ -166,6 +170,7 @@ const sceneToDelete = ref<Scene | null>(null);
 const editingId = ref<string | null>(null);
 const atmosphereInput = ref('');
 const searchQuery = ref('');
+const focusedId = ref('');
 
 const form = ref({
   name: '',
@@ -191,6 +196,29 @@ const closeModal = () => {
   atmosphereInput.value = '';
   editingId.value = null;
 };
+
+const syncFromQuery = () => {
+  searchQuery.value = typeof route.query.q === 'string' ? route.query.q : '';
+  focusedId.value = typeof route.query.focus === 'string' ? route.query.focus : '';
+};
+
+const scrollToFocusedCard = async () => {
+  if (!focusedId.value) return;
+  await nextTick();
+  document.getElementById(`scene-${focusedId.value}`)?.scrollIntoView({
+    block: 'center',
+    behavior: 'smooth',
+  });
+};
+
+watch(
+  () => route.query,
+  () => {
+    syncFromQuery();
+    void scrollToFocusedCard();
+  },
+  { immediate: true, deep: true }
+);
 
 const saveScene = () => {
   if (!form.value.name.trim()) return;

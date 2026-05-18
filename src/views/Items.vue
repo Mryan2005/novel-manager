@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-8">
+    <div class="page-space">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">物品设定</h1>
@@ -29,7 +29,13 @@
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div v-for="item in filteredItems" :key="item.id" class="card pad-8">
+        <div
+          v-for="item in filteredItems"
+          :key="item.id"
+          :id="`item-${item.id}`"
+          class="card pad-8"
+          :class="focusedId === item.id ? 'ring-2 ring-[var(--primary)]/35' : ''"
+        >
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-2">
@@ -122,13 +128,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { Package, Plus, Edit, Trash2, Search, Users } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Item } from '../types';
 
 const { items, addItem, updateItem, deleteItem: deleteItemFromStore } = useStore();
+const route = useRoute();
 
 const showModal = ref(false);
 const showDeleteModal = ref(false);
@@ -136,6 +144,7 @@ const itemToDelete = ref<Item | null>(null);
 const editingId = ref<string | null>(null);
 const abilitiesInput = ref('');
 const searchQuery = ref('');
+const focusedId = ref('');
 
 const form = ref({ name: '', type: '武器', description: '', owner: '', abilities: [] as string[] });
 
@@ -156,6 +165,29 @@ const openAdd = () => {
   abilitiesInput.value = '';
   showModal.value = true;
 };
+
+const syncFromQuery = () => {
+  searchQuery.value = typeof route.query.q === 'string' ? route.query.q : '';
+  focusedId.value = typeof route.query.focus === 'string' ? route.query.focus : '';
+};
+
+const scrollToFocusedCard = async () => {
+  if (!focusedId.value) return;
+  await nextTick();
+  document.getElementById(`item-${focusedId.value}`)?.scrollIntoView({
+    block: 'center',
+    behavior: 'smooth',
+  });
+};
+
+watch(
+  () => route.query,
+  () => {
+    syncFromQuery();
+    void scrollToFocusedCard();
+  },
+  { immediate: true, deep: true }
+);
 
 const closeModal = () => {
   showModal.value = false;

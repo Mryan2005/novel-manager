@@ -57,6 +57,24 @@ body {
 #app {
   position: relative;
   z-index: 1;
+  --display-scale-safe: var(--display-scale, 1);
+  width: calc(100% / var(--display-scale-safe));
+  min-height: calc(100vh / var(--display-scale-safe));
+  transform: scale(var(--display-scale-safe));
+  transform-origin: top center;
+  margin: 0 auto;
+}
+
+.page-space {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.section-space {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 /* === Buttons === */
