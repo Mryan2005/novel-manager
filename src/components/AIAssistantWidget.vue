@@ -149,7 +149,47 @@
                   <Terminal class="w-3.5 h-3.5" />
                   代码
                 </button>
+                <button
+                  class="ai-tool-btn"
+                  :class="{ active: hasGeminiTool('googleMaps') }"
+                  @click="toggleGeminiTool('googleMaps')"
+                  title="Google 地图"
+                >
+                  <MapPin class="w-3.5 h-3.5" />
+                  地图
+                </button>
+                <button
+                  class="ai-tool-btn"
+                  :class="{ active: hasGeminiTool('urlContext') }"
+                  @click="toggleGeminiTool('urlContext')"
+                  title="URL 上下文"
+                >
+                  <Link class="w-3.5 h-3.5" />
+                  URL
+                </button>
+                <button
+                  class="ai-tool-btn"
+                  :class="{ active: hasGeminiTool('functionDeclarations') }"
+                  @click="toggleGeminiTool('functionDeclarations')"
+                  title="函数声明"
+                >
+                  <FunctionSquare class="w-3.5 h-3.5" />
+                  函数
+                </button>
               </template>
+              <div class="ai-temp-slider" :title="'温度: ' + (activeAIConfig?.temperature?.toFixed(1) ?? '0.7')">
+                <Thermometer class="w-3.5 h-3.5" />
+                <span class="text-xs text-[var(--text-muted)] min-w-[2.5rem] text-right">{{ activeAIConfig?.temperature?.toFixed(1) ?? '0.7' }}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  :value="activeAIConfig?.temperature ?? 0.7"
+                  @input="setTemperature(parseFloat(($event.target as HTMLInputElement).value))"
+                  class="ai-temp-range"
+                />
+              </div>
               <select
                 v-if="activeAIConfig"
                 :value="activeAIConfig.thinkingLevel"
@@ -224,7 +264,7 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   X, History, Plus, Trash2, Send, Copy, CornerDownLeft,
-  MessageSquare, MessageSquarePlus, Paperclip, Brain, ChevronDown, Braces, Globe, Terminal,
+  MessageSquare, MessageSquarePlus, Paperclip, Brain, ChevronDown, Braces, Globe, Terminal, MapPin, Link, FunctionSquare,
 } from 'lucide-vue-next';
 import { useSettings } from '../composables/useSettings';
 import { useAIChat } from '../composables/useAIChat';
@@ -256,6 +296,15 @@ const toolsPlaceholder = `[
   },
   {
     "codeExecution": {}
+  },
+  {
+    "googleMaps": {}
+  },
+  {
+    "urlContext": {}
+  },
+  {
+    "functionDeclarations": [{"name": "", "description": "", "parameters": {}}]
   }
 ]`;
 
@@ -321,12 +370,21 @@ function parseTools(): Record<string, unknown>[] {
 function getGeminiToolAliases(name: string): string[] {
   if (name === 'googleSearch') return ['googleSearch', 'google_search'];
   if (name === 'codeExecution') return ['codeExecution', 'code_execution'];
+  if (name === 'googleMaps') return ['googleMaps', 'google_maps'];
+  if (name === 'urlContext') return ['urlContext', 'url_context'];
+  if (name === 'functionDeclarations') return ['functionDeclarations', 'function_declarations', 'functionDeclarations'];
   return [name];
 }
 
 function hasGeminiTool(name: string): boolean {
   const aliases = getGeminiToolAliases(name);
   return parseTools().some(t => aliases.some(alias => t[alias] !== undefined));
+}
+
+function setTemperature(value: number) {
+  const cfg = activeAIConfig.value;
+  if (!cfg) return;
+  cfg.temperature = Math.round(value * 10) / 10;
 }
 
 function setThinking(level: string) {
@@ -417,9 +475,9 @@ async function callAI(userContent: string, previousMessages: { role: string; con
   if (!cfg) throw new Error('未选择 AI 配置。');
 
   if (cfg.provider === 'gemini') {
-    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode, cfg.thinkingLevel);
+    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode, cfg.thinkingLevel, cfg.temperature);
   }
-  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode, cfg.thinkingLevel);
+  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt, cfg.tools, cfg.enableJsonMode, cfg.thinkingLevel, cfg.temperature);
 }
 
 async function callOpenAiLike(
@@ -432,6 +490,7 @@ async function callOpenAiLike(
   toolsJson: string,
   enableJsonMode: boolean,
   thinkingLevel: string,
+  temperature: number,
 ): Promise<{ content: string; thinking?: string }> {
   const sp = systemPrompt.trim();
   const messages: Record<string, unknown>[] = [
@@ -449,7 +508,7 @@ async function callOpenAiLike(
   }
 
   const endpoint = normalizeUrl(apiUrl, '/chat/completions');
-  const body: Record<string, unknown> = { model: model.trim(), messages, temperature: 0.7 };
+  const body: Record<string, unknown> = { model: model.trim(), messages, temperature };
   if (tools && tools.length > 0) body.tools = tools;
   if (enableJsonMode) body.response_format = { type: 'json_object' };
   if (thinkingLevel) {
@@ -489,7 +548,7 @@ async function callOpenAiLike(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token.trim()}`,
       },
-      body: JSON.stringify({ model: model.trim(), messages, temperature: 0.7 }),
+      body: JSON.stringify({ model: model.trim(), messages, temperature }),
     });
     const followData = await followUp.json();
     if (!followUp.ok) {
@@ -517,6 +576,7 @@ async function callGemini(
   toolsJson: string,
   enableJsonMode: boolean,
   thinkingLevel: string,
+  temperature: number,
 ): Promise<{ content: string; thinking?: string }> {
   const sp = systemPrompt.trim();
   const ai = new GoogleGenAI({ apiKey: token.trim() });
@@ -536,6 +596,8 @@ async function callGemini(
     const tl = ThinkingLevel[thinkingLevel as keyof typeof ThinkingLevel];
     if (tl) config.thinkingConfig = { thinkingLevel: tl };
   }
+
+  config.temperature = temperature;
 
   if (enableJsonMode) {
     config.responseSchema = { type: 'JSON' };
@@ -917,6 +979,46 @@ watch(() => activeSession.value?.messages.length, () => {
 
 .ai-tool-select:focus {
   border-color: var(--primary);
+}
+
+.ai-temp-slider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+}
+
+.ai-temp-range {
+  width: 56px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ai-temp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+}
+
+.ai-temp-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
 }
 
 .ai-context-tag {

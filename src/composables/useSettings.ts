@@ -15,6 +15,7 @@ export interface AIConfig {
   tools: string;
   enableJsonMode: boolean;
   thinkingLevel: string;
+  temperature: number;
 }
 
 export interface AppSettings {
@@ -44,6 +45,7 @@ function createDefaultConfig(name?: string): AIConfig {
     tools: '',
     enableJsonMode: false,
     thinkingLevel: '',
+    temperature: 0.7,
   };
 }
 
@@ -79,6 +81,7 @@ function normalizeConfig(config: Partial<AIConfig> & { id?: string }): AIConfig 
     tools: typeof config.tools === 'string' ? config.tools : '',
     enableJsonMode: typeof config.enableJsonMode === 'boolean' ? config.enableJsonMode : false,
     thinkingLevel: typeof config.thinkingLevel === 'string' ? config.thinkingLevel : '',
+    temperature: Number.isFinite(config.temperature) ? clamp(Number(config.temperature), 0, 2) : 0.7,
   };
 }
 
