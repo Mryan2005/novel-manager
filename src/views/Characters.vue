@@ -136,8 +136,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full pad-8 overflow-y-auto" style="max-width: min(32rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem);">
+    <div v-if="showAddModal || showEditModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
+      <div class="card w-full pad-8 overflow-y-auto" style="width: min(90vw, 560px); max-height: 90vh;">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑角色' : '新建角色' }}
         </h2>
@@ -215,8 +215,8 @@
     </div>
 
     <!-- 角色详情弹窗 -->
-    <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4 overflow-y-auto" @click.self="closeDetailModal">
-      <div class="card w-full pad-8 overflow-y-auto" style="max-width: min(32rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem);">
+    <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
+      <div class="card w-full pad-8 overflow-y-auto" style="width: min(90vw, 560px); max-height: 90vh;">
         <div class="flex items-start justify-between gap-3">
           <div>
             <div class="text-xs text-[var(--text-muted)]">角色信息</div>
@@ -248,7 +248,7 @@
     </div>
 
     <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteModal = false">
+    <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteModal = false">
       <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">

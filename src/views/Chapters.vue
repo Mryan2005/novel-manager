@@ -142,7 +142,7 @@
     </div>
 
     <!-- 卷 添加/编辑模态框 -->
-    <div v-if="showVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="closeVolumeModal">
+    <div v-if="showVolumeModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeVolumeModal">
       <div class="card w-full max-w-sm pad-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingVolume ? '编辑卷名' : '新建卷' }}</h2>
         <div>
@@ -157,7 +157,7 @@
     </div>
 
     <!-- 章节 添加/编辑模态框 -->
-    <div v-if="showChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="closeChapterModal">
+    <div v-if="showChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeChapterModal">
       <div class="card w-full max-w-md pad-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ editingChapter ? '编辑章节' : '新建章节' }}
@@ -190,7 +190,7 @@
     </div>
 
     <!-- 删除卷确认 -->
-    <div v-if="showDeleteVolumeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteVolumeModal = false">
+    <div v-if="showDeleteVolumeModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteVolumeModal = false">
       <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
@@ -209,7 +209,7 @@
     </div>
 
     <!-- 删除章节确认 -->
-    <div v-if="showDeleteChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showDeleteChapterModal = false">
+    <div v-if="showDeleteChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteChapterModal = false">
       <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">

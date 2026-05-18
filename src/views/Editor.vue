@@ -227,7 +227,7 @@
     </div>
 
     <!-- 新建章节模态框 -->
-    <div v-if="showNewChapterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pad-4" @click.self="showNewChapterModal = false">
+    <div v-if="showNewChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showNewChapterModal = false">
       <div class="card w-full max-w-md pad-8">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">新建章节</h2>
         <div class="space-y-5">
