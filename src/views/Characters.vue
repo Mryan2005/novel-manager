@@ -478,6 +478,7 @@ const deleteFromDetail = () => {
   flex-direction: column;
   width: min(90vw, 560px);
   max-height: 90vh;
+  margin: 0 auto;
   background: var(--surface);
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border);

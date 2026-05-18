@@ -254,18 +254,18 @@
       </div>
     </div>
 
-    <div v-if="selectedKnowledge" class="fixed inset-0 bg-black/45 flex items-center justify-center z-50 pad-4" @click.self="selectedKnowledge = null">
-      <div class="card w-full max-w-lg pad-8">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</div>
-            <h3 class="text-xl font-bold text-[var(--text)] mt-1">{{ knowledgeTitle }}</h3>
-          </div>
-          <button class="text-[var(--text-muted)] hover:text-[var(--text)]" @click="selectedKnowledge = null">
-            <X class="w-5 h-5" />
+    <div v-if="selectedKnowledge" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null">
+      <div style="display: flex; flex-direction: column; width: min(90vw, 560px); max-height: 90vh; background: var(--surface); border-radius: var(--radius-2xl); border: 1px solid var(--border); box-shadow: var(--shadow-lg); overflow: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.625rem 1.25rem; border-bottom: 1px solid var(--border);">
+          <span class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</span>
+          <button class="text-[var(--text-muted)] hover:text-[var(--text)]" @click="selectedKnowledge = null" style="width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--radius); border: none; background: transparent; cursor: pointer;">
+            <X class="w-4 h-4" />
           </button>
         </div>
-        <div class="mt-5 text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+        <div style="flex: 1; overflow-y: auto; padding: 1.25rem;">
+          <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ knowledgeTitle }}</h3>
+          <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+        </div>
       </div>
     </div>
   </Layout>
@@ -309,7 +309,7 @@ const previewMode = ref(false);
 const showSidebar = ref(false);
 const showNewChapterModal = ref(false);
 
-const anyModalOpenEditor = computed(() => showNewChapterModal.value);
+const anyModalOpenEditor = computed(() => showNewChapterModal.value || selectedKnowledge.value !== null);
 watch(anyModalOpenEditor, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
