@@ -132,8 +132,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
-      <div class="card w-full pad-8 overflow-y-auto" style="width: min(90vw, 560px); max-height: 90vh;">
+    <div v-if="showAddModal || showEditModal" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
+      <div class="form-modal-window">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑角色' : '新建角色' }}
         </h2>
@@ -544,5 +544,21 @@ const deleteFromDetail = () => {
   padding: 0.75rem 1.25rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.form-modal-window {
+  position: fixed;
+  left: calc(50% + 8rem);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 51;
+  width: min(560px, calc(100vw - 20rem));
+  max-height: 90vh;
+  padding: 1.5rem;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
 }
 </style>
