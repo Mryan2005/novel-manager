@@ -124,8 +124,8 @@
               <template v-if="activeAIConfig.provider === 'gemini'">
                 <button
                   class="ai-tool-btn"
-                  :class="{ active: hasGeminiTool('google_search') }"
-                  @click="toggleGeminiTool('google_search')"
+                  :class="{ active: hasGeminiTool('googleSearch') }"
+                  @click="toggleGeminiTool('googleSearch')"
                   title="Google 搜索接地"
                 >
                   <Globe class="w-3.5 h-3.5" />
@@ -133,8 +133,8 @@
                 </button>
                 <button
                   class="ai-tool-btn"
-                  :class="{ active: hasGeminiTool('code_execution') }"
-                  @click="toggleGeminiTool('code_execution')"
+                  :class="{ active: hasGeminiTool('codeExecution') }"
+                  @click="toggleGeminiTool('codeExecution')"
                   title="代码执行"
                 >
                   <Terminal class="w-3.5 h-3.5" />
@@ -292,8 +292,15 @@ function parseTools(): Record<string, unknown>[] {
   } catch { return []; }
 }
 
+function getGeminiToolAliases(name: string): string[] {
+  if (name === 'googleSearch') return ['googleSearch', 'google_search'];
+  if (name === 'codeExecution') return ['codeExecution', 'code_execution'];
+  return [name];
+}
+
 function hasGeminiTool(name: string): boolean {
-  return parseTools().some(t => t[name] !== undefined);
+  const aliases = getGeminiToolAliases(name);
+  return parseTools().some(t => aliases.some(alias => t[alias] !== undefined));
 }
 
 function setThinking(level: string) {
@@ -305,8 +312,9 @@ function setThinking(level: string) {
 function toggleGeminiTool(name: string) {
   const cfg = activeAIConfig.value;
   if (!cfg) return;
+  const aliases = getGeminiToolAliases(name);
   const tools = parseTools();
-  const idx = tools.findIndex(t => t[name] !== undefined);
+  const idx = tools.findIndex(t => aliases.some(alias => t[alias] !== undefined));
   if (idx >= 0) {
     tools.splice(idx, 1);
   } else {

@@ -155,6 +155,32 @@
             ></textarea>
           </div>
 
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">Thinking Level</label>
+            <select v-model="activeConfig.thinkingLevel" class="input text-sm">
+              <option value="">默认</option>
+              <option value="MINIMAL">MINIMAL</option>
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+            <p class="text-xs text-[var(--text-muted)]">可控制推理强度，对应请求中的 thinkingConfig / reasoning_effort。</p>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">Tools（JSON）</label>
+            <textarea
+              v-model="activeConfig.tools"
+              class="input text-xs min-h-[120px] font-mono"
+              placeholder='[
+  {
+    "googleSearch": {}
+  }
+]'
+            ></textarea>
+            <p class="text-xs text-[var(--text-muted)]">用于配置 tools 数组（如 googleSearch、codeExecution）。留空则不启用工具。</p>
+          </div>
+
           <!-- JSON 模式 -->
           <div class="flex items-center justify-between">
             <div>
