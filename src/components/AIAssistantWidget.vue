@@ -166,7 +166,7 @@ defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const route = useRoute();
-const { settings } = useSettings();
+const { activeAIConfig } = useSettings();
 const {
   sessions, activeSession, activeSessionId,
   createSession, ensureSession, selectSession, deleteSession, addMessage, getContextForRoute,
@@ -183,12 +183,14 @@ const inputEl = ref<HTMLTextAreaElement | null>(null);
 const expandedThinking = ref(new Set<string>());
 
 const hasConfig = computed(() => {
-  const hasToken = settings.value.aiToken.trim() !== '';
-  const hasModel = settings.value.aiModel.trim() !== '';
-  if (settings.value.aiProvider === 'gemini') {
+  const cfg = activeAIConfig.value;
+  if (!cfg) return false;
+  const hasToken = cfg.token.trim() !== '';
+  const hasModel = cfg.model.trim() !== '';
+  if (cfg.provider === 'gemini') {
     return hasToken && hasModel;
   }
-  return settings.value.aiApiUrl.trim() !== '' && hasToken && hasModel;
+  return cfg.apiUrl.trim() !== '' && hasToken && hasModel;
 });
 
 const isEditorRoute = computed(() => route.path.startsWith('/editor'));
@@ -284,15 +286,13 @@ async function sendMessage() {
 }
 
 async function callAI(userContent: string, previousMessages: { role: string; content: string }[]): Promise<{ content: string; thinking?: string }> {
-  const provider = settings.value.aiProvider;
-  const apiUrl = settings.value.aiApiUrl;
-  const token = settings.value.aiToken;
-  const model = settings.value.aiModel;
+  const cfg = activeAIConfig.value;
+  if (!cfg) throw new Error('未选择 AI 配置。');
 
-  if (provider === 'gemini') {
-    return callGemini(userContent, previousMessages, apiUrl, token, model);
+  if (cfg.provider === 'gemini') {
+    return callGemini(userContent, previousMessages, cfg.token, cfg.model, cfg.systemPrompt);
   }
-  return callOpenAiLike(userContent, previousMessages, apiUrl, token, model);
+  return callOpenAiLike(userContent, previousMessages, cfg.apiUrl, cfg.token, cfg.model, cfg.systemPrompt);
 }
 
 async function callOpenAiLike(
@@ -301,10 +301,11 @@ async function callOpenAiLike(
   apiUrl: string,
   token: string,
   model: string,
+  systemPrompt: string,
 ): Promise<{ content: string; thinking?: string }> {
-  const systemPrompt = settings.value.aiSystemPrompt.trim();
+  const sp = systemPrompt.trim();
   const messages = [
-    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    ...(sp ? [{ role: 'system', content: sp }] : []),
     ...previousMessages.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userContent },
   ];
@@ -333,16 +334,16 @@ async function callOpenAiLike(
 async function callGemini(
   userContent: string,
   previousMessages: { role: string; content: string }[],
-  _apiUrl: string,
   token: string,
   model: string,
+  systemPrompt: string,
 ): Promise<{ content: string; thinking?: string }> {
-  const systemPrompt = settings.value.aiSystemPrompt.trim();
+  const sp = systemPrompt.trim();
   const ai = new GoogleGenAI({ apiKey: token.trim() });
 
   const config: Record<string, unknown> = {};
-  if (systemPrompt) {
-    config.systemInstruction = { parts: [{ text: systemPrompt }] };
+  if (sp) {
+    config.systemInstruction = { parts: [{ text: sp }] };
   }
 
   const contents = [

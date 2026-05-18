@@ -1,29 +1,51 @@
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const SETTINGS_KEY = 'novel-workshop-settings';
 
 export type AIProvider = 'openai' | 'openai-like' | 'gemini';
 
+export interface AIConfig {
+  id: string;
+  name: string;
+  provider: AIProvider;
+  apiUrl: string;
+  token: string;
+  model: string;
+  systemPrompt: string;
+}
+
 export interface AppSettings {
   fontSize: number;
   displayScale: number;
-  aiProvider: AIProvider;
-  aiApiUrl: string;
-  aiToken: string;
-  aiModel: string;
-  aiSystemPrompt: string;
+  aiConfigs: AIConfig[];
+  aiActiveConfigId: string;
 }
 
 const VALID_PROVIDERS: AIProvider[] = ['openai', 'openai-like', 'gemini'];
 
+let configIdCounter = 0;
+function makeConfigId(): string {
+  configIdCounter++;
+  return `aic_${Date.now()}_${configIdCounter}`;
+}
+
+function createDefaultConfig(name?: string): AIConfig {
+  return {
+    id: makeConfigId(),
+    name: name || '默认配置',
+    provider: 'openai',
+    apiUrl: '',
+    token: '',
+    model: '',
+    systemPrompt: '',
+  };
+}
+
 const defaults: AppSettings = {
   fontSize: 16,
   displayScale: 1,
-  aiProvider: 'openai',
-  aiApiUrl: '',
-  aiToken: '',
-  aiModel: '',
-  aiSystemPrompt: '',
+  aiConfigs: [],
+  aiActiveConfigId: '',
 };
 
 const DISPLAY_SCALE_MIN = 0.75;
@@ -36,7 +58,19 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function normalizeProvider(value: unknown): AIProvider {
-  return typeof value === 'string' && VALID_PROVIDERS.includes(value as AIProvider) ? value as AIProvider : defaults.aiProvider;
+  return typeof value === 'string' && VALID_PROVIDERS.includes(value as AIProvider) ? value as AIProvider : 'openai';
+}
+
+function normalizeConfig(config: Partial<AIConfig> & { id?: string }): AIConfig {
+  return {
+    id: typeof config.id === 'string' && config.id ? config.id : makeConfigId(),
+    name: typeof config.name === 'string' && config.name ? config.name : '未命名',
+    provider: normalizeProvider(config.provider),
+    apiUrl: typeof config.apiUrl === 'string' ? config.apiUrl : '',
+    token: typeof config.token === 'string' ? config.token : '',
+    model: typeof config.model === 'string' ? config.model : '',
+    systemPrompt: typeof config.systemPrompt === 'string' ? config.systemPrompt : '',
+  };
 }
 
 function normalize(input: Partial<AppSettings>): AppSettings {
@@ -46,23 +80,42 @@ function normalize(input: Partial<AppSettings>): AppSettings {
   const nextScale = Number.isFinite(input.displayScale)
     ? clamp(Number(input.displayScale), DISPLAY_SCALE_MIN, DISPLAY_SCALE_MAX)
     : defaults.displayScale;
+  const configs = Array.isArray(input.aiConfigs)
+    ? input.aiConfigs.map(normalizeConfig)
+    : [];
+  let activeId = typeof input.aiActiveConfigId === 'string' ? input.aiActiveConfigId : '';
+  if (configs.length > 0 && !configs.find(c => c.id === activeId)) {
+    activeId = configs[0].id;
+  }
   return {
     fontSize: nextFontSize,
     displayScale: Number(nextScale.toFixed(2)),
-    aiProvider: normalizeProvider(input.aiProvider),
-    aiApiUrl: typeof input.aiApiUrl === 'string' ? input.aiApiUrl : defaults.aiApiUrl,
-    aiToken: typeof input.aiToken === 'string' ? input.aiToken : defaults.aiToken,
-    aiModel: typeof input.aiModel === 'string' ? input.aiModel : defaults.aiModel,
-    aiSystemPrompt: typeof input.aiSystemPrompt === 'string' ? input.aiSystemPrompt : defaults.aiSystemPrompt,
+    aiConfigs: configs,
+    aiActiveConfigId: activeId,
   };
 }
 
 function load(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return normalize({ ...defaults, ...JSON.parse(raw) });
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migrate old single-config format
+      if (!parsed.aiConfigs && typeof parsed.aiProvider === 'string') {
+        const migrated = createDefaultConfig();
+        migrated.provider = normalizeProvider(parsed.aiProvider);
+        migrated.apiUrl = typeof parsed.aiApiUrl === 'string' ? parsed.aiApiUrl : '';
+        migrated.token = typeof parsed.aiToken === 'string' ? parsed.aiToken : '';
+        migrated.model = typeof parsed.aiModel === 'string' ? parsed.aiModel : '';
+        migrated.systemPrompt = typeof parsed.aiSystemPrompt === 'string' ? parsed.aiSystemPrompt : '';
+        parsed.aiConfigs = [migrated];
+        parsed.aiActiveConfigId = migrated.id;
+      }
+      return normalize({ ...defaults, ...parsed });
+    }
   } catch { /* ignore */ }
-  return { ...defaults };
+  const initial = createDefaultConfig();
+  return { ...defaults, aiConfigs: [initial], aiActiveConfigId: initial.id };
 }
 
 function save(settings: AppSettings) {
@@ -86,6 +139,35 @@ watch(settings, (v) => {
 }, { deep: true });
 
 export function useSettings() {
+  const activeAIConfig = computed(() =>
+    settings.value.aiConfigs.find(c => c.id === settings.value.aiActiveConfigId) ?? null
+  );
+
+  function addAIConfig() {
+    const cfg = createDefaultConfig(`配置 ${settings.value.aiConfigs.length + 1}`);
+    settings.value.aiConfigs.push(cfg);
+    if (!settings.value.aiActiveConfigId) {
+      settings.value.aiActiveConfigId = cfg.id;
+    }
+    return cfg;
+  }
+
+  function removeAIConfig(id: string) {
+    const idx = settings.value.aiConfigs.findIndex(c => c.id === id);
+    if (idx === -1) return;
+    if (settings.value.aiConfigs.length <= 1) return; // keep at least one
+    settings.value.aiConfigs.splice(idx, 1);
+    if (settings.value.aiActiveConfigId === id) {
+      settings.value.aiActiveConfigId = settings.value.aiConfigs[0]?.id ?? '';
+    }
+  }
+
+  function setActiveAIConfig(id: string) {
+    if (settings.value.aiConfigs.find(c => c.id === id)) {
+      settings.value.aiActiveConfigId = id;
+    }
+  }
+
   function resetFontSize() {
     settings.value.fontSize = defaults.fontSize;
   }
@@ -161,6 +243,10 @@ export function useSettings() {
 
   return {
     settings,
+    activeAIConfig,
+    addAIConfig,
+    removeAIConfig,
+    setActiveAIConfig,
     resetFontSize,
     resetDisplayScale,
     clearAllCache,

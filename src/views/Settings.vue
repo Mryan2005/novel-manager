@@ -81,61 +81,88 @@
         </h2>
 
         <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-          API URL、Token、模型等配置只保存在本地浏览器，不会上传到本项目服务器。
+          可以保存多个 AI 配置并随时切换。所有配置只保存在本地浏览器。
         </p>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-[var(--text-light)]">AI 格式</label>
-          <select v-model="settings.aiProvider" class="input text-sm">
-            <option value="openai">OpenAI</option>
-            <option value="openai-like">类 OpenAI（兼容接口）</option>
-            <option value="gemini">Gemini AI</option>
+        <!-- 配置选择器 -->
+        <div class="flex items-center gap-2">
+          <select
+            :value="settings.aiActiveConfigId"
+            @change="setActiveAIConfig(($event.target as HTMLSelectElement).value)"
+            class="input text-sm flex-1"
+          >
+            <option v-for="cfg in settings.aiConfigs" :key="cfg.id" :value="cfg.id">{{ cfg.name }}</option>
           </select>
+          <button @click="addNewConfig" class="btn btn-secondary text-sm shrink-0" title="新增配置">
+            <Plus class="w-4 h-4" />
+          </button>
+          <button
+            v-if="settings.aiConfigs.length > 1"
+            @click="removeCurrentConfig"
+            class="btn btn-secondary text-sm shrink-0"
+            title="删除当前配置"
+            style="color: var(--error);"
+          >
+            <Trash2 class="w-4 h-4" />
+          </button>
         </div>
 
-        <div v-if="settings.aiProvider !== 'gemini'" class="space-y-2">
-          <label class="text-sm font-medium text-[var(--text-light)]">API URL / Base URL</label>
-          <input
-            v-model="settings.aiApiUrl"
-            class="input text-sm"
-            placeholder="https://api.openai.com/v1"
-          />
-        </div>
+        <template v-if="activeConfig">
+          <!-- 配置名称 -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">配置名称</label>
+            <input v-model="activeConfig.name" class="input text-sm" placeholder="如：GPT-4o、DeepSeek" />
+          </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-[var(--text-light)]">Token / API Key</label>
-          <input
-            v-model="settings.aiToken"
-            class="input text-sm"
-            type="password"
-            placeholder="sk-..."
-          />
-        </div>
+          <!-- AI 格式 -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">AI 格式</label>
+            <select v-model="activeConfig.provider" class="input text-sm">
+              <option value="openai">OpenAI</option>
+              <option value="openai-like">类 OpenAI（兼容接口）</option>
+              <option value="gemini">Gemini AI</option>
+            </select>
+          </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-[var(--text-light)]">模型名称</label>
-          <input
-            v-model="settings.aiModel"
-            class="input text-sm"
-            :placeholder="settings.aiProvider === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'"
-          />
-        </div>
+          <!-- API URL（非 Gemini） -->
+          <div v-if="activeConfig.provider !== 'gemini'" class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">API URL / Base URL</label>
+            <input v-model="activeConfig.apiUrl" class="input text-sm" placeholder="https://api.openai.com/v1" />
+          </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-[var(--text-light)]">系统提示词</label>
-          <textarea
-            v-model="settings.aiSystemPrompt"
-            class="input text-sm min-h-[80px]"
-            placeholder="设定 AI 的角色和行为，例如：你是小说写作助手..."
-          ></textarea>
-        </div>
+          <!-- Token -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">Token / API Key</label>
+            <input v-model="activeConfig.token" class="input text-sm" type="password" placeholder="sk-..." />
+          </div>
 
-        <div v-if="hasAiConfig" class="p-3 rounded-xl text-xs" style="background: rgba(16, 185, 129, 0.08); color: var(--success);">
-          AI 配置已完成，可以点击 Header 中的「AI 助手」按钮开始使用。
-        </div>
-        <div v-else class="p-3 rounded-xl text-xs" style="background: var(--surface-alt); color: var(--text-muted);">
-          {{ settings.aiProvider === 'gemini' ? '填写 Token 和模型名称后即可使用 AI 助手。' : '填写 API URL、Token 和模型名称后即可使用 AI 助手。' }}
-        </div>
+          <!-- 模型名称 -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">模型名称</label>
+            <input
+              v-model="activeConfig.model"
+              class="input text-sm"
+              :placeholder="activeConfig.provider === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'"
+            />
+          </div>
+
+          <!-- 系统提示词 -->
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-[var(--text-light)]">系统提示词</label>
+            <textarea
+              v-model="activeConfig.systemPrompt"
+              class="input text-sm min-h-[80px]"
+              placeholder="设定 AI 的角色和行为..."
+            ></textarea>
+          </div>
+
+          <div v-if="hasAiConfig" class="p-3 rounded-xl text-xs" style="background: rgba(16, 185, 129, 0.08); color: var(--success);">
+            当前配置已完成，可以点击 Header 中的「AI 助手」按钮开始使用。
+          </div>
+          <div v-else class="p-3 rounded-xl text-xs" style="background: var(--surface-alt); color: var(--text-muted);">
+            {{ activeConfig.provider === 'gemini' ? '填写 Token 和模型名称后即可使用。' : '填写 API URL、Token 和模型名称后即可使用。' }}
+          </div>
+        </template>
       </section>
 
       <section class="card p-6 space-y-6">
@@ -195,22 +222,38 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles } from 'lucide-vue-next';
+import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles, Plus } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useSettings } from '../composables/useSettings';
 
-const { settings, resetFontSize, resetDisplayScale, clearAllCache, clearNovelData, clearDrafts, clearBackups, getCacheStats, formatSize } = useSettings();
+const { settings, activeAIConfig, addAIConfig, removeAIConfig, setActiveAIConfig, resetFontSize, resetDisplayScale, clearAllCache, clearNovelData, clearDrafts, clearBackups, getCacheStats, formatSize } = useSettings();
 
 const stats = computed(() => getCacheStats());
 
+const activeConfig = computed(() =>
+  settings.value.aiConfigs.find(c => c.id === settings.value.aiActiveConfigId) ?? null
+);
+
 const hasAiConfig = computed(() => {
-  const hasToken = settings.value.aiToken.trim() !== '';
-  const hasModel = settings.value.aiModel.trim() !== '';
-  if (settings.value.aiProvider === 'gemini') {
+  const cfg = activeConfig.value;
+  if (!cfg) return false;
+  const hasToken = cfg.token.trim() !== '';
+  const hasModel = cfg.model.trim() !== '';
+  if (cfg.provider === 'gemini') {
     return hasToken && hasModel;
   }
-  return settings.value.aiApiUrl.trim() !== '' && hasToken && hasModel;
+  return cfg.apiUrl.trim() !== '' && hasToken && hasModel;
 });
+
+function addNewConfig() {
+  addAIConfig();
+}
+
+function removeCurrentConfig() {
+  if (settings.value.aiActiveConfigId && settings.value.aiConfigs.length > 1) {
+    removeAIConfig(settings.value.aiActiveConfigId);
+  }
+}
 
 const confirmAction = ref<(() => void) | null>(null);
 const confirmMessage = ref('');
