@@ -85,7 +85,7 @@ function normalize(input: Partial<AppSettings>): AppSettings {
     : [];
   let activeId = typeof input.aiActiveConfigId === 'string' ? input.aiActiveConfigId : '';
   if (configs.length > 0 && !configs.find(c => c.id === activeId)) {
-    activeId = configs[0].id;
+    activeId = configs[0]!.id;
   }
   return {
     fontSize: nextFontSize,
