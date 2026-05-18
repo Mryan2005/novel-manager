@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-8">
+    <div class="page-space">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold text-[var(--text)]">章节管理</h1>

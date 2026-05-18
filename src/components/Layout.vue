@@ -134,6 +134,7 @@
         <slot />
       </main>
     </div>
+    <AIAssistantWidget />
   </div>
 </template>
 
@@ -142,6 +143,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings } from 'lucide-vue-next';
 import { useStore } from '../store';
+import AIAssistantWidget from './AIAssistantWidget.vue';
 
 const { downloadTxt, downloadJson, importFromFile } = useStore();
 const router = useRouter();

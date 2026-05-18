@@ -114,44 +114,110 @@
               />
             </button>
             
-            <div v-if="showSidebar" class="space-y-8 overflow-y-auto" style="max-height: calc(100% - 3rem);">
-              <div>
-                <h4 class="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                  <Users class="w-4 h-4" />
-                  相关角色
-                </h4>
-                <div class="space-y-2">
-                  <div 
-                    v-for="char in characters" 
-                    :key="char.id"
-                    class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+            <div v-if="showSidebar" class="space-y-6 overflow-y-auto" style="max-height: calc(100% - 3rem);">
+              <div class="space-y-3">
+                <div class="relative">
+                  <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <input
+                    v-model="assistantQuery"
+                    class="input input-with-left-icon text-sm"
+                    placeholder="搜索角色/地点/物品..."
+                  />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="tag in assistantTags"
+                    :key="tag"
+                    class="px-2 py-1 text-xs rounded-lg border transition-colors"
+                    :class="selectedAssistantTags.has(tag) ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'border-[var(--border)] text-[var(--text-light)] hover:bg-[var(--surface-alt)]'"
+                    @click="toggleAssistantTag(tag)"
                   >
-                    <div class="font-semibold text-[var(--text)]">{{ char.name }}</div>
-                    <div class="text-[var(--text-muted)] text-xs mt-1">{{ char.role }}</div>
-                  </div>
-                  <div v-if="characters.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">
-                    还没有角色
+                    #{{ tag }}
+                  </button>
+                  <button
+                    v-if="selectedAssistantTags.size > 0"
+                    class="px-2 py-1 text-xs rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]"
+                    @click="selectedAssistantTags.clear()"
+                  >
+                    清除标签
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <div class="text-xs font-semibold text-[var(--text-muted)]">快捷新增</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'character' ? null : 'character'">角色</button>
+                  <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'scene' ? null : 'scene'">地点</button>
+                  <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'item' ? null : 'item'">物品</button>
+                </div>
+                <div v-if="activeQuickAdd" class="pad-3 rounded-xl bg-[var(--surface-alt)] space-y-2">
+                  <input v-model="quickAddForm.name" class="input text-sm" :placeholder="activeQuickAdd === 'item' ? '物品名称' : '名称'" />
+                  <input v-if="activeQuickAdd === 'character'" v-model="quickAddForm.extra" class="input text-sm" placeholder="角色定位（如主角）" />
+                  <input v-if="activeQuickAdd === 'scene'" v-model="quickAddForm.extra" class="input text-sm" placeholder="地点（如城主府）" />
+                  <input v-if="activeQuickAdd === 'item'" v-model="quickAddForm.extra" class="input text-sm" placeholder="类型（如武器）" />
+                  <input v-model="quickAddForm.tags" class="input text-sm" placeholder="标签（逗号分隔，可选）" />
+                  <div class="flex justify-end gap-2">
+                    <button class="btn btn-secondary text-xs !px-2.5 !py-1.5" @click="cancelQuickAdd">取消</button>
+                    <button class="btn btn-primary text-xs !px-2.5 !py-1.5" @click="submitQuickAdd">添加</button>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h4 class="text-sm font-semibold text-[var(--text)] mb-4 flex items-center gap-2">
-                  <Map class="w-4 h-4" />
-                  相关场景
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                  <Users class="w-4 h-4" />
+                  角色
                 </h4>
                 <div class="space-y-2">
-                  <div 
-                    v-for="scene in scenes" 
+                  <div
+                    v-for="char in assistantCharacters"
+                    :key="char.id"
+                    class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+                    @click="openKnowledgeDetail('character', char.id)"
+                  >
+                    <div class="font-semibold text-[var(--text)]">{{ char.name }}</div>
+                    <div class="text-[var(--text-muted)] text-xs mt-1">{{ char.role || '未设置定位' }}</div>
+                  </div>
+                  <div v-if="assistantCharacters.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">暂无匹配角色</div>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                  <Map class="w-4 h-4" />
+                  地点
+                </h4>
+                <div class="space-y-2">
+                  <div
+                    v-for="scene in assistantScenes"
                     :key="scene.id"
                     class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+                    @click="openKnowledgeDetail('scene', scene.id)"
                   >
                     <div class="font-semibold text-[var(--text)]">{{ scene.name }}</div>
-                    <div class="text-[var(--text-muted)] text-xs mt-1">{{ scene.location }}</div>
+                    <div class="text-[var(--text-muted)] text-xs mt-1">{{ scene.location || '未设置地点' }}</div>
                   </div>
-                  <div v-if="scenes.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">
-                    还没有场景
+                  <div v-if="assistantScenes.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">暂无匹配地点</div>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                  <Package class="w-4 h-4" />
+                  物品
+                </h4>
+                <div class="space-y-2">
+                  <div
+                    v-for="item in assistantItems"
+                    :key="item.id"
+                    class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+                    @click="openKnowledgeDetail('item', item.id)"
+                  >
+                    <div class="font-semibold text-[var(--text)]">{{ item.name }}</div>
+                    <div class="text-[var(--text-muted)] text-xs mt-1">{{ item.type || '未设置类型' }}</div>
                   </div>
+                  <div v-if="assistantItems.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">暂无匹配物品</div>
                 </div>
               </div>
             </div>
@@ -187,13 +253,28 @@
         </div>
       </div>
     </div>
+
+    <div v-if="selectedKnowledge" class="fixed inset-0 bg-black/45 flex items-center justify-center z-50 pad-4" @click.self="selectedKnowledge = null">
+      <div class="card w-full max-w-lg pad-8">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</div>
+            <h3 class="text-xl font-bold text-[var(--text)] mt-1">{{ knowledgeTitle }}</h3>
+          </div>
+          <button class="text-[var(--text-muted)] hover:text-[var(--text)]" @click="selectedKnowledge = null">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+        <div class="mt-5 text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+      </div>
+    </div>
   </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye } from 'lucide-vue-next';
+import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
@@ -205,10 +286,14 @@ const {
   chapters,
   characters,
   scenes,
+  items,
   currentChapter,
   setCurrentChapter,
   updateChapter,
   addChapter,
+  addCharacter,
+  addScene,
+  addItem,
   saveDraft,
   loadDraft,
   removeDraft,
@@ -221,13 +306,18 @@ const chapterContent = ref('');
 const wordCount = ref(0);
 const saving = ref(false);
 const previewMode = ref(false);
-const showSidebar = ref(true);
+const showSidebar = ref(false);
 const showNewChapterModal = ref(false);
 const newChapterTitle = ref('');
 const newChapterVolumeId = ref('');
 const draftStatus = ref('');
 const lastSavedTitle = ref('');
 const lastSavedContent = ref('');
+const assistantQuery = ref('');
+const selectedAssistantTags = ref(new Set<string>());
+const activeQuickAdd = ref<'character' | 'scene' | 'item' | null>(null);
+const quickAddForm = ref({ name: '', extra: '', tags: '' });
+const selectedKnowledge = ref<{ type: 'character' | 'scene' | 'item'; id: string } | null>(null);
 let draftTimer: ReturnType<typeof setTimeout> | null = null;
 
 const hasChanges = computed(() => {
@@ -258,6 +348,125 @@ const sortedChapters = computed(() => {
   return [...chapters.value].sort((a, b) => a.order - b.order);
 });
 
+const assistantTags = computed(() => {
+  const tags = new Set<string>();
+  characters.value.forEach((character) => character.tags.forEach((tag) => tags.add(tag)));
+  scenes.value.forEach((scene) => scene.atmosphere.forEach((tag) => tags.add(tag)));
+  items.value.forEach((item) => item.abilities.forEach((tag) => tags.add(tag)));
+  return [...tags].filter(Boolean).sort();
+});
+
+const normalizedAssistantQuery = computed(() => assistantQuery.value.trim().toLowerCase());
+
+const assistantCharacters = computed(() => {
+  const query = normalizedAssistantQuery.value;
+  return characters.value.filter((character) => {
+    const byText = !query || [
+      character.name,
+      character.role,
+      character.description,
+      character.tags.join(' '),
+    ].join(' ').toLowerCase().includes(query);
+    const byTags = selectedAssistantTags.value.size === 0
+      || character.tags.some((tag) => selectedAssistantTags.value.has(tag));
+    return byText && byTags;
+  });
+});
+
+const assistantScenes = computed(() => {
+  const query = normalizedAssistantQuery.value;
+  return scenes.value.filter((scene) => {
+    const byText = !query || [
+      scene.name,
+      scene.location,
+      scene.description,
+      scene.atmosphere.join(' '),
+    ].join(' ').toLowerCase().includes(query);
+    const byTags = selectedAssistantTags.value.size === 0
+      || scene.atmosphere.some((tag) => selectedAssistantTags.value.has(tag));
+    return byText && byTags;
+  });
+});
+
+const assistantItems = computed(() => {
+  const query = normalizedAssistantQuery.value;
+  return items.value.filter((item) => {
+    const byText = !query || [
+      item.name,
+      item.type,
+      item.description,
+      item.owner,
+      item.abilities.join(' '),
+    ].join(' ').toLowerCase().includes(query);
+    const byTags = selectedAssistantTags.value.size === 0
+      || item.abilities.some((tag) => selectedAssistantTags.value.has(tag));
+    return byText && byTags;
+  });
+});
+
+const selectedCharacter = computed(() =>
+  selectedKnowledge.value?.type === 'character'
+    ? characters.value.find((item) => item.id === selectedKnowledge.value?.id)
+    : null
+);
+
+const selectedScene = computed(() =>
+  selectedKnowledge.value?.type === 'scene'
+    ? scenes.value.find((item) => item.id === selectedKnowledge.value?.id)
+    : null
+);
+
+const selectedItem = computed(() =>
+  selectedKnowledge.value?.type === 'item'
+    ? items.value.find((item) => item.id === selectedKnowledge.value?.id)
+    : null
+);
+
+const knowledgeTypeLabel = computed(() => {
+  if (selectedKnowledge.value?.type === 'character') return '角色信息';
+  if (selectedKnowledge.value?.type === 'scene') return '地点信息';
+  if (selectedKnowledge.value?.type === 'item') return '物品信息';
+  return '';
+});
+
+const knowledgeTitle = computed(() => {
+  if (selectedCharacter.value) return selectedCharacter.value.name;
+  if (selectedScene.value) return selectedScene.value.name;
+  if (selectedItem.value) return selectedItem.value.name;
+  return '';
+});
+
+const knowledgeDescription = computed(() => {
+  if (selectedCharacter.value) {
+    const character = selectedCharacter.value;
+    return [
+      character.role ? `定位：${character.role}` : '',
+      character.gender ? `性别：${character.gender}` : '',
+      character.age ? `年龄：${character.age}` : '',
+      character.tags.length ? `标签：${character.tags.join('、')}` : '',
+      character.description || '',
+    ].filter(Boolean).join('\n');
+  }
+  if (selectedScene.value) {
+    const scene = selectedScene.value;
+    return [
+      scene.location ? `地点：${scene.location}` : '',
+      scene.atmosphere.length ? `氛围：${scene.atmosphere.join('、')}` : '',
+      scene.description || '',
+    ].filter(Boolean).join('\n');
+  }
+  if (selectedItem.value) {
+    const item = selectedItem.value;
+    return [
+      item.type ? `类型：${item.type}` : '',
+      item.owner ? `所属：${item.owner}` : '',
+      item.abilities.length ? `能力：${item.abilities.join('、')}` : '',
+      item.description || '',
+    ].filter(Boolean).join('\n');
+  }
+  return '';
+});
+
 const getVolumeChapters = (volumeId: string) => {
   return chapters.value.filter(c => c.volumeId === volumeId).sort((a, b) => a.order - b.order);
 };
@@ -286,6 +495,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (draftTimer) clearTimeout(draftTimer);
+  window.removeEventListener('novel-ai-insert', handleAiInsert as EventListener);
 });
 
 watch(selectedChapterId, (newId, oldId) => {
@@ -307,6 +517,10 @@ watch(selectedChapterId, (newId, oldId) => {
 // watch for content changes and auto-save draft
 watch([chapterTitle, chapterContent], () => {
   triggerAutoSave();
+});
+
+onMounted(() => {
+  window.addEventListener('novel-ai-insert', handleAiInsert as EventListener);
 });
 
 const loadChapterData = (id: string) => {
@@ -378,6 +592,70 @@ const save = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+function handleAiInsert(event: Event) {
+  const customEvent = event as CustomEvent<string>;
+  const text = typeof customEvent.detail === 'string' ? customEvent.detail.trim() : '';
+  if (!text) return;
+  chapterContent.value = chapterContent.value
+    ? `${chapterContent.value}\n\n${text}`
+    : text;
+  updateWordCount();
+}
+
+const toggleAssistantTag = (tag: string) => {
+  if (selectedAssistantTags.value.has(tag)) {
+    selectedAssistantTags.value.delete(tag);
+  } else {
+    selectedAssistantTags.value.add(tag);
+  }
+};
+
+const cancelQuickAdd = () => {
+  activeQuickAdd.value = null;
+  quickAddForm.value = { name: '', extra: '', tags: '' };
+};
+
+const submitQuickAdd = () => {
+  const name = quickAddForm.value.name.trim();
+  if (!name || !activeQuickAdd.value) return;
+  const tags = quickAddForm.value.tags
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  if (activeQuickAdd.value === 'character') {
+    addCharacter({
+      name,
+      gender: '',
+      age: 0,
+      role: quickAddForm.value.extra.trim(),
+      description: '',
+      traits: [],
+      tags,
+    });
+  } else if (activeQuickAdd.value === 'scene') {
+    addScene({
+      name,
+      location: quickAddForm.value.extra.trim(),
+      description: '',
+      atmosphere: tags,
+    });
+  } else {
+    addItem({
+      name,
+      type: quickAddForm.value.extra.trim() || '其他',
+      description: '',
+      owner: '',
+      abilities: tags,
+    });
+  }
+  cancelQuickAdd();
+};
+
+const openKnowledgeDetail = (type: 'character' | 'scene' | 'item', id: string) => {
+  selectedKnowledge.value = { type, id };
 };
 
 const createNewChapter = () => {

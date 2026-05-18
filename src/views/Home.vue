@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="home-page space-y-8">
+    <div class="home-page page-space">
       <section class="hero-banner card">
         <div class="hero-title-wrap">
           <p class="hero-kicker">小说工坊</p>

@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <div class="space-y-8 max-w-2xl">
+    <div class="page-space max-w-2xl">
       <div>
         <h1 class="text-3xl font-bold text-[var(--text)] mb-2">设置</h1>
         <p class="text-[var(--text-light)] text-lg">调整应用偏好与管理数据</p>
@@ -35,12 +35,37 @@
           </div>
           <div class="flex items-center gap-3">
             <Maximize class="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+            <button
+              class="scale-action"
+              @click="adjustDisplayScale(-0.05)"
+              title="缩小"
+            >
+              -
+            </button>
             <input type="range" min="75" max="150" step="5"
               :value="settings.displayScale * 100"
               @input="settings.displayScale = Number(($event.target as HTMLInputElement).value) / 100"
               class="slider flex-1"
             />
+            <button
+              class="scale-action"
+              @click="adjustDisplayScale(0.05)"
+              title="放大"
+            >
+              +
+            </button>
             <button @click="resetDisplayScale" class="text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-2 py-1 rounded-lg hover:bg-[var(--surface-alt)]">重置</button>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="preset in [0.9, 1, 1.1, 1.25]"
+              :key="preset"
+              class="text-xs px-2.5 py-1 rounded-lg border transition-colors"
+              :class="Math.abs(settings.displayScale - preset) < 0.01 ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'border-[var(--border)] text-[var(--text-light)] hover:bg-[var(--surface-alt)]'"
+              @click="settings.displayScale = preset"
+            >
+              {{ Math.round(preset * 100) }}%
+            </button>
           </div>
         </div>
 
@@ -137,9 +162,28 @@ function executeConfirm() {
   if (confirmAction.value) confirmAction.value();
   confirmAction.value = null;
 }
+
+function adjustDisplayScale(delta: number) {
+  const next = Number((settings.value.displayScale + delta).toFixed(2));
+  settings.value.displayScale = Math.min(1.5, Math.max(0.75, next));
+}
 </script>
 
 <style scoped>
+.scale-action {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--text-light);
+  background: var(--surface);
+}
+
+.scale-action:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
 .slider {
   -webkit-appearance: none;
   appearance: none;

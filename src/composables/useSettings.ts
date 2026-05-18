@@ -12,10 +12,32 @@ const defaults: AppSettings = {
   displayScale: 1,
 };
 
+const DISPLAY_SCALE_MIN = 0.75;
+const DISPLAY_SCALE_MAX = 1.5;
+const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MAX = 24;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalize(input: Partial<AppSettings>): AppSettings {
+  const nextFontSize = Number.isFinite(input.fontSize)
+    ? clamp(Number(input.fontSize), FONT_SIZE_MIN, FONT_SIZE_MAX)
+    : defaults.fontSize;
+  const nextScale = Number.isFinite(input.displayScale)
+    ? clamp(Number(input.displayScale), DISPLAY_SCALE_MIN, DISPLAY_SCALE_MAX)
+    : defaults.displayScale;
+  return {
+    fontSize: nextFontSize,
+    displayScale: Number(nextScale.toFixed(2)),
+  };
+}
+
 function load(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
+    if (raw) return normalize({ ...defaults, ...JSON.parse(raw) });
   } catch { /* ignore */ }
   return { ...defaults };
 }
@@ -25,8 +47,9 @@ function save(settings: AppSettings) {
 }
 
 function apply(settings: AppSettings) {
-  document.documentElement.style.fontSize = settings.fontSize + 'px';
-  document.documentElement.style.setProperty('--display-scale', settings.displayScale.toString());
+  const normalized = normalize(settings);
+  document.documentElement.style.fontSize = normalized.fontSize + 'px';
+  document.documentElement.style.setProperty('--display-scale', normalized.displayScale.toString());
 }
 
 const settings = ref<AppSettings>(load());
@@ -34,8 +57,9 @@ const settings = ref<AppSettings>(load());
 apply(settings.value);
 
 watch(settings, (v) => {
-  save(v);
-  apply(v);
+  const normalized = normalize(v);
+  save(normalized);
+  apply(normalized);
 }, { deep: true });
 
 export function useSettings() {
