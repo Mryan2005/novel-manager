@@ -115,14 +115,16 @@
               />
             </button>
 
-            <div v-if="showOutline && currentChapter" class="mb-5 shrink-0">
+            <div v-if="showOutline" class="mb-5 shrink-0">
               <textarea
+                v-if="currentChapter"
                 v-model="chapterOutline"
                 class="input w-full resize-none text-sm"
                 rows="6"
                 placeholder="编写本章大纲..."
                 @input="triggerAutoSave"
               ></textarea>
+              <p v-else class="text-sm text-[var(--text-muted)] py-4 text-center">请先选择一个章节</p>
             </div>
 
             <button
