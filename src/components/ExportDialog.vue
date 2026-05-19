@@ -1,7 +1,7 @@
 <template>
   <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="$emit('close')"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-[420px] max-w-[90vw] p-6 z-10">
+    <div class="relative bg-white rounded-2xl shadow-2xl w-[420px] max-w-[90vw] max-h-[90vh] overflow-y-auto p-6 z-10">
       <h2 class="text-lg font-bold mb-1">导出 JSON</h2>
       <p class="text-sm text-[var(--text-muted)] mb-5">选择要导出的内容</p>
 
@@ -47,12 +47,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 
 const props = defineProps<{
   visible: boolean;
   summaries: Record<string, string>;
 }>();
+
+watch(() => props.visible, (v) => {
+  document.body.style.overflow = v ? 'hidden' : '';
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 
 const emit = defineEmits<{
   close: [];
