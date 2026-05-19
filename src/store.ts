@@ -38,6 +38,7 @@ function loadFromStorage(): Novel {
           if (!c.volumeId && novel.volumes.length > 0) {
             c.volumeId = novel.volumes[0].id;
           }
+          if (c.outline === undefined) c.outline = '';
         });
       }
       // Backward compat: ensure characters have tags
@@ -520,16 +521,18 @@ export const useStore = () => {
     chapterId: string;
     title: string;
     content: string;
+    outline: string;
     wordCount: number;
     savedAt: string;
   }
 
-  function saveDraft(chapterId: string, title: string, content: string, wordCount: number) {
+  function saveDraft(chapterId: string, title: string, content: string, outline: string, wordCount: number) {
     try {
       const draft: Draft = {
         chapterId,
         title,
         content,
+        outline,
         wordCount,
         savedAt: new Date().toISOString(),
       };
@@ -542,7 +545,11 @@ export const useStore = () => {
   function loadDraft(chapterId: string): Draft | null {
     try {
       const data = localStorage.getItem(DRAFT_PREFIX + chapterId);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const draft = JSON.parse(data) as Draft;
+        if (draft.outline === undefined) draft.outline = '';
+        return draft;
+      }
     } catch (e) {
       console.error('Failed to load draft:', e);
     }

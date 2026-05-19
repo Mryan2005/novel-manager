@@ -107,13 +107,27 @@
             >
               <span class="flex items-center gap-2 text-lg">
                 <BookOpen class="w-5 h-5" />
-                写作助手
+                设定集
               </span>
               <ChevronDown
                 class="w-5 h-5 transition-transform"
                 :class="showSidebar ? 'rotate-180' : ''"
               />
             </button>
+
+            <div v-if="currentChapter" class="mb-5 shrink-0">
+              <h4 class="text-sm font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
+                <List class="w-4 h-4" />
+                章节大纲
+              </h4>
+              <textarea
+                v-model="chapterOutline"
+                class="input w-full resize-none text-sm"
+                rows="6"
+                placeholder="编写本章大纲..."
+                @input="triggerAutoSave"
+              ></textarea>
+            </div>
 
             <div v-if="showSidebar" class="space-y-6 flex-1 overflow-y-auto min-h-0">
               <div class="space-y-3">
@@ -275,7 +289,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X } from 'lucide-vue-next';
+import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
@@ -304,6 +318,7 @@ const {
 const selectedChapterId = ref<string>('');
 const chapterTitle = ref('');
 const chapterContent = ref('');
+const chapterOutline = ref('');
 const wordCount = ref(0);
 const saving = ref(false);
 const previewMode = ref(false);
@@ -327,8 +342,10 @@ watch(anyModalOpenEditor, (open) => {
 });
 let draftTimer: ReturnType<typeof setTimeout> | null = null;
 
+const lastSavedOutline = ref('');
+
 const hasChanges = computed(() => {
-  return chapterTitle.value !== lastSavedTitle.value || chapterContent.value !== lastSavedContent.value;
+  return chapterTitle.value !== lastSavedTitle.value || chapterContent.value !== lastSavedContent.value || chapterOutline.value !== lastSavedOutline.value;
 });
 
 const renderedContent = computed(() => {
@@ -484,7 +501,7 @@ const triggerAutoSave = () => {
   if (draftTimer) clearTimeout(draftTimer);
   draftTimer = setTimeout(() => {
     if (!hasChanges.value) return;
-    saveDraft(selectedChapterId.value, chapterTitle.value, chapterContent.value, wordCount.value);
+    saveDraft(selectedChapterId.value, chapterTitle.value, chapterContent.value, chapterOutline.value, wordCount.value);
     draftStatus.value = '已保存';
     setTimeout(() => { draftStatus.value = ''; }, 2000);
   }, 2000);
@@ -508,7 +525,7 @@ onUnmounted(() => {
 watch(selectedChapterId, (newId, oldId) => {
   // save draft of previous chapter before switching
   if (oldId) {
-    saveDraft(oldId, chapterTitle.value, chapterContent.value, wordCount.value);
+    saveDraft(oldId, chapterTitle.value, chapterContent.value, chapterOutline.value, wordCount.value);
   }
   if (newId) {
     setCurrentChapter(newId);
@@ -517,12 +534,13 @@ watch(selectedChapterId, (newId, oldId) => {
     setCurrentChapter(null);
     chapterTitle.value = '';
     chapterContent.value = '';
+    chapterOutline.value = '';
     wordCount.value = 0;
   }
 });
 
 // watch for content changes and auto-save draft
-watch([chapterTitle, chapterContent], () => {
+watch([chapterTitle, chapterContent, chapterOutline], () => {
   triggerAutoSave();
 });
 
@@ -540,9 +558,11 @@ const loadChapterData = (id: string) => {
     if (draftTime > saveTime) {
       chapterTitle.value = draft.title;
       chapterContent.value = draft.content;
+      chapterOutline.value = draft.outline || '';
       wordCount.value = draft.wordCount;
       lastSavedTitle.value = chapter.title;
       lastSavedContent.value = chapter.content;
+      lastSavedOutline.value = chapter.outline || '';
       draftStatus.value = '已恢复草稿';
       setTimeout(() => { draftStatus.value = ''; }, 3000);
       return;
@@ -552,16 +572,20 @@ const loadChapterData = (id: string) => {
   if (draft && chapter && !chapter.content && draft.content) {
     chapterTitle.value = draft.title;
     chapterContent.value = draft.content;
+    chapterOutline.value = draft.outline || '';
     wordCount.value = draft.wordCount;
     lastSavedTitle.value = chapter.title;
     lastSavedContent.value = chapter.content;
+    lastSavedOutline.value = chapter.outline || '';
     return;
   }
   if (chapter) {
     lastSavedTitle.value = chapter.title;
     lastSavedContent.value = chapter.content;
+    lastSavedOutline.value = chapter.outline || '';
     chapterTitle.value = chapter.title;
     chapterContent.value = chapter.content;
+    chapterOutline.value = chapter.outline || '';
     wordCount.value = chapter.wordCount;
   }
 };
@@ -588,11 +612,13 @@ const save = async () => {
     updateChapter(selectedChapterId.value, {
       title: chapterTitle.value,
       content: chapterContent.value,
+      outline: chapterOutline.value,
       wordCount: wordCount.value,
     });
     removeDraft(selectedChapterId.value);
     lastSavedTitle.value = chapterTitle.value;
     lastSavedContent.value = chapterContent.value;
+    lastSavedOutline.value = chapterOutline.value;
     saveBackup();
     draftStatus.value = '已保存';
     setTimeout(() => { draftStatus.value = ''; }, 2000);
@@ -677,6 +703,7 @@ const confirmCreateChapter = () => {
   const newChapter = addChapter({
     title: newChapterTitle.value,
     content: '',
+    outline: '',
     wordCount: 0,
     status: 'draft',
     volumeId: newChapterVolumeId.value || volumes.value[0]?.id || '',

@@ -9,6 +9,7 @@ export interface Chapter {
   id: string;
   title: string;
   content: string;
+  outline: string;
   wordCount: number;
   createdAt: string;
   updatedAt: string;

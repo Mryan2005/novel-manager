@@ -408,6 +408,7 @@ const saveChapter = () => {
     addChapter({
       title: chapterForm.value.title,
       content: '',
+      outline: '',
       wordCount: 0,
       status: chapterForm.value.status,
       volumeId: vid,
