@@ -100,7 +100,7 @@
         </div>
 
         <div class="w-80 shrink-0 min-h-0">
-          <div class="card pad-8 h-full flex flex-col overflow-hidden">
+          <div class="card pad-8 h-full flex flex-col overflow-y-auto">
             <button
               @click="showOutline = !showOutline"
               class="flex items-center justify-between w-full text-[var(--text)] font-semibold mb-5 shrink-0"
@@ -139,7 +139,7 @@
               />
             </button>
 
-            <div v-if="showSidebar" class="space-y-6 flex-1 overflow-y-auto min-h-0">
+            <div v-if="showSidebar" class="space-y-6">
               <div class="space-y-3">
                 <div class="relative">
                   <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
