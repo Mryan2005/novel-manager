@@ -14,7 +14,8 @@
       "Bash(node -e \"const g = require\\('@google/genai'\\); console.log\\(Object.keys\\(g\\)\\)\")",
       "Bash(node -e ' *)",
       "Bash(npx pnpm *)",
-      "Bash(node -e \"const { ThinkingLevel } = require\\('@google/genai'\\); console.log\\(Object.keys\\(ThinkingLevel\\)\\)\")"
+      "Bash(node -e \"const { ThinkingLevel } = require\\('@google/genai'\\); console.log\\(Object.keys\\(ThinkingLevel\\)\\)\")",
+      "Bash(dir /b /s \"D:\\\\downloads\\\\project_20260507_142138\\\\projects\\\\*.*\")"
     ]
   }
 }

@@ -127,6 +127,32 @@ export function useAIChat() {
     activeSession.value.updatedAt = Date.now();
   }
 
+  function importSessions(data: unknown[]): boolean {
+    if (!Array.isArray(data)) return false;
+    const valid: ChatSession[] = [];
+    for (const item of data) {
+      if (!item || typeof item !== 'object') continue;
+      const s = item as Record<string, unknown>;
+      if (typeof s.id !== 'string' || !Array.isArray(s.messages)) continue;
+      valid.push({
+        id: s.id,
+        title: typeof s.title === 'string' ? s.title : '',
+        messages: (s.messages as unknown[]).filter((m: unknown) => {
+          if (!m || typeof m !== 'object') return false;
+          const msg = m as Record<string, unknown>;
+          return typeof msg.id === 'string' && typeof msg.content === 'string';
+        }) as ChatMessage[],
+        createdAt: typeof s.createdAt === 'number' ? s.createdAt : Date.now(),
+        updatedAt: typeof s.updatedAt === 'number' ? s.updatedAt : Date.now(),
+      });
+    }
+    sessions.value = valid;
+    if (valid.length === 0 || !valid.find(s => s.id === activeSessionId.value)) {
+      activeSessionId.value = valid.length > 0 ? valid[0]!.id : null;
+    }
+    return true;
+  }
+
   function getContextForRoute(routePath: string): string {
     try {
       const raw = localStorage.getItem('novel-workshop-data');
@@ -194,5 +220,6 @@ export function useAIChat() {
     addMessage,
     clearCurrentMessages,
     getContextForRoute,
+    importSessions,
   };
 }

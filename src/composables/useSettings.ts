@@ -254,6 +254,17 @@ export function useSettings() {
     return (bytes / 1024).toFixed(1) + ' KB';
   }
 
+  function importSettings(data: unknown): boolean {
+    if (!data || typeof data !== 'object') return false;
+    try {
+      const normalized = normalize(data as Partial<AppSettings>);
+      settings.value = normalized;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     settings,
     activeAIConfig,
@@ -268,5 +279,6 @@ export function useSettings() {
     clearBackups,
     getCacheStats,
     formatSize,
+    importSettings,
   };
 }

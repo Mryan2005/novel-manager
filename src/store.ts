@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue';
-import type { Novel, Volume, Chapter, Character, Scene, Item, DailyWordRecord, DayCount } from './types';
+import type { Novel, Volume, Chapter, Character, Scene, Item, DailyWordRecord, DayCount, ExportBundle } from './types';
 
 const STORAGE_KEY = 'novel-workshop-data';
 const TIMESTAMP_KEY = 'novel-workshop-timestamp';
@@ -728,6 +728,65 @@ export const useStore = () => {
     }
   }
 
+  function wrapLegacyData(raw: Record<string, unknown>): ExportBundle {
+    return {
+      version: 0,
+      exportedAt: '',
+      articles: {
+        title: typeof raw.title === 'string' ? raw.title : '我的小说',
+        volumes: Array.isArray(raw.volumes) ? raw.volumes as Volume[] : [],
+        chapters: Array.isArray(raw.chapters) ? raw.chapters as Chapter[] : [],
+      },
+      dayCount: (raw.dayCount && typeof raw.dayCount === 'object' && !Array.isArray(raw.dayCount))
+        ? raw.dayCount as DayCount
+        : undefined,
+      lore: {
+        characters: Array.isArray(raw.characters) ? raw.characters as Character[] : [],
+        scenes: Array.isArray(raw.scenes) ? raw.scenes as Scene[] : [],
+        items: Array.isArray(raw.items) ? raw.items as Item[] : [],
+      },
+    };
+  }
+
+  function buildExportParts(selected: Set<string>) {
+    const result: Record<string, unknown> = {};
+    if (selected.has('articles')) {
+      result.articles = {
+        title: state.novel.title,
+        volumes: state.novel.volumes,
+        chapters: state.novel.chapters,
+      };
+    }
+    if (selected.has('dayCount')) {
+      result.dayCount = state.novel.dayCount;
+    }
+    if (selected.has('lore')) {
+      result.lore = {
+        characters: state.novel.characters,
+        scenes: state.novel.scenes,
+        items: state.novel.items,
+      };
+    }
+    return result;
+  }
+
+  function importParts(data: ExportBundle, selected: Set<string>) {
+    if (selected.has('articles') && data.articles) {
+      state.novel.title = data.articles.title || '我的小说';
+      state.novel.volumes = Array.isArray(data.articles.volumes) ? data.articles.volumes : [];
+      state.novel.chapters = Array.isArray(data.articles.chapters) ? data.articles.chapters : [];
+    }
+    if (selected.has('dayCount') && data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) {
+      state.novel.dayCount = data.dayCount;
+    }
+    if (selected.has('lore') && data.lore) {
+      state.novel.characters = Array.isArray(data.lore.characters) ? data.lore.characters : [];
+      state.novel.scenes = Array.isArray(data.lore.scenes) ? data.lore.scenes : [];
+      state.novel.items = Array.isArray(data.lore.items) ? data.lore.items : [];
+    }
+    saveToStorage();
+  }
+
   return {
     novel: computed(() => state.novel),
     totalChapters,
@@ -780,5 +839,8 @@ export const useStore = () => {
     getDailyRecordsForDays,
     getTodayWordCount,
     getWeeklyStats,
+    buildExportParts,
+    importParts,
+    wrapLegacyData,
   };
 };

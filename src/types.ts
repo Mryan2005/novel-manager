@@ -68,3 +68,13 @@ export interface Novel {
   items: Item[];
   dayCount: DayCount;
 }
+
+export interface ExportBundle {
+  version: number;
+  exportedAt: string;
+  articles?: { title: string; volumes: Volume[]; chapters: Chapter[] };
+  dayCount?: DayCount;
+  lore?: { characters: Character[]; scenes: Scene[]; items: Item[] };
+  settings?: unknown;
+  aiChats?: unknown[];
+}
