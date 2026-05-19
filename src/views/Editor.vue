@@ -102,6 +102,30 @@
         <div class="w-80 shrink-0 min-h-0">
           <div class="card pad-8 h-full flex flex-col overflow-hidden">
             <button
+              @click="showOutline = !showOutline"
+              class="flex items-center justify-between w-full text-[var(--text)] font-semibold mb-5 shrink-0"
+            >
+              <span class="flex items-center gap-2 text-lg">
+                <List class="w-5 h-5" />
+                章节大纲
+              </span>
+              <ChevronDown
+                class="w-5 h-5 transition-transform"
+                :class="showOutline ? 'rotate-180' : ''"
+              />
+            </button>
+
+            <div v-if="showOutline && currentChapter" class="mb-5 shrink-0">
+              <textarea
+                v-model="chapterOutline"
+                class="input w-full resize-none text-sm"
+                rows="6"
+                placeholder="编写本章大纲..."
+                @input="triggerAutoSave"
+              ></textarea>
+            </div>
+
+            <button
               @click="showSidebar = !showSidebar"
               class="flex items-center justify-between w-full text-[var(--text)] font-semibold mb-5 shrink-0"
             >
@@ -114,20 +138,6 @@
                 :class="showSidebar ? 'rotate-180' : ''"
               />
             </button>
-
-            <div v-if="currentChapter" class="mb-5 shrink-0">
-              <h4 class="text-sm font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
-                <List class="w-4 h-4" />
-                章节大纲
-              </h4>
-              <textarea
-                v-model="chapterOutline"
-                class="input w-full resize-none text-sm"
-                rows="6"
-                placeholder="编写本章大纲..."
-                @input="triggerAutoSave"
-              ></textarea>
-            </div>
 
             <div v-if="showSidebar" class="space-y-6 flex-1 overflow-y-auto min-h-0">
               <div class="space-y-3">
@@ -322,6 +332,7 @@ const chapterOutline = ref('');
 const wordCount = ref(0);
 const saving = ref(false);
 const previewMode = ref(false);
+const showOutline = ref(true);
 const showSidebar = ref(false);
 const showNewChapterModal = ref(false);
 

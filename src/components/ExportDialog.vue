@@ -1,50 +1,49 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center">
-      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="$emit('close')"></div>
-      <div class="relative bg-white rounded-2xl shadow-2xl w-[420px] max-w-[90vw] max-h-[90vh] overflow-y-auto p-6">
-      <h2 class="text-lg font-bold mb-1">导出 JSON</h2>
-      <p class="text-sm text-[var(--text-muted)] mb-5">选择要导出的内容</p>
+    <div v-if="visible" class="dialog-overlay" @click.self="$emit('close')">
+      <div class="dialog-window">
+        <h2 class="text-lg font-bold mb-1">导出 JSON</h2>
+        <p class="text-sm text-[var(--text-muted)] mb-5">选择要导出的内容</p>
 
-      <label class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 cursor-pointer border border-[var(--border)] mb-2">
-        <input
-          type="checkbox"
-          :checked="allChecked"
-          :indeterminate="allIndeterminate"
-          @change="toggleAll"
-          class="w-4 h-4 rounded accent-[var(--primary)]"
-        />
-        <span class="font-medium">全部</span>
-      </label>
-
-      <div class="ml-2 space-y-1">
-        <label
-          v-for="item in items"
-          :key="item.key"
-          class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 cursor-pointer"
-        >
+        <label class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-[var(--surface-alt)] cursor-pointer border border-[var(--border)] mb-2">
           <input
             type="checkbox"
-            :checked="selected.has(item.key)"
-            @change="toggle(item.key)"
+            :checked="allChecked"
+            :indeterminate="allIndeterminate"
+            @change="toggleAll"
             class="w-4 h-4 rounded accent-[var(--primary)]"
           />
-          <div class="flex-1">
-            <span class="text-sm">{{ item.label }}</span>
-            <span class="text-xs text-[var(--text-muted)] ml-1.5">{{ item.hint }}</span>
-          </div>
-          <span class="text-xs text-[var(--text-muted)]">{{ item.summary }}</span>
+          <span class="font-medium">全部</span>
         </label>
-      </div>
 
-      <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]">
-        <button @click="$emit('close')" class="btn btn-secondary text-sm px-4 py-2">取消</button>
-        <button @click="confirm" class="btn btn-primary text-sm px-4 py-2" :disabled="selected.size === 0">
-          导出 ({{ selected.size }} 项)
-        </button>
+        <div class="ml-2 space-y-1">
+          <label
+            v-for="item in items"
+            :key="item.key"
+            class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[var(--surface-alt)] cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              :checked="selected.has(item.key)"
+              @change="toggle(item.key)"
+              class="w-4 h-4 rounded accent-[var(--primary)]"
+            />
+            <div class="flex-1">
+              <span class="text-sm">{{ item.label }}</span>
+              <span class="text-xs text-[var(--text-muted)] ml-1.5">{{ item.hint }}</span>
+            </div>
+            <span class="text-xs text-[var(--text-muted)]">{{ item.summary }}</span>
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]">
+          <button @click="$emit('close')" class="btn btn-secondary text-sm px-4 py-2">取消</button>
+          <button @click="confirm" class="btn btn-primary text-sm px-4 py-2" :disabled="selected.size === 0">
+            导出 ({{ selected.size }} 项)
+          </button>
+        </div>
       </div>
     </div>
-  </div>
   </Teleport>
 </template>
 
@@ -108,3 +107,27 @@ function confirm() {
   emit('export', [...selected.value]);
 }
 </script>
+
+<style scoped>
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-window {
+  width: min(90vw, 420px);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem;
+}
+</style>
