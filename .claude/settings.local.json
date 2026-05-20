@@ -15,7 +15,10 @@
       "Bash(node -e ' *)",
       "Bash(npx pnpm *)",
       "Bash(node -e \"const { ThinkingLevel } = require\\('@google/genai'\\); console.log\\(Object.keys\\(ThinkingLevel\\)\\)\")",
-      "Bash(dir /b /s \"D:\\\\downloads\\\\project_20260507_142138\\\\projects\\\\*.*\")"
+      "Bash(dir /b /s \"D:\\\\downloads\\\\project_20260507_142138\\\\projects\\\\*.*\")",
+      "Bash(awk 'NR==FNR{code=code ORS $0; next} {print} /^\\\\t\\\\};\\\\r?$/ && !done {print \"\"; print \"const handleOutlineKeydown = \\(e: KeyboardEvent\\) => {\"; print \"\\\\tif \\(e.key === \\\\\"Tab\\\\\"\\) {\"; print \"\\\\t\\\\te.preventDefault\\(\\);\"; print \"\\\\t\\\\tconst textarea = e.target as HTMLTextAreaElement;\"; print \"\\\\t\\\\tconst start = textarea.selectionStart;\"; print \"\\\\t\\\\tconst end = textarea.selectionEnd;\"; print \"\\\\t\\\\tconst value = textarea.value;\"; print \"\\\\t\\\\tchapterOutline.value = value.slice\\(0, start\\) + \\\\\"\\\\\\\\t\\\\\" + value.slice\\(end\\);\"; print \"\\\\t\\\\trequestAnimationFrame\\(\\(\\) => {\"; print \"\\\\t\\\\t\\\\ttextarea.selectionStart = textarea.selectionEnd = start + 1;\"; print \"\\\\t\\\\t}\\);\"; print \"\\\\t}\"; print \"};\"; done=1}' src/views/Editor.vue src/views/Editor.vue)",
+      "Bash(mv src/views/Editor.vue.tmp src/views/Editor.vue)",
+      "Bash(python *)"
     ]
   }
 }

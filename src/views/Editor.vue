@@ -152,6 +152,7 @@
                 rows="6"
                 placeholder="编写本章大纲..."
                 @input="triggerAutoSave"
+                @keydown="handleOutlineKeydown"
               ></textarea>
               <p v-else class="text-sm text-[var(--text-muted)] py-4 text-center">请先选择一个章节</p>
             </div>
@@ -379,6 +380,7 @@
               class="input w-full resize-none text-base leading-relaxed flex-1"
               placeholder="编写本章大纲..."
               @input="triggerAutoSave"
+              @keydown="handleOutlineKeydown"
             ></textarea>
             <div
               v-else
@@ -621,6 +623,20 @@ const triggerAutoSave = () => {
     setTimeout(() => { draftStatus.value = ''; }, 2000);
   }, 2000);
   draftStatus.value = '未保存';
+};
+
+const handleOutlineKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const textarea = e.target as HTMLTextAreaElement;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    chapterOutline.value = value.slice(0, start) + '	' + value.slice(end);
+    requestAnimationFrame(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + 1;
+    });
+  }
 };
 
 onMounted(() => {
