@@ -121,6 +121,21 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-1">
+                  <div class="relative copy-menu-wrap" @click.stop>
+                    <button @click.stop="toggleCopyMenu(chapter.id)" class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--primary)] transition-all" title="复制">
+                      <Copy class="w-4 h-4" />
+                    </button>
+                    <div v-if="copyMenuChapterId === chapter.id" class="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[var(--border)] shadow-lg z-30 py-1 min-w-[180px]">
+                      <button @click.stop="copyChapterContent(chapter, false); copyMenuChapterId = null" class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-alt)] flex items-center gap-2">
+                        <Copy class="w-3.5 h-3.5" />
+                        复制内容
+                      </button>
+                      <button @click.stop="copyChapterContent(chapter, true); copyMenuChapterId = null" class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-alt)] flex items-center gap-2">
+                        <Copy class="w-3.5 h-3.5" />
+                        复制内容 + 作者的话
+                      </button>
+                    </div>
+                  </div>
                   <button @click.stop="editChapter(chapter)" class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
                     <Edit class="w-4 h-4" />
                   </button>
@@ -230,9 +245,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search } from 'lucide-vue-next';
+import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search, Copy } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter, Volume } from '../types';
@@ -246,6 +261,7 @@ const {
 
 const searchQuery = ref('');
 const expandedVolumes = ref(new Set<string>());
+const copyMenuChapterId = ref<string | null>(null);
 
 // Volume modals
 const showVolumeModal = ref(false);
@@ -265,6 +281,15 @@ const anyModalOpen = computed(() => showVolumeModal.value || showChapterModal.va
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
+
+const closeCopyMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.copy-menu-wrap')) {
+    copyMenuChapterId.value = null;
+  }
+};
+onMounted(() => document.addEventListener('click', closeCopyMenu));
+onUnmounted(() => document.removeEventListener('click', closeCopyMenu));
 
 // Init: expand all volumes
 volumes.value.forEach(v => expandedVolumes.value.add(v.id));
@@ -432,6 +457,28 @@ const moveChapter = (chapter: Chapter, direction: number) => {
     updateChapter(targetChapter.id, { order: chapter.order });
   }
   updateChapter(chapter.id, { order: newOrder });
+};
+
+const copyChapterContent = async (chapter: Chapter, includeAuthorNote: boolean) => {
+  let text = chapter.content || '';
+  if (includeAuthorNote && chapter.authorNote) {
+    text += '\n\n——作者的话——\n\n' + chapter.authorNote;
+  }
+  if (!text.trim()) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+};
+
+const toggleCopyMenu = (chapterId: string) => {
+  copyMenuChapterId.value = copyMenuChapterId.value === chapterId ? null : chapterId;
 };
 
 const confirmDeleteChapter = (chapter: Chapter) => {

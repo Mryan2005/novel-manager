@@ -43,6 +43,25 @@
           <span class="text-[var(--text-light)] text-sm font-medium shrink-0 tabular-nums bg-[var(--surface-alt)] px-3 py-1 rounded-lg">
             {{ wordCount.toLocaleString() }} 字
           </span>
+          <div v-if="currentChapter" class="relative copy-menu-wrap shrink-0">
+            <button
+              @click="showCopyMenu = !showCopyMenu"
+              class="btn btn-secondary shrink-0"
+              title="复制"
+            >
+              <Copy class="w-4 h-4" />
+            </button>
+            <div v-if="showCopyMenu" class="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[var(--border)] shadow-lg z-30 py-1 min-w-[180px]">
+              <button @click="copyCurrentContent(false); showCopyMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-alt)] flex items-center gap-2">
+                <Copy class="w-3.5 h-3.5" />
+                复制内容
+              </button>
+              <button @click="copyCurrentContent(true); showCopyMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-alt)] flex items-center gap-2">
+                <Copy class="w-3.5 h-3.5" />
+                复制内容 + 作者的话
+              </button>
+            </div>
+          </div>
           <button
             v-if="currentChapter"
             @click="previewMode = !previewMode"
@@ -327,7 +346,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List, MessageSquare } from 'lucide-vue-next';
+import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List, MessageSquare, Copy } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
@@ -364,6 +383,7 @@ const previewMode = ref(false);
 const showOutline = ref(true);
 const showAuthorNote = ref(true);
 const showSidebar = ref(false);
+const showCopyMenu = ref(false);
 const showNewChapterModal = ref(false);
 
 const newChapterTitle = ref('');
@@ -562,9 +582,17 @@ onMounted(() => {
   }
 });
 
+const closeCopyMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.copy-menu-wrap')) {
+    showCopyMenu.value = false;
+  }
+};
+
 onUnmounted(() => {
   if (draftTimer) clearTimeout(draftTimer);
   window.removeEventListener('novel-ai-insert', handleAiInsert as EventListener);
+  document.removeEventListener('click', closeCopyMenu);
 });
 
 watch(selectedChapterId, (newId, oldId) => {
@@ -592,6 +620,7 @@ watch([chapterTitle, chapterContent, chapterOutline, chapterAuthorNote], () => {
 
 onMounted(() => {
   window.addEventListener('novel-ai-insert', handleAiInsert as EventListener);
+  document.addEventListener('click', closeCopyMenu);
 });
 
 const loadChapterData = (id: string) => {
@@ -772,6 +801,24 @@ const confirmCreateChapter = () => {
 const changeChapterVolume = (volumeId: string) => {
   if (!selectedChapterId.value) return;
   updateChapter(selectedChapterId.value, { volumeId });
+};
+
+const copyCurrentContent = async (includeAuthorNote: boolean) => {
+  let text = chapterContent.value || '';
+  if (includeAuthorNote && chapterAuthorNote.value) {
+    text += '\n\n——作者的话——\n\n' + chapterAuthorNote.value;
+  }
+  if (!text.trim()) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
 };
 
 function escapeHtml(text: string): string {
