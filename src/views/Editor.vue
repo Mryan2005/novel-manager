@@ -632,9 +632,9 @@ const handleOutlineKeydown = (e: KeyboardEvent) => {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;
-    chapterOutline.value = value.slice(0, start) + '	' + value.slice(end);
+    chapterOutline.value = value.slice(0, start) + '    ' + value.slice(end);
     requestAnimationFrame(() => {
-      textarea.selectionStart = textarea.selectionEnd = start + 1;
+      textarea.selectionStart = textarea.selectionEnd = start + 4;
     });
   }
 };
