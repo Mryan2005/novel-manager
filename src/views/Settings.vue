@@ -6,7 +6,7 @@
         <p class="text-[var(--text-light)] text-lg">调整应用偏好与管理数据</p>
       </div>
 
-      <section class="card settings-card p-8 space-y-6">
+      <section class="card settings-card p-2 space-y-6">
         <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
           <Monitor class="w-5 h-5" style="color: var(--primary);" />
           显示设置
@@ -74,7 +74,7 @@
         </div>
       </section>
 
-      <section class="card settings-card p-8 space-y-6">
+      <section class="card settings-card p-2 space-y-6">
         <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
           <Sparkles class="w-5 h-5" style="color: var(--primary);" />
           AI 助手设置
@@ -177,7 +177,7 @@
         </template>
       </section>
 
-      <section class="card settings-card p-8 space-y-6">
+      <section class="card settings-card p-2 space-y-6">
         <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
           <HardDrive class="w-5 h-5" style="color: var(--warning);" />
           缓存管理
