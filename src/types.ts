@@ -10,6 +10,7 @@ export interface Chapter {
   title: string;
   content: string;
   outline: string;
+  authorNote: string;
   wordCount: number;
   createdAt: string;
   updatedAt: string;

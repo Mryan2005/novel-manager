@@ -39,6 +39,7 @@ function loadFromStorage(): Novel {
             c.volumeId = novel.volumes[0].id;
           }
           if (c.outline === undefined) c.outline = '';
+          if (c.authorNote === undefined) c.authorNote = '';
         });
       }
       // Backward compat: ensure characters have tags
@@ -522,17 +523,19 @@ export const useStore = () => {
     title: string;
     content: string;
     outline: string;
+    authorNote: string;
     wordCount: number;
     savedAt: string;
   }
 
-  function saveDraft(chapterId: string, title: string, content: string, outline: string, wordCount: number) {
+  function saveDraft(chapterId: string, title: string, content: string, outline: string, authorNote: string, wordCount: number) {
     try {
       const draft: Draft = {
         chapterId,
         title,
         content,
         outline,
+        authorNote,
         wordCount,
         savedAt: new Date().toISOString(),
       };
@@ -548,6 +551,7 @@ export const useStore = () => {
       if (data) {
         const draft = JSON.parse(data) as Draft;
         if (draft.outline === undefined) draft.outline = '';
+        if (draft.authorNote === undefined) draft.authorNote = '';
         return draft;
       }
     } catch (e) {
