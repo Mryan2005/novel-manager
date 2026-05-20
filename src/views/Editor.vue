@@ -376,7 +376,6 @@
             <textarea
               v-if="!outlineFullPreview"
               v-model="chapterOutline"
-              class="input w-full resize-none text-base leading-relaxed"
               class="input w-full resize-none text-base leading-relaxed flex-1"
               placeholder="编写本章大纲..."
               @input="triggerAutoSave"
