@@ -377,14 +377,13 @@
               v-if="!outlineFullPreview"
               v-model="chapterOutline"
               class="input w-full resize-none text-base leading-relaxed"
-              style="min-height: 300px;"
+              class="input w-full resize-none text-base leading-relaxed flex-1"
               placeholder="编写本章大纲..."
               @input="triggerAutoSave"
             ></textarea>
             <div
               v-else
-              class="text-sm whitespace-pre-wrap leading-relaxed text-[var(--text)]"
-              style="min-height: 300px;"
+              class="text-sm whitespace-pre-wrap leading-relaxed text-[var(--text)] flex-1"
             >{{ chapterOutline || '(空)' }}</div>
           </div>
         </div>
@@ -985,12 +984,23 @@ function escapeHtml(text: string): string {
 .outline-full-window {
   display: flex;
   flex-direction: column;
-  width: min(90vw, 700px);
-  max-height: 85vh;
+  width: calc(100vw - 4rem);
+  height: calc(100vh - 4rem);
   background: var(--surface);
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+.outline-full-window .detail-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.outline-full-window .detail-body > textarea,
+.outline-full-window .detail-body > div {
+  flex: 1;
+  min-height: 0;
 }
 </style>
