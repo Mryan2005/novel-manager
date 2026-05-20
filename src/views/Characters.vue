@@ -132,7 +132,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
+    <Teleport to="body">
+      <div v-if="showAddModal || showEditModal" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
       <div class="form-modal-window">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑角色' : '新建角色' }}
@@ -208,10 +209,12 @@
           <button @click="saveCharacter" class="btn btn-primary">保存</button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
 
     <!-- 角色详情弹窗 -->
-    <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
+    <Teleport to="body">
+      <div v-if="showDetailModal && detailCharacter" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
       <div class="detail-window">
         <div class="detail-header">
           <div class="flex items-center gap-2 min-w-0">
@@ -243,10 +246,12 @@
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
 
     <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteModal = false">
+    <Teleport to="body">
+      <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteModal = false">
       <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
@@ -262,7 +267,8 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 

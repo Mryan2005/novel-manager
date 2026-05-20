@@ -157,90 +157,98 @@
     </div>
 
     <!-- 卷 添加/编辑模态框 -->
-    <div v-if="showVolumeModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeVolumeModal">
-      <div class="card w-full max-w-sm pad-8">
-        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingVolume ? '编辑卷名' : '新建卷' }}</h2>
-        <div>
-          <label class="block text-sm font-semibold text-[var(--text)] mb-2">卷名</label>
-          <input v-model="volumeForm.title" type="text" class="input" placeholder="输入卷名" @keyup.enter="saveVolume" />
-        </div>
-        <div class="flex justify-end gap-3 mt-7">
-          <button @click="closeVolumeModal" class="btn btn-secondary">取消</button>
-          <button @click="saveVolume" class="btn btn-primary">保存</button>
+    <Teleport to="body">
+      <div v-if="showVolumeModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeVolumeModal">
+        <div class="card w-full max-w-sm pad-8">
+          <h2 class="text-2xl font-bold text-[var(--text)] mb-6">{{ editingVolume ? '编辑卷名' : '新建卷' }}</h2>
+          <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">卷名</label>
+            <input v-model="volumeForm.title" type="text" class="input" placeholder="输入卷名" @keyup.enter="saveVolume" />
+          </div>
+          <div class="flex justify-end gap-3 mt-7">
+            <button @click="closeVolumeModal" class="btn btn-secondary">取消</button>
+            <button @click="saveVolume" class="btn btn-primary">保存</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- 章节 添加/编辑模态框 -->
-    <div v-if="showChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeChapterModal">
-      <div class="card w-full max-w-md pad-8">
-        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
-          {{ editingChapter ? '编辑章节' : '新建章节' }}
-        </h2>
-        <div class="space-y-5">
-          <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
-            <select v-model="chapterForm.volumeId" class="input">
-              <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
-            </select>
+    <Teleport to="body">
+      <div v-if="showChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeChapterModal">
+        <div class="card w-full max-w-md pad-8">
+          <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
+            {{ editingChapter ? '编辑章节' : '新建章节' }}
+          </h2>
+          <div class="space-y-5">
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
+              <select v-model="chapterForm.volumeId" class="input">
+                <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">章节标题</label>
+              <input v-model="chapterForm.title" type="text" class="input" placeholder="输入章节标题" />
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">状态</label>
+              <select v-model="chapterForm.status" class="input">
+                <option value="draft">草稿</option>
+                <option value="in-progress">撰写中</option>
+                <option value="completed">已完成</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">章节标题</label>
-            <input v-model="chapterForm.title" type="text" class="input" placeholder="输入章节标题" />
+          <div class="flex justify-end gap-3 mt-7">
+            <button @click="closeChapterModal" class="btn btn-secondary">取消</button>
+            <button @click="saveChapter" class="btn btn-primary">保存</button>
           </div>
-          <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">状态</label>
-            <select v-model="chapterForm.status" class="input">
-              <option value="draft">草稿</option>
-              <option value="in-progress">撰写中</option>
-              <option value="completed">已完成</option>
-            </select>
-          </div>
-        </div>
-        <div class="flex justify-end gap-3 mt-7">
-          <button @click="closeChapterModal" class="btn btn-secondary">取消</button>
-          <button @click="saveChapter" class="btn btn-primary">保存</button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- 删除卷确认 -->
-    <div v-if="showDeleteVolumeModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteVolumeModal = false">
-      <div class="card w-full max-w-sm pad-8">
-        <div class="text-center">
-          <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
-            <Trash2 class="w-8 h-8 text-[var(--error)]" />
-          </div>
-          <h3 class="text-xl font-bold text-[var(--text)] mb-3">确认删除</h3>
-          <p class="text-[var(--text-light)] mb-7">
-            确定要删除卷「{{ volumeToDelete?.title }}」吗？卷内章节将移至其他卷。
-          </p>
-          <div class="flex justify-center gap-3">
-            <button @click="showDeleteVolumeModal = false" class="btn btn-secondary">取消</button>
-            <button @click="deleteVolume" class="btn" style="background: var(--error); color: white;">删除</button>
+    <Teleport to="body">
+      <div v-if="showDeleteVolumeModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteVolumeModal = false">
+        <div class="card w-full max-w-sm pad-8">
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
+              <Trash2 class="w-8 h-8 text-[var(--error)]" />
+            </div>
+            <h3 class="text-xl font-bold text-[var(--text)] mb-3">确认删除</h3>
+            <p class="text-[var(--text-light)] mb-7">
+              确定要删除卷「{{ volumeToDelete?.title }}」吗？卷内章节将移至其他卷。
+            </p>
+            <div class="flex justify-center gap-3">
+              <button @click="showDeleteVolumeModal = false" class="btn btn-secondary">取消</button>
+              <button @click="deleteVolume" class="btn" style="background: var(--error); color: white;">删除</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- 删除章节确认 -->
-    <div v-if="showDeleteChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteChapterModal = false">
-      <div class="card w-full max-w-sm pad-8">
-        <div class="text-center">
-          <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
-            <Trash2 class="w-8 h-8 text-[var(--error)]" />
-          </div>
-          <h3 class="text-xl font-bold text-[var(--text)] mb-3">确认删除</h3>
-          <p class="text-[var(--text-light)] mb-7">
-            确定要删除章节「{{ chapterToDelete?.title }}」吗？此操作无法撤销。
-          </p>
-          <div class="flex justify-center gap-3">
-            <button @click="showDeleteChapterModal = false" class="btn btn-secondary">取消</button>
-            <button @click="deleteChapter" class="btn" style="background: var(--error); color: white;">删除</button>
+    <Teleport to="body">
+      <div v-if="showDeleteChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteChapterModal = false">
+        <div class="card w-full max-w-sm pad-8">
+          <div class="text-center">
+            <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
+              <Trash2 class="w-8 h-8 text-[var(--error)]" />
+            </div>
+            <h3 class="text-xl font-bold text-[var(--text)] mb-3">确认删除</h3>
+            <p class="text-[var(--text-light)] mb-7">
+              确定要删除章节「{{ chapterToDelete?.title }}」吗？此操作无法撤销。
+            </p>
+            <div class="flex justify-center gap-3">
+              <button @click="showDeleteChapterModal = false" class="btn btn-secondary">取消</button>
+              <button @click="deleteChapter" class="btn" style="background: var(--error); color: white;">删除</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </Layout>
 </template>
 

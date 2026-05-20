@@ -299,47 +299,51 @@
     </div>
 
     <!-- 新建章节模态框 -->
-    <div v-if="showNewChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showNewChapterModal = false">
-      <div class="card w-full max-w-md pad-8">
-        <h2 class="text-2xl font-bold text-[var(--text)] mb-6">新建章节</h2>
-        <div class="space-y-5">
-          <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
-            <select v-model="newChapterVolumeId" class="input">
-              <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
-            </select>
+    <Teleport to="body">
+      <div v-if="showNewChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showNewChapterModal = false">
+        <div class="card w-full max-w-md pad-8">
+          <h2 class="text-2xl font-bold text-[var(--text)] mb-6">新建章节</h2>
+          <div class="space-y-5">
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属卷</label>
+              <select v-model="newChapterVolumeId" class="input">
+                <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">章节标题</label>
+              <input
+                v-model="newChapterTitle"
+                type="text"
+                class="input"
+                placeholder="输入章节标题"
+              />
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">章节标题</label>
-            <input
-              v-model="newChapterTitle"
-              type="text"
-              class="input"
-              placeholder="输入章节标题"
-            />
+          <div class="flex justify-end gap-3 mt-7">
+            <button @click="showNewChapterModal = false" class="btn btn-secondary">取消</button>
+            <button @click="confirmCreateChapter" class="btn btn-primary">创建</button>
           </div>
-        </div>
-        <div class="flex justify-end gap-3 mt-7">
-          <button @click="showNewChapterModal = false" class="btn btn-secondary">取消</button>
-          <button @click="confirmCreateChapter" class="btn btn-primary">创建</button>
         </div>
       </div>
-    </div>
+    </Teleport>
 
-    <div v-if="selectedKnowledge" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null">
-      <div class="editor-knowledge-window">
-        <div>
-          <span class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</span>
-          <button class="editor-kw-close" @click="selectedKnowledge = null">
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ knowledgeTitle }}</h3>
-          <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+    <Teleport to="body">
+      <div v-if="selectedKnowledge" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null">
+        <div class="editor-knowledge-window">
+          <div>
+            <span class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</span>
+            <button class="editor-kw-close" @click="selectedKnowledge = null">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ knowledgeTitle }}</h3>
+            <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </Layout>
 </template>
 

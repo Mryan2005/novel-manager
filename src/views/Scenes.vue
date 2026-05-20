@@ -88,7 +88,8 @@
     </div>
 
     <!-- 添加/编辑模态框 -->
-    <div v-if="showAddModal || showEditModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
+    <Teleport to="body">
+      <div v-if="showAddModal || showEditModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
       <div class="card w-full pad-8 overflow-y-auto" style="width: min(90vw, 560px); max-height: 90vh;">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
           {{ showEditModal ? '编辑场景' : '新建场景' }}
@@ -135,10 +136,12 @@
           <button @click="saveScene" class="btn btn-primary">保存</button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
 
     <!-- 删除确认 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteModal = false">
+    <Teleport to="body">
+      <div v-if="showDeleteModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showDeleteModal = false">
       <div class="card w-full max-w-sm pad-8">
         <div class="text-center">
           <div class="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-5">
@@ -154,7 +157,8 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 
