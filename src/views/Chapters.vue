@@ -125,7 +125,7 @@
                     <button @click.stop="toggleCopyMenu(chapter.id)" class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--primary)] transition-all" title="复制">
                       <Copy class="w-4 h-4" />
                     </button>
-                    <div v-if="copyMenuChapterId === chapter.id" class="absolute right-0 top-full mt-1 bg-white rounded-xl border border-[var(--border)] shadow-lg z-30 py-2 min-w-[180px]">
+                    <div v-if="copyMenuChapterId === chapter.id" class="dropdown-menu">
                       <button @click.stop="copyChapterContent(chapter, false); copyMenuChapterId = null" class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-alt)] flex items-center gap-2">
                         <Copy class="w-3.5 h-3.5" />
                         复制内容
