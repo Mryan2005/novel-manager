@@ -127,7 +127,7 @@ body {
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-sm);
-  padding: 0.5rem;
+  padding: 0.8rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
