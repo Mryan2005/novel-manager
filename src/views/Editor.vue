@@ -128,10 +128,20 @@
                 <List class="w-5 h-5" />
                 章节大纲
               </span>
-              <ChevronDown
-                class="w-5 h-5 transition-transform"
-                :class="showOutline ? 'rotate-180' : ''"
-              />
+              <div class="flex items-center gap-1">
+                <button
+                  v-if="currentChapter"
+                  @click.stop="showOutlineFull = true"
+                  class="pad-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                  title="放大编辑"
+                >
+                  <Maximize2 class="w-4 h-4" />
+                </button>
+                <ChevronDown
+                  class="w-5 h-5 transition-transform"
+                  :class="showOutline ? 'rotate-180' : ''"
+                />
+              </div>
             </button>
 
             <div v-if="showOutline" class="mb-5 shrink-0">
@@ -344,13 +354,49 @@
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showOutlineFull" class="fixed inset-0 z-50 flex items-center justify-center pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);">
+        <div class="outline-full-window">
+          <div class="detail-header">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-[var(--text-muted)]">章节大纲</span>
+              <button
+                @click="outlineFullPreview = !outlineFullPreview"
+                class="text-xs px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-alt)] transition-colors"
+              >
+                {{ outlineFullPreview ? '编辑' : '预览' }}
+              </button>
+            </div>
+            <button class="detail-close-btn" @click="showOutlineFull = false">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+          <div class="detail-body">
+            <textarea
+              v-if="!outlineFullPreview"
+              v-model="chapterOutline"
+              class="input w-full resize-none text-base leading-relaxed"
+              style="min-height: 300px;"
+              placeholder="编写本章大纲..."
+              @input="triggerAutoSave"
+            ></textarea>
+            <div
+              v-else
+              class="text-sm whitespace-pre-wrap leading-relaxed text-[var(--text)]"
+              style="min-height: 300px;"
+            >{{ chapterOutline || '(空)' }}</div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List, MessageSquare, Copy } from 'lucide-vue-next';
+import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List, MessageSquare, Copy, Maximize2 } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
@@ -385,6 +431,8 @@ const wordCount = ref(0);
 const saving = ref(false);
 const previewMode = ref(false);
 const showOutline = ref(true);
+const showOutlineFull = ref(false);
+const outlineFullPreview = ref(false);
 const showAuthorNote = ref(true);
 const showSidebar = ref(false);
 const showCopyMenu = ref(false);
@@ -401,7 +449,7 @@ const activeQuickAdd = ref<'character' | 'scene' | 'item' | null>(null);
 const quickAddForm = ref({ name: '', extra: '', tags: '' });
 const selectedKnowledge = ref<{ type: 'character' | 'scene' | 'item'; id: string } | null>(null);
 
-const anyModalOpenEditor = computed(() => showNewChapterModal.value || selectedKnowledge.value !== null);
+const anyModalOpenEditor = computed(() => showNewChapterModal.value || selectedKnowledge.value !== null || showOutlineFull.value);
 watch(anyModalOpenEditor, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
@@ -932,5 +980,17 @@ function escapeHtml(text: string): string {
 .editor-kw-close:hover {
   background: var(--surface-alt);
   color: var(--text);
+}
+
+.outline-full-window {
+  display: flex;
+  flex-direction: column;
+  width: min(90vw, 700px);
+  max-height: 85vh;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
 </style>
