@@ -38,18 +38,19 @@
           v-for="scene in pagedScenes"
           :key="scene.id"
           :id="`scene-${scene.id}`"
-          class="card pad-8"
+          class="card pad-8 cursor-pointer hover:shadow-md transition-shadow"
           :class="focusedId === scene.id ? 'ring-2 ring-[var(--primary)]/35' : ''"
+          @click="viewScene(scene)"
         >
           <div class="flex items-start justify-between">
-            <div class="flex-1">
+            <div class="flex-1 min-w-0">
               <h3 class="font-semibold text-[var(--text)] text-lg">{{ scene.name }}</h3>
               <p class="text-sm text-[var(--text-light)] flex items-center gap-1.5 mt-2">
                 <MapPin class="w-4 h-4" />
-                {{ scene.location }}
+                {{ scene.location || '未设置地点' }}
               </p>
             </div>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1 shrink-0" @click.stop>
               <button
                 @click="editScene(scene)"
                 class="pad-2-5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all"
@@ -66,15 +67,17 @@
               </button>
             </div>
           </div>
-          <p class="text-[var(--text-light)] mt-4 leading-relaxed">{{ scene.description }}</p>
-          <div v-if="scene.atmosphere.length > 0" class="flex flex-wrap gap-2 mt-5">
+          <div v-if="scene.atmosphere.length > 0" class="flex flex-wrap gap-2 mt-4">
             <span
-              v-for="atm in scene.atmosphere"
+              v-for="atm in scene.atmosphere.slice(0, 3)"
               :key="atm"
               class="px-2.5 py-1 rounded-lg text-xs"
-              style="background: rgba(245, 158, 11, 0.1); color: var(--accent);"
+              style="background: rgba(6, 182, 212, 0.1); color: var(--accent);"
             >
               {{ atm }}
+            </span>
+            <span v-if="scene.atmosphere.length > 3" class="text-xs text-[var(--text-muted)] self-center">
+              +{{ scene.atmosphere.length - 3 }}
             </span>
           </div>
         </div>
@@ -159,13 +162,47 @@
       </div>
       </div>
     </Teleport>
+
+    <!-- 场景详情弹窗 -->
+    <Teleport to="body">
+      <div v-if="showDetailModal && detailScene" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
+        <div class="detail-window">
+          <div class="detail-header">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-xs text-[var(--text-muted)]">场景信息</span>
+            </div>
+            <button class="detail-close-btn" @click="closeDetailModal">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+          <div class="detail-body">
+            <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ detailScene.name }}</h3>
+            <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed space-y-1">
+              <p v-if="detailScene.location">地点：{{ detailScene.location }}</p>
+              <p v-if="detailScene.atmosphere.length > 0">氛围：{{ detailScene.atmosphere.join('、') }}</p>
+              <p v-if="detailScene.description" class="!mt-3">{{ detailScene.description }}</p>
+            </div>
+          </div>
+          <div class="detail-footer">
+            <button @click="editFromDetail" class="btn btn-secondary">
+              <Edit class="w-4 h-4" />
+              编辑
+            </button>
+            <button @click="deleteFromDetail" class="btn" style="background: var(--error); color: white;">
+              <Trash2 class="w-4 h-4" />
+              删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { Map, MapPin, Plus, Edit, Trash2, Search } from 'lucide-vue-next';
+import { Map, MapPin, Plus, Edit, Trash2, Search, X } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Scene } from '../types';
@@ -176,9 +213,11 @@ const route = useRoute();
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
+const showDetailModal = ref(false);
+const detailScene = ref<Scene | null>(null);
 const sceneToDelete = ref<Scene | null>(null);
 
-const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDeleteModal.value);
+const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDeleteModal.value || showDetailModal.value);
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
@@ -286,9 +325,33 @@ const editScene = (scene: Scene) => {
   showEditModal.value = true;
 };
 
+const viewScene = (scene: Scene) => {
+  detailScene.value = scene;
+  showDetailModal.value = true;
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  detailScene.value = null;
+};
+
 const confirmDelete = (scene: Scene) => {
   sceneToDelete.value = scene;
   showDeleteModal.value = true;
+};
+
+const editFromDetail = () => {
+  if (detailScene.value) {
+    showDetailModal.value = false;
+    editScene(detailScene.value);
+  }
+};
+
+const deleteFromDetail = () => {
+  if (detailScene.value) {
+    showDetailModal.value = false;
+    confirmDelete(detailScene.value);
+  }
 };
 
 const deleteScene = () => {

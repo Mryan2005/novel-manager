@@ -33,11 +33,12 @@
           v-for="item in pagedItems"
           :key="item.id"
           :id="`item-${item.id}`"
-          class="card pad-8"
+          class="card pad-8 cursor-pointer hover:shadow-md transition-shadow"
           :class="focusedId === item.id ? 'ring-2 ring-[var(--primary)]/35' : ''"
+          @click="viewItem(item)"
         >
           <div class="flex items-start justify-between">
-            <div class="flex-1">
+            <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
                 <h3 class="font-semibold text-[var(--text)] text-lg">{{ item.name }}</h3>
                 <span class="px-2 py-0.5 rounded-lg text-xs font-medium" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
@@ -49,7 +50,7 @@
                 {{ item.owner }}
               </p>
             </div>
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1 shrink-0" @click.stop>
               <button @click="editItem(item)" class="pad-2-5 rounded-xl hover:bg-[var(--surface-hover)] text-[var(--text-light)] hover:text-[var(--text)] transition-all" title="编辑">
                 <Edit class="w-5 h-5" />
               </button>
@@ -58,10 +59,12 @@
               </button>
             </div>
           </div>
-          <p class="text-[var(--text-light)] mt-4 leading-relaxed">{{ item.description }}</p>
-          <div v-if="item.abilities.length > 0" class="flex flex-wrap gap-2 mt-5">
-            <span v-for="a in item.abilities" :key="a" class="px-2.5 py-1 rounded-lg text-xs" style="background: rgba(245, 158, 11, 0.1); color: var(--accent);">
+          <div v-if="item.abilities.length > 0" class="flex flex-wrap gap-2 mt-4">
+            <span v-for="a in item.abilities.slice(0, 3)" :key="a" class="px-2.5 py-1 rounded-lg text-xs" style="background: rgba(6, 182, 212, 0.1); color: var(--accent);">
               {{ a }}
+            </span>
+            <span v-if="item.abilities.length > 3" class="text-xs text-[var(--text-muted)] self-center">
+              +{{ item.abilities.length - 3 }}
             </span>
           </div>
         </div>
@@ -134,13 +137,48 @@
       </div>
       </div>
     </Teleport>
+
+    <!-- 物品详情弹窗 -->
+    <Teleport to="body">
+      <div v-if="showDetailModal && detailItem" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeDetailModal">
+        <div class="detail-window">
+          <div class="detail-header">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-xs text-[var(--text-muted)]">物品信息</span>
+            </div>
+            <button class="detail-close-btn" @click="closeDetailModal">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+          <div class="detail-body">
+            <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ detailItem.name }}</h3>
+            <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed space-y-1">
+              <p v-if="detailItem.type">类型：{{ detailItem.type }}</p>
+              <p v-if="detailItem.owner">所属：{{ detailItem.owner }}</p>
+              <p v-if="detailItem.abilities.length > 0">能力：{{ detailItem.abilities.join('、') }}</p>
+              <p v-if="detailItem.description" class="!mt-3">{{ detailItem.description }}</p>
+            </div>
+          </div>
+          <div class="detail-footer">
+            <button @click="editFromDetail" class="btn btn-secondary">
+              <Edit class="w-4 h-4" />
+              编辑
+            </button>
+            <button @click="deleteFromDetail" class="btn" style="background: var(--error); color: white;">
+              <Trash2 class="w-4 h-4" />
+              删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { Package, Plus, Edit, Trash2, Search, Users } from 'lucide-vue-next';
+import { Package, Plus, Edit, Trash2, Search, Users, X } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Item } from '../types';
@@ -150,9 +188,11 @@ const route = useRoute();
 
 const showModal = ref(false);
 const showDeleteModal = ref(false);
+const showDetailModal = ref(false);
+const detailItem = ref<Item | null>(null);
 const itemToDelete = ref<Item | null>(null);
 
-const anyModalOpen = computed(() => showModal.value || showDeleteModal.value);
+const anyModalOpen = computed(() => showModal.value || showDeleteModal.value || showDetailModal.value);
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
@@ -241,6 +281,30 @@ const editItem = (item: Item) => {
   abilitiesInput.value = item.abilities.join(', ');
   editingId.value = item.id;
   showModal.value = true;
+};
+
+const viewItem = (item: Item) => {
+  detailItem.value = item;
+  showDetailModal.value = true;
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  detailItem.value = null;
+};
+
+const editFromDetail = () => {
+  if (detailItem.value) {
+    showDetailModal.value = false;
+    editItem(detailItem.value);
+  }
+};
+
+const deleteFromDetail = () => {
+  if (detailItem.value) {
+    showDetailModal.value = false;
+    confirmDelete(detailItem.value);
+  }
 };
 
 const confirmDelete = (item: Item) => {

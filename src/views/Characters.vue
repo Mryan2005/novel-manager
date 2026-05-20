@@ -492,66 +492,6 @@ const deleteFromDetail = () => {
 </script>
 
 <style scoped>
-.detail-window {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 51;
-  display: flex;
-  flex-direction: column;
-  width: min(560px, calc(100vw - 2rem));
-  max-height: 90vh;
-  background: var(--surface);
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.detail-close-btn {
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius);
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.detail-close-btn:hover {
-  background: var(--surface-alt);
-  color: var(--text);
-}
-
-.detail-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.25rem;
-}
-
-.detail-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-}
-
 .form-modal-window {
   position: fixed;
   left: 50%;
