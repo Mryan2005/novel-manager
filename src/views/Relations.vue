@@ -3,148 +3,90 @@
     <div class="page-space">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-[var(--text)]">章节关系</h1>
-          <p class="text-[var(--text-light)] mt-1 text-lg">用关系图整理章节脉络与系列归属</p>
+          <h1 class="text-3xl font-bold text-[var(--text)]">关系图</h1>
+          <p class="text-[var(--text-light)] mt-1 text-lg">查看章节关系与系列归属</p>
         </div>
         <div class="flex items-center gap-2">
           <button class="btn btn-secondary" @click="zoomOut" :disabled="scale <= MIN_SCALE">缩小</button>
           <span class="text-sm font-semibold text-[var(--text-light)] w-14 text-center">{{ Math.round(scale * 100) }}%</span>
           <button class="btn btn-secondary" @click="zoomIn" :disabled="scale >= MAX_SCALE">放大</button>
           <button class="btn btn-primary" @click="resetViewport">重置视图</button>
+          <button class="btn btn-secondary" @click="showFullscreen = true" title="全屏查看">
+            <Maximize2 class="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_24rem] gap-6">
-        <div class="card pad-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-[var(--text)]">关系图</h2>
-            <span class="text-xs text-[var(--text-muted)]">滚轮缩放 · 拖拽移动</span>
+      <div class="card pad-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-[var(--text)]">关系图</h2>
+          <span class="text-xs text-[var(--text-muted)]">滚轮缩放 · 拖拽移动</span>
+        </div>
+        <div
+          ref="viewportRef"
+          class="mermaid-viewport"
+          :class="isPanning ? 'is-panning' : ''"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @pointerleave="onPointerUp"
+          @wheel.prevent="onWheel"
+        >
+          <div class="mermaid-canvas" :style="canvasStyle">
+            <div v-if="chapters.length === 0" class="empty-state">
+              还没有章节，先创建章节再绘制关系图。
+            </div>
+            <div v-else ref="mermaidRef" class="mermaid-render"></div>
+          </div>
+        </div>
+        <p v-if="mermaidError" class="text-xs text-[var(--error)]">{{ mermaidError }}</p>
+      </div>
+
+      <Teleport to="body">
+        <div v-if="showFullscreen" class="fixed inset-0 z-50 flex flex-col" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);">
+          <div class="flex items-center justify-between pad-4 bg-[var(--surface)] border-b border-[var(--border)]">
+            <h2 class="text-lg font-semibold text-[var(--text)]">关系图 · 全屏</h2>
+            <div class="flex items-center gap-2">
+              <button class="btn btn-secondary" @click="zoomOut" :disabled="scale <= MIN_SCALE">缩小</button>
+              <span class="text-sm font-semibold text-[var(--text-light)] w-14 text-center">{{ Math.round(scale * 100) }}%</span>
+              <button class="btn btn-secondary" @click="zoomIn" :disabled="scale >= MAX_SCALE">放大</button>
+              <button class="btn btn-primary" @click="resetViewport">重置视图</button>
+              <button class="btn btn-secondary" @click="showFullscreen = false">
+                <X class="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div
-            ref="viewportRef"
-            class="mermaid-viewport"
+            class="flex-1 m-4 rounded-xl overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
             :class="isPanning ? 'is-panning' : ''"
+            style="cursor: grab;"
             @pointerdown="onPointerDown"
             @pointermove="onPointerMove"
             @pointerup="onPointerUp"
             @pointerleave="onPointerUp"
             @wheel.prevent="onWheel"
           >
-            <div class="mermaid-canvas" :style="canvasStyle">
-              <div v-if="chapters.length === 0" class="empty-state">
+            <div class="mermaid-canvas" :style="canvasStyle" style="min-height: calc(100vh - 8rem);">
+              <div v-if="chapters.length === 0" class="empty-state" style="min-height: calc(100vh - 8rem);">
                 还没有章节，先创建章节再绘制关系图。
               </div>
-              <div v-else ref="mermaidRef" class="mermaid-render"></div>
-            </div>
-          </div>
-          <p v-if="mermaidError" class="text-xs text-[var(--error)]">{{ mermaidError }}</p>
-        </div>
-
-        <div class="space-y-4">
-          <div class="card pad-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-[var(--text)]">系列管理</h2>
-              <span class="text-xs text-[var(--text-muted)]">{{ chapterSeries.length }} 个系列</span>
-            </div>
-
-            <div class="flex gap-2">
-              <input v-model="newSeriesTitle" class="input text-sm" placeholder="输入系列名称" />
-              <button class="btn btn-primary shrink-0" @click="createSeries">添加</button>
-            </div>
-            <p v-if="seriesError" class="text-xs text-[var(--error)]">{{ seriesError }}</p>
-
-            <div v-if="chapterSeries.length === 0" class="text-sm text-[var(--text-muted)]">
-              暂无系列，先创建系列以归类章节。
-            </div>
-
-            <div v-else class="space-y-3">
-              <div v-for="series in chapterSeries" :key="series.id" class="series-row">
-                <input
-                  :value="series.title"
-                  class="input text-sm flex-1"
-                  placeholder="系列名称"
-                  @change="updateChapterSeries(series.id, { title: ($event.target as HTMLInputElement).value })"
-                />
-                <button class="btn btn-secondary text-sm shrink-0" @click="removeSeries(series.id)">删除</button>
-              </div>
-            </div>
-
-            <div class="border-t border-[var(--border)] pt-4 space-y-2">
-              <h3 class="text-sm font-semibold text-[var(--text)]">章节归属</h3>
-              <div v-if="chapters.length === 0" class="text-sm text-[var(--text-muted)]">
-                还没有章节可分配。
-              </div>
-              <div v-else class="space-y-2 max-h-56 overflow-y-auto pr-1">
-                <div v-for="chapter in chapters" :key="chapter.id" class="chapter-row">
-                  <span class="text-sm text-[var(--text)] truncate">{{ chapter.title || '未命名章节' }}</span>
-                  <select
-                    class="input text-sm w-36"
-                    :value="seriesByChapter.get(chapter.id) ?? ''"
-                    @change="assignChapterSeries(chapter.id, ($event.target as HTMLSelectElement).value)"
-                  >
-                    <option value="">无系列</option>
-                    <option v-for="series in chapterSeries" :key="series.id" :value="series.id">
-                      {{ series.title || '未命名系列' }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card pad-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-[var(--text)]">章节关系</h2>
-              <span class="text-xs text-[var(--text-muted)]">{{ chapterRelations.length }} 条关系</span>
-            </div>
-
-            <div class="space-y-2">
-              <select v-model="relationForm.fromChapterId" class="input text-sm">
-                <option value="">选择起点章节</option>
-                <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
-                  {{ chapter.title || '未命名章节' }}
-                </option>
-              </select>
-              <select v-model="relationForm.toChapterId" class="input text-sm">
-                <option value="">选择终点章节</option>
-                <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
-                  {{ chapter.title || '未命名章节' }}
-                </option>
-              </select>
-              <input v-model="relationForm.label" class="input text-sm" placeholder="关系说明（可选）" />
-              <button class="btn btn-primary w-full" @click="createRelation">添加关系</button>
-              <p v-if="relationError" class="text-xs text-[var(--error)]">{{ relationError }}</p>
-            </div>
-
-            <div v-if="chapterRelations.length === 0" class="text-sm text-[var(--text-muted)]">
-              暂无关系，添加后将显示在关系图中。
-            </div>
-
-            <div v-else class="space-y-2 max-h-60 overflow-y-auto pr-1">
-              <div v-for="relation in chapterRelations" :key="relation.id" class="relation-row">
-                <div class="text-sm text-[var(--text)]">
-                  {{ chapterName(relation.fromChapterId) }}
-                  <span class="text-[var(--text-muted)]">→</span>
-                  {{ chapterName(relation.toChapterId) }}
-                  <span v-if="relation.label" class="text-xs text-[var(--text-muted)] ml-1">({{ relation.label }})</span>
-                </div>
-                <button class="btn btn-secondary text-xs shrink-0" @click="removeRelation(relation.id)">删除</button>
-              </div>
+              <div v-else ref="fullscreenMermaidRef" class="mermaid-render"></div>
             </div>
           </div>
         </div>
-      </div>
+      </Teleport>
     </div>
   </Layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import mermaid from 'mermaid';
+import { X, Maximize2 } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 
-const { chapters, chapterSeries, chapterRelations, addChapterSeries, updateChapterSeries, deleteChapterSeries, addChapterRelation, deleteChapterRelation } = useStore();
+const { chapters, chapterSeries, chapterRelations } = useStore();
 
 const mermaidInitialized = ref(false);
 const mermaidRenderIndex = ref(0);
@@ -160,32 +102,9 @@ const panOffset = ref({ x: 0, y: 0 });
 
 const viewportRef = ref<HTMLDivElement | null>(null);
 const mermaidRef = ref<HTMLDivElement | null>(null);
+const fullscreenMermaidRef = ref<HTMLDivElement | null>(null);
 const mermaidError = ref('');
-
-const newSeriesTitle = ref('');
-const seriesError = ref('');
-const relationForm = ref({ fromChapterId: '', toChapterId: '', label: '' });
-const relationError = ref('');
-
-const seriesByChapter = computed(() => {
-  const map = new Map<string, string>();
-  chapterSeries.value.forEach(series => {
-    series.chapterIds.forEach(chapterId => {
-      if (!map.has(chapterId)) {
-        map.set(chapterId, series.id);
-      }
-    });
-  });
-  return map;
-});
-
-watch(newSeriesTitle, () => {
-  seriesError.value = '';
-});
-
-watch(relationForm, () => {
-  relationError.value = '';
-}, { deep: true });
+const showFullscreen = ref(false);
 
 const canvasStyle = computed(() => ({
   transform: `translate(${offset.value.x}px, ${offset.value.y}px) scale(${scale.value})`,
@@ -242,15 +161,18 @@ const mermaidCode = computed(() => {
   ].join('\n');
 });
 
-const renderMermaid = async () => {
-  if (!mermaidRef.value || chapters.value.length === 0) return;
+const renderMermaid = async (target?: HTMLDivElement) => {
+  const el = target || mermaidRef.value;
+  if (!el || chapters.value.length === 0) return;
   try {
-    mermaidError.value = '';
+    if (!target) mermaidError.value = '';
     const id = `mermaid-${mermaidRenderIndex.value++}`;
     const { svg } = await mermaid.render(id, mermaidCode.value);
-    mermaidRef.value.innerHTML = svg;
+    el.innerHTML = svg;
   } catch (error) {
-    mermaidError.value = '关系图渲染失败，请检查数据后重试。';
+    if (!target) {
+      mermaidError.value = '关系图渲染失败，请检查数据后重试。';
+    }
     console.error(error);
   }
 };
@@ -258,7 +180,24 @@ const renderMermaid = async () => {
 watch(mermaidCode, async () => {
   await nextTick();
   renderMermaid();
+  if (showFullscreen.value) {
+    await nextTick();
+    renderMermaid(fullscreenMermaidRef.value || undefined);
+  }
 });
+
+watch(showFullscreen, async (val) => {
+  if (val) {
+    await nextTick();
+    renderMermaid(fullscreenMermaidRef.value || undefined);
+  }
+});
+
+const handleEsc = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && showFullscreen.value) {
+    showFullscreen.value = false;
+  }
+};
 
 onMounted(() => {
   if (!mermaidInitialized.value) {
@@ -266,6 +205,11 @@ onMounted(() => {
     mermaidInitialized.value = true;
   }
   renderMermaid();
+  document.addEventListener('keydown', handleEsc);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEsc);
 });
 
 const zoomIn = () => {
@@ -308,66 +252,6 @@ const onPointerUp = (event: PointerEvent) => {
   (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
 };
 
-const createSeries = () => {
-  const title = newSeriesTitle.value.trim();
-  if (!title) return;
-  const exists = chapterSeries.value.some(series => series.title.trim() === title);
-  if (exists) {
-    seriesError.value = '该系列名称已存在，请更换名称。';
-    return;
-  }
-  seriesError.value = '';
-  addChapterSeries(title);
-  newSeriesTitle.value = '';
-};
-
-const removeSeries = (id: string) => {
-  deleteChapterSeries(id);
-};
-
-const assignChapterSeries = (chapterId: string, seriesIdValue: string) => {
-  chapterSeries.value.forEach(series => {
-    const hasChapter = series.chapterIds.includes(chapterId);
-    if (series.id === seriesIdValue) {
-      if (!hasChapter) {
-        updateChapterSeries(series.id, { chapterIds: [...series.chapterIds, chapterId] });
-      }
-    } else if (hasChapter) {
-      updateChapterSeries(series.id, { chapterIds: series.chapterIds.filter(id => id !== chapterId) });
-    }
-  });
-};
-
-const createRelation = () => {
-  const { fromChapterId, toChapterId, label } = relationForm.value;
-  if (!fromChapterId || !toChapterId) {
-    relationError.value = '请选择起点与终点章节。';
-    return;
-  }
-  if (fromChapterId === toChapterId) {
-    relationError.value = '关系不能指向同一章节。';
-    return;
-  }
-  const exists = chapterRelations.value.some(rel =>
-    rel.fromChapterId === fromChapterId && rel.toChapterId === toChapterId
-  );
-  if (exists) {
-    relationError.value = '该章节关系已存在。';
-    return;
-  }
-  const created = addChapterRelation({ fromChapterId, toChapterId, label: label.trim() || undefined });
-  if (!created) {
-    relationError.value = '关系创建失败，请检查章节数据。';
-    return;
-  }
-  relationForm.value = { fromChapterId: '', toChapterId: '', label: '' };
-};
-
-const removeRelation = (id: string) => {
-  deleteChapterRelation(id);
-};
-
-const chapterName = (id: string) => chapters.value.find(chapter => chapter.id === id)?.title || '未知章节';
 </script>
 
 <style scoped>
@@ -408,19 +292,4 @@ const chapterName = (id: string) => chapters.value.find(chapter => chapter.id ==
   font-size: 0.9rem;
 }
 
-.series-row,
-.chapter-row,
-.relation-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.chapter-row span {
-  flex: 1;
-}
-
-.relation-row {
-  justify-content: space-between;
-}
 </style>

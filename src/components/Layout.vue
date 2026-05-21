@@ -93,7 +93,7 @@
             :class="$route.path === '/relations' ? 'nav-link-active' : ''"
           >
             <Share2 class="w-5 h-5" />
-            章节关系
+            关系图
           </router-link>
           <router-link
             to="/characters"

@@ -154,6 +154,100 @@
           </div>
         </div>
       </div>
+
+      <div v-if="volumes.length > 0" class="space-y-5">
+        <div class="card pad-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-[var(--text)]">系列管理</h2>
+            <span class="text-xs text-[var(--text-muted)]">{{ chapterSeries.length }} 个系列</span>
+          </div>
+
+          <div class="flex gap-2">
+            <input v-model="newSeriesTitle" class="input text-sm" placeholder="输入系列名称" @keyup.enter="createSeries" />
+            <button class="btn btn-primary shrink-0" @click="createSeries">添加</button>
+          </div>
+          <p v-if="seriesError" class="text-xs text-[var(--error)]">{{ seriesError }}</p>
+
+          <div v-if="chapterSeries.length === 0" class="text-sm text-[var(--text-muted)]">
+            暂无系列，先创建系列以归类章节。
+          </div>
+
+          <div v-else class="space-y-2">
+            <div v-for="series in chapterSeries" :key="series.id" class="series-row">
+              <input
+                :value="series.title"
+                class="input text-sm flex-1"
+                placeholder="系列名称"
+                @change="updateChapterSeries(series.id, { title: ($event.target as HTMLInputElement).value })"
+              />
+              <button class="btn btn-secondary text-sm shrink-0" @click="removeSeries(series.id)">删除</button>
+            </div>
+          </div>
+
+          <div class="border-t border-[var(--border)] pt-4 space-y-2">
+            <h3 class="text-sm font-semibold text-[var(--text)]">章节归属</h3>
+            <div v-if="chapters.length === 0" class="text-sm text-[var(--text-muted)]">
+              还没有章节可分配。
+            </div>
+            <div v-else class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div v-for="chapter in chapters" :key="chapter.id" class="chapter-row">
+                <span class="text-sm text-[var(--text)] truncate">{{ chapter.title || '未命名章节' }}</span>
+                <select
+                  class="input text-sm w-36"
+                  :value="seriesByChapter.get(chapter.id) ?? ''"
+                  @change="assignChapterSeries(chapter.id, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option value="">无系列</option>
+                  <option v-for="series in chapterSeries" :key="series.id" :value="series.id">
+                    {{ series.title || '未命名系列' }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card pad-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-[var(--text)]">章节关系</h2>
+            <span class="text-xs text-[var(--text-muted)]">{{ chapterRelations.length }} 条关系</span>
+          </div>
+
+          <div class="space-y-2">
+            <select v-model="relationForm.fromChapterId" class="input text-sm">
+              <option value="">选择起点章节</option>
+              <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
+                {{ chapter.title || '未命名章节' }}
+              </option>
+            </select>
+            <select v-model="relationForm.toChapterId" class="input text-sm">
+              <option value="">选择终点章节</option>
+              <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
+                {{ chapter.title || '未命名章节' }}
+              </option>
+            </select>
+            <input v-model="relationForm.label" class="input text-sm" placeholder="关系说明（可选）" />
+            <button class="btn btn-primary w-full" @click="createRelation">添加关系</button>
+            <p v-if="relationError" class="text-xs text-[var(--error)]">{{ relationError }}</p>
+          </div>
+
+          <div v-if="chapterRelations.length === 0" class="text-sm text-[var(--text-muted)]">
+            暂无关系，添加后将显示在关系图中。
+          </div>
+
+          <div v-else class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div v-for="relation in chapterRelations" :key="relation.id" class="relation-row">
+              <div class="text-sm text-[var(--text)]">
+                {{ chapterName(relation.fromChapterId) }}
+                <span class="text-[var(--text-muted)]">→</span>
+                {{ chapterName(relation.toChapterId) }}
+                <span v-if="relation.label" class="text-xs text-[var(--text-muted)] ml-1">({{ relation.label }})</span>
+              </div>
+              <button class="btn btn-secondary text-xs shrink-0" @click="removeRelation(relation.id)">删除</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 卷 添加/编辑模态框 -->
@@ -262,9 +356,12 @@ import type { Chapter, Volume } from '../types';
 
 const router = useRouter();
 const {
-  volumes, chapters, addVolume, updateVolume, deleteVolume: deleteVolumeFromStore,
+  volumes, chapters, chapterSeries, chapterRelations,
+  addVolume, updateVolume, deleteVolume: deleteVolumeFromStore,
   moveVolume,
-  addChapter, updateChapter, deleteChapter: deleteChapterFromStore, setCurrentChapter
+  addChapter, updateChapter, deleteChapter: deleteChapterFromStore, setCurrentChapter,
+  addChapterSeries, updateChapterSeries, deleteChapterSeries,
+  addChapterRelation, deleteChapterRelation
 } = useStore();
 
 const searchQuery = ref('');
@@ -285,9 +382,29 @@ const chapterForm = ref({ title: '', status: 'draft' as Chapter['status'], volum
 const showDeleteChapterModal = ref(false);
 const chapterToDelete = ref<Chapter | null>(null);
 
+const newSeriesTitle = ref('');
+const seriesError = ref('');
+const relationForm = ref({ fromChapterId: '', toChapterId: '', label: '' });
+const relationError = ref('');
+
+watch(newSeriesTitle, () => { seriesError.value = ''; });
+watch(relationForm, () => { relationError.value = ''; }, { deep: true });
+
 const anyModalOpen = computed(() => showVolumeModal.value || showChapterModal.value || showDeleteVolumeModal.value || showDeleteChapterModal.value);
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
+});
+
+const seriesByChapter = computed(() => {
+  const map = new Map<string, string>();
+  chapterSeries.value.forEach(series => {
+    series.chapterIds.forEach(chapterId => {
+      if (!map.has(chapterId)) {
+        map.set(chapterId, series.id);
+      }
+    });
+  });
+  return map;
 });
 
 const closeCopyMenu = (e: MouseEvent) => {
@@ -501,4 +618,83 @@ const deleteChapter = () => {
     chapterToDelete.value = null;
   }
 };
+
+const createSeries = () => {
+  const title = newSeriesTitle.value.trim();
+  if (!title) return;
+  const exists = chapterSeries.value.some(series => series.title.trim() === title);
+  if (exists) {
+    seriesError.value = '该系列名称已存在，请更换名称。';
+    return;
+  }
+  seriesError.value = '';
+  addChapterSeries(title);
+  newSeriesTitle.value = '';
+};
+
+const removeSeries = (id: string) => {
+  deleteChapterSeries(id);
+};
+
+const assignChapterSeries = (chapterId: string, seriesIdValue: string) => {
+  chapterSeries.value.forEach(series => {
+    const hasChapter = series.chapterIds.includes(chapterId);
+    if (series.id === seriesIdValue) {
+      if (!hasChapter) {
+        updateChapterSeries(series.id, { chapterIds: [...series.chapterIds, chapterId] });
+      }
+    } else if (hasChapter) {
+      updateChapterSeries(series.id, { chapterIds: series.chapterIds.filter(id => id !== chapterId) });
+    }
+  });
+};
+
+const createRelation = () => {
+  const { fromChapterId, toChapterId, label } = relationForm.value;
+  if (!fromChapterId || !toChapterId) {
+    relationError.value = '请选择起点与终点章节。';
+    return;
+  }
+  if (fromChapterId === toChapterId) {
+    relationError.value = '关系不能指向同一章节。';
+    return;
+  }
+  const exists = chapterRelations.value.some(rel =>
+    rel.fromChapterId === fromChapterId && rel.toChapterId === toChapterId
+  );
+  if (exists) {
+    relationError.value = '该章节关系已存在。';
+    return;
+  }
+  const created = addChapterRelation({ fromChapterId, toChapterId, label: label.trim() || undefined });
+  if (!created) {
+    relationError.value = '关系创建失败，请检查章节数据。';
+    return;
+  }
+  relationForm.value = { fromChapterId: '', toChapterId: '', label: '' };
+};
+
+const removeRelation = (id: string) => {
+  deleteChapterRelation(id);
+};
+
+const chapterName = (id: string) => chapters.value.find(chapter => chapter.id === id)?.title || '未知章节';
 </script>
+
+<style scoped>
+.series-row,
+.chapter-row,
+.relation-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chapter-row span {
+  flex: 1;
+}
+
+.relation-row {
+  justify-content: space-between;
+}
+</style>
