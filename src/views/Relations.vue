@@ -201,7 +201,7 @@ const handleEsc = (e: KeyboardEvent) => {
 
 onMounted(() => {
   if (!mermaidInitialized.value) {
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', flowchart: { rankDir: 'LR' } });
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
     mermaidInitialized.value = true;
   }
   renderMermaid();
