@@ -19,6 +19,21 @@ export interface Chapter {
   volumeId: string;
 }
 
+export interface ChapterSeries {
+  id: string;
+  title: string;
+  chapterIds: string[];
+  createdAt: string;
+}
+
+export interface ChapterRelation {
+  id: string;
+  fromChapterId: string;
+  toChapterId: string;
+  label?: string;
+  createdAt: string;
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -65,6 +80,8 @@ export interface Novel {
   title: string;
   volumes: Volume[];
   chapters: Chapter[];
+  chapterSeries: ChapterSeries[];
+  chapterRelations: ChapterRelation[];
   characters: Character[];
   scenes: Scene[];
   items: Item[];
@@ -74,7 +91,13 @@ export interface Novel {
 export interface ExportBundle {
   version: number;
   exportedAt: string;
-  articles?: { title: string; volumes: Volume[]; chapters: Chapter[] };
+  articles?: {
+    title: string;
+    volumes: Volume[];
+    chapters: Chapter[];
+    chapterSeries?: ChapterSeries[];
+    chapterRelations?: ChapterRelation[];
+  };
   dayCount?: DayCount;
   lore?: { characters: Character[]; scenes: Scene[]; items: Item[] };
   settings?: unknown;

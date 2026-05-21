@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue';
-import type { Novel, Volume, Chapter, Character, Scene, Item, DailyWordRecord, DayCount, ExportBundle } from './types';
+import type { Novel, Volume, Chapter, ChapterSeries, ChapterRelation, Character, Scene, Item, DailyWordRecord, DayCount, ExportBundle } from './types';
 
 const STORAGE_KEY = 'novel-workshop-data';
 const TIMESTAMP_KEY = 'novel-workshop-timestamp';
@@ -22,6 +22,12 @@ function loadFromStorage(): Novel {
       if (!novel.volumes || !Array.isArray(novel.volumes)) {
         novel.volumes = [];
       }
+      if (!novel.chapterSeries || !Array.isArray(novel.chapterSeries)) {
+        novel.chapterSeries = [];
+      }
+      if (!novel.chapterRelations || !Array.isArray(novel.chapterRelations)) {
+        novel.chapterRelations = [];
+      }
       // Backward compat: ensure every chapter has volumeId
       if (novel.volumes.length === 0 && novel.chapters && novel.chapters.length > 0) {
         const defaultVolume: Volume = {
@@ -40,6 +46,11 @@ function loadFromStorage(): Novel {
           }
           if (c.outline === undefined) c.outline = '';
           if (c.authorNote === undefined) c.authorNote = '';
+        });
+      }
+      if (novel.chapterSeries && Array.isArray(novel.chapterSeries)) {
+        novel.chapterSeries.forEach((s: ChapterSeries) => {
+          if (!Array.isArray(s.chapterIds)) s.chapterIds = [];
         });
       }
       // Backward compat: ensure characters have tags
@@ -61,14 +72,16 @@ function loadFromStorage(): Novel {
   } catch (e) {
     console.error('Failed to load data:', e);
   }
-  return {
-    title: '我的小说',
-    volumes: [],
-    chapters: [],
-    characters: [],
-    scenes: [],
-    items: [],
-    dayCount: {},
+    return {
+      title: '我的小说',
+      volumes: [],
+      chapters: [],
+      chapterSeries: [],
+      chapterRelations: [],
+      characters: [],
+      scenes: [],
+      items: [],
+      dayCount: {},
   };
 }
 
@@ -110,6 +123,9 @@ export const useStore = () => {
   const chapters = computed(() =>
     [...state.novel.chapters].sort((a, b) => a.order - b.order)
   );
+
+  const chapterSeries = computed(() => state.novel.chapterSeries);
+  const chapterRelations = computed(() => state.novel.chapterRelations);
 
   const characters = computed(() => state.novel.characters);
   const scenes = computed(() => state.novel.scenes);
@@ -297,6 +313,12 @@ export const useStore = () => {
       const chapter = state.novel.chapters[index]!;
       const volumeId = chapter.volumeId;
       state.novel.chapters.splice(index, 1);
+      state.novel.chapterSeries.forEach(series => {
+        series.chapterIds = series.chapterIds.filter(chapterId => chapterId !== id);
+      });
+      state.novel.chapterRelations = state.novel.chapterRelations.filter(rel =>
+        rel.fromChapterId !== id && rel.toChapterId !== id
+      );
       state.novel.chapters
         .filter(c => c.volumeId === volumeId)
         .sort((a, b) => a.order - b.order)
@@ -307,6 +329,77 @@ export const useStore = () => {
 
   function setCurrentChapter(id: string | null) {
     state.currentChapterId = id;
+  }
+
+  function addChapterSeries(title: string, chapterIds: string[] = []) {
+    const series: ChapterSeries = {
+      id: Date.now().toString(),
+      title,
+      chapterIds: [...new Set(chapterIds)],
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.chapterSeries.push(series);
+    saveToStorage();
+    return series;
+  }
+
+  function updateChapterSeries(id: string, updates: Partial<Pick<ChapterSeries, 'title' | 'chapterIds'>>) {
+    const index = state.novel.chapterSeries.findIndex(s => s.id === id);
+    if (index !== -1) {
+      const current = state.novel.chapterSeries[index]!;
+      state.novel.chapterSeries[index] = {
+        ...current,
+        ...updates,
+        chapterIds: updates.chapterIds ? [...new Set(updates.chapterIds)] : current.chapterIds,
+      } as ChapterSeries;
+      saveToStorage();
+    }
+  }
+
+  function deleteChapterSeries(id: string) {
+    const index = state.novel.chapterSeries.findIndex(s => s.id === id);
+    if (index !== -1) {
+      state.novel.chapterSeries.splice(index, 1);
+      saveToStorage();
+    }
+  }
+
+  function addChapterRelation(relation: Omit<ChapterRelation, 'id' | 'createdAt'>): ChapterRelation | null {
+    if (relation.fromChapterId === relation.toChapterId) return null;
+    const hasFrom = state.novel.chapters.some(chapter => chapter.id === relation.fromChapterId);
+    const hasTo = state.novel.chapters.some(chapter => chapter.id === relation.toChapterId);
+    if (!hasFrom || !hasTo) return null;
+    const exists = state.novel.chapterRelations.some(rel =>
+      rel.fromChapterId === relation.fromChapterId && rel.toChapterId === relation.toChapterId
+    );
+    if (exists) return null;
+    const newRelation: ChapterRelation = {
+      ...relation,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.chapterRelations.push(newRelation);
+    saveToStorage();
+    return newRelation;
+  }
+
+  function updateChapterRelation(id: string, updates: Partial<Pick<ChapterRelation, 'fromChapterId' | 'toChapterId' | 'label'>>) {
+    const index = state.novel.chapterRelations.findIndex(r => r.id === id);
+    if (index !== -1) {
+      state.novel.chapterRelations[index] = {
+        ...state.novel.chapterRelations[index],
+        ...updates,
+      } as ChapterRelation;
+      saveToStorage();
+    }
+  }
+
+  function deleteChapterRelation(id: string) {
+    const index = state.novel.chapterRelations.findIndex(r => r.id === id);
+    if (index !== -1) {
+      state.novel.chapterRelations.splice(index, 1);
+      saveToStorage();
+    }
   }
 
   function addCharacter(character: Omit<Character, 'id' | 'createdAt'>) {
@@ -489,6 +582,8 @@ export const useStore = () => {
         title: data.title || '我的小说',
         volumes: Array.isArray(data.volumes) ? data.volumes : [],
         chapters: Array.isArray(data.chapters) ? data.chapters : [],
+        chapterSeries: Array.isArray(data.chapterSeries) ? data.chapterSeries : [],
+        chapterRelations: Array.isArray(data.chapterRelations) ? data.chapterRelations : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
         items: Array.isArray(data.items) ? data.items : [],
@@ -627,6 +722,8 @@ export const useStore = () => {
         title: entry.data.title || '我的小说',
         volumes: Array.isArray(entry.data.volumes) ? entry.data.volumes : [],
         chapters: Array.isArray(entry.data.chapters) ? entry.data.chapters : [],
+        chapterSeries: Array.isArray(entry.data.chapterSeries) ? entry.data.chapterSeries : [],
+        chapterRelations: Array.isArray(entry.data.chapterRelations) ? entry.data.chapterRelations : [],
         characters: Array.isArray(entry.data.characters) ? entry.data.characters : [],
         scenes: Array.isArray(entry.data.scenes) ? entry.data.scenes : [],
         items: Array.isArray(entry.data.items) ? entry.data.items : [],
@@ -723,6 +820,8 @@ export const useStore = () => {
         title: data.title || '我的小说',
         volumes: Array.isArray(data.volumes) ? data.volumes : [],
         chapters: Array.isArray(data.chapters) ? data.chapters : [],
+        chapterSeries: Array.isArray(data.chapterSeries) ? data.chapterSeries : [],
+        chapterRelations: Array.isArray(data.chapterRelations) ? data.chapterRelations : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
         items: Array.isArray(data.items) ? data.items : [],
@@ -747,6 +846,8 @@ export const useStore = () => {
         title: typeof raw.title === 'string' ? raw.title : '我的小说',
         volumes: Array.isArray(raw.volumes) ? raw.volumes as Volume[] : [],
         chapters: Array.isArray(raw.chapters) ? raw.chapters as Chapter[] : [],
+        chapterSeries: Array.isArray(raw.chapterSeries) ? raw.chapterSeries as ChapterSeries[] : undefined,
+        chapterRelations: Array.isArray(raw.chapterRelations) ? raw.chapterRelations as ChapterRelation[] : undefined,
       },
       dayCount: (raw.dayCount && typeof raw.dayCount === 'object' && !Array.isArray(raw.dayCount))
         ? raw.dayCount as DayCount
@@ -766,6 +867,8 @@ export const useStore = () => {
         title: state.novel.title,
         volumes: state.novel.volumes,
         chapters: state.novel.chapters,
+        chapterSeries: state.novel.chapterSeries,
+        chapterRelations: state.novel.chapterRelations,
       };
     }
     if (selected.has('dayCount')) {
@@ -786,6 +889,8 @@ export const useStore = () => {
       state.novel.title = data.articles.title || '我的小说';
       state.novel.volumes = Array.isArray(data.articles.volumes) ? data.articles.volumes : [];
       state.novel.chapters = Array.isArray(data.articles.chapters) ? data.articles.chapters : [];
+      state.novel.chapterSeries = Array.isArray(data.articles.chapterSeries) ? data.articles.chapterSeries : [];
+      state.novel.chapterRelations = Array.isArray(data.articles.chapterRelations) ? data.articles.chapterRelations : [];
     }
     if (selected.has('dayCount') && data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) {
       state.novel.dayCount = data.dayCount;
@@ -807,6 +912,8 @@ export const useStore = () => {
     totalItems,
     volumes,
     chapters,
+    chapterSeries,
+    chapterRelations,
     characters,
     scenes,
     items,
@@ -821,6 +928,12 @@ export const useStore = () => {
     updateChapter,
     deleteChapter,
     setCurrentChapter,
+    addChapterSeries,
+    updateChapterSeries,
+    deleteChapterSeries,
+    addChapterRelation,
+    updateChapterRelation,
+    deleteChapterRelation,
     addCharacter,
     updateCharacter,
     deleteCharacter,

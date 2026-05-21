@@ -88,6 +88,14 @@
             章节管理
           </router-link>
           <router-link
+            to="/relations"
+            class="nav-link"
+            :class="$route.path === '/relations' ? 'nav-link-active' : ''"
+          >
+            <Share2 class="w-5 h-5" />
+            章节关系
+          </router-link>
+          <router-link
             to="/characters"
             class="nav-link"
             :class="$route.path === '/characters' ? 'nav-link-active' : ''"
@@ -165,7 +173,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings, Sparkles } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Share2, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings, Sparkles } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';
@@ -196,8 +204,10 @@ const pendingImportData = ref<ExportBundle | null>(null);
 const exportSummaries = computed(() => {
   const n = novel.value;
   const dayCountKeys = Object.keys(n.dayCount).length;
+  const seriesCount = n.chapterSeries?.length ?? 0;
+  const relationCount = n.chapterRelations?.length ?? 0;
   return {
-    articles: `${n.volumes.length} 卷, ${n.chapters.length} 章`,
+    articles: `${n.volumes.length} 卷, ${n.chapters.length} 章, ${seriesCount} 系列, ${relationCount} 关系`,
     dayCount: `${dayCountKeys} 天记录`,
     lore: `${n.characters.length} 角色, ${n.scenes.length} 场景, ${n.items.length} 物品`,
     settings: `${settings.value.aiConfigs.length} 个 AI 配置`,
@@ -286,7 +296,9 @@ function detectSections(data: Record<string, unknown>): { key: string; label: st
       const a = data.articles as Record<string, unknown>;
       const volumes = Array.isArray(a.volumes) ? a.volumes.length : 0;
       const chapters = Array.isArray(a.chapters) ? a.chapters.length : 0;
-      sections.push({ key: 'articles', label: '文章', summary: `${volumes} 卷, ${chapters} 章` });
+      const series = Array.isArray(a.chapterSeries) ? a.chapterSeries.length : 0;
+      const relations = Array.isArray(a.chapterRelations) ? a.chapterRelations.length : 0;
+      sections.push({ key: 'articles', label: '文章', summary: `${volumes} 卷, ${chapters} 章, ${series} 系列, ${relations} 关系` });
     }
     if (data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) {
       const days = Object.keys(data.dayCount as Record<string, unknown>).length;
@@ -310,7 +322,9 @@ function detectSections(data: Record<string, unknown>): { key: string; label: st
     if (data.chapters || data.volumes) {
       const volumes = Array.isArray(data.volumes) ? data.volumes.length : 0;
       const chapters = Array.isArray(data.chapters) ? data.chapters.length : 0;
-      sections.push({ key: 'articles', label: '文章', summary: `${volumes} 卷, ${chapters} 章` });
+      const series = Array.isArray(data.chapterSeries) ? data.chapterSeries.length : 0;
+      const relations = Array.isArray(data.chapterRelations) ? data.chapterRelations.length : 0;
+      sections.push({ key: 'articles', label: '文章', summary: `${volumes} 卷, ${chapters} 章, ${series} 系列, ${relations} 关系` });
     }
     if (data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) {
       const days = Object.keys(data.dayCount as Record<string, unknown>).length;
