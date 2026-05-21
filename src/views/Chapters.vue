@@ -373,15 +373,10 @@ const seriesByChapter = computed(() => {
 
 const precedingChapters = computed(() => {
   if (!editingChapter.value) return [];
-  const sortedVolumes = [...volumes.value].sort((a, b) => a.order - b.order);
-  const globalOrder: Chapter[] = [];
-  for (const vol of sortedVolumes) {
-    const chs = chapters.value.filter(c => c.volumeId === vol.id).sort((a, b) => a.order - b.order);
-    globalOrder.push(...chs);
-  }
-  const idx = globalOrder.findIndex(c => c.id === editingChapter.value!.id);
-  if (idx <= 0) return [];
-  return globalOrder.slice(0, idx);
+  const volId = editingChapter.value.volumeId;
+  return chapters.value
+    .filter(c => c.volumeId === volId && c.id !== editingChapter.value!.id)
+    .sort((a, b) => a.order - b.order);
 });
 
 const currentChapterRelations = computed(() => {

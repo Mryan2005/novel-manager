@@ -31,6 +31,7 @@
           @pointerup="onPointerUp"
           @pointerleave="onPointerUp"
           @wheel.prevent="onWheel"
+          @selectstart.prevent
         >
           <div class="mermaid-canvas" :style="canvasStyle">
             <div v-if="chapters.length === 0" class="empty-state">
@@ -65,6 +66,7 @@
             @pointerup="onPointerUp"
             @pointerleave="onPointerUp"
             @wheel.prevent="onWheel"
+            @selectstart.prevent
           >
             <div class="mermaid-canvas" :style="canvasStyle" style="min-height: calc(100vh - 8rem);">
               <div v-if="chapters.length === 0" class="empty-state" style="min-height: calc(100vh - 8rem);">
