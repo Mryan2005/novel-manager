@@ -244,7 +244,7 @@
                 暂无关系，添加后将显示在关系图中。
               </div>
               <div v-else class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                <div v-for="relation in chapterRelations" :key="relation.id" class="flex items-center justify-between">
+                <div v-for="relation in currentChapterRelations" :key="relation.id" class="flex items-center justify-between">
                   <div class="text-sm text-[var(--text)]">
                     {{ chapterName(relation.fromChapterId) }}
                     <span class="text-[var(--text-muted)]">→</span>
@@ -382,6 +382,12 @@ const precedingChapters = computed(() => {
   const idx = globalOrder.findIndex(c => c.id === editingChapter.value!.id);
   if (idx <= 0) return [];
   return globalOrder.slice(0, idx);
+});
+
+const currentChapterRelations = computed(() => {
+  if (!editingChapter.value) return [];
+  const id = editingChapter.value.id;
+  return chapterRelations.value.filter(r => r.fromChapterId === id || r.toChapterId === id);
 });
 
 const closeCopyMenu = (e: MouseEvent) => {
