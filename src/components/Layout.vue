@@ -88,6 +88,14 @@
             章节管理
           </router-link>
           <router-link
+            to="/series"
+            class="nav-link"
+            :class="$route.path === '/series' ? 'nav-link-active' : ''"
+          >
+            <Layers class="w-5 h-5" />
+            系列管理
+          </router-link>
+          <router-link
             to="/relations"
             class="nav-link"
             :class="$route.path === '/relations' ? 'nav-link-active' : ''"
@@ -173,7 +181,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Share2, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Search, Settings, Sparkles } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Share2, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';

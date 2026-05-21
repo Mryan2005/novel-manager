@@ -7,12 +7,14 @@ import Scenes from '../views/Scenes.vue';
 import Items from '../views/Items.vue';
 import Search from '../views/Search.vue';
 import Editor from '../views/Editor.vue';
+import Series from '../views/Series.vue';
 import Settings from '../views/Settings.vue';
 
 const routes = [
   { path: '/', redirect: '/home' },
   { path: '/home', name: 'Home', component: Home },
   { path: '/chapters', name: 'Chapters', component: Chapters },
+  { path: '/series', name: 'Series', component: Series },
   { path: '/relations', name: 'Relations', component: Relations },
   { path: '/characters', name: 'Characters', component: Characters },
   { path: '/scenes', name: 'Scenes', component: Scenes },

@@ -202,12 +202,21 @@
             </div>
             <div>
               <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属系列</label>
-              <select v-model="chapterForm.seriesId" class="input">
-                <option value="">无系列</option>
-                <option v-for="series in chapterSeries" :key="series.id" :value="series.id">
-                  {{ series.title || '未命名系列' }}
-                </option>
-              </select>
+              <div class="flex gap-2">
+                <select v-model="chapterForm.seriesId" class="input flex-1">
+                  <option value="">无系列</option>
+                  <option v-for="series in chapterSeries" :key="series.id" :value="series.id">
+                    {{ series.title || '未命名系列' }}
+                  </option>
+                </select>
+                <button class="btn btn-secondary shrink-0" @click="quickSeriesMode = !quickSeriesMode" title="快速创建系列">
+                  <Plus class="w-4 h-4" />
+                </button>
+              </div>
+              <div v-if="quickSeriesMode" class="flex gap-2 mt-2">
+                <input v-model="newSeriesTitle" class="input text-sm flex-1" placeholder="新系列名称" @keyup.enter="quickCreateSeries" />
+                <button class="btn btn-primary text-sm shrink-0" @click="quickCreateSeries">创建</button>
+              </div>
             </div>
 
             <div v-if="editingChapter" class="border-t border-[var(--border)] pt-5 space-y-3">
@@ -218,17 +227,14 @@
 
               <div class="space-y-2">
                 <select v-model="relationForm.fromChapterId" class="input text-sm">
-                  <option value="">选择起点章节</option>
-                  <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
+                  <option value="">选择前置章节</option>
+                  <option v-for="chapter in precedingChapters" :key="chapter.id" :value="chapter.id">
                     {{ chapter.title || '未命名章节' }}
                   </option>
                 </select>
-                <select v-model="relationForm.toChapterId" class="input text-sm">
-                  <option value="">选择终点章节</option>
-                  <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
-                    {{ chapter.title || '未命名章节' }}
-                  </option>
-                </select>
+                <div class="text-sm text-[var(--text-muted)] pad-3 rounded-lg bg-[var(--surface-alt)]">
+                  指向 → {{ editingChapter.title || '当前章节' }}
+                </div>
                 <input v-model="relationForm.label" class="input text-sm" placeholder="关系说明（可选）" />
                 <button class="btn btn-primary w-full" @click="createRelation">添加关系</button>
                 <p v-if="relationError" class="text-xs text-[var(--error)]">{{ relationError }}</p>
@@ -250,33 +256,6 @@
               </div>
             </div>
 
-            <div class="border-t border-[var(--border)] pt-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold text-[var(--text)]">系列管理</h3>
-                <span class="text-xs text-[var(--text-muted)]">{{ chapterSeries.length }} 个系列</span>
-              </div>
-
-              <div class="flex gap-2">
-                <input v-model="newSeriesTitle" class="input text-sm" placeholder="输入系列名称" @keyup.enter="createSeries" />
-                <button class="btn btn-primary shrink-0" @click="createSeries">添加</button>
-              </div>
-              <p v-if="seriesError" class="text-xs text-[var(--error)]">{{ seriesError }}</p>
-
-              <div v-if="chapterSeries.length === 0" class="text-sm text-[var(--text-muted)]">
-                暂无系列，先创建系列以归类章节。
-              </div>
-              <div v-else class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                <div v-for="series in chapterSeries" :key="series.id" class="flex items-center gap-3">
-                  <input
-                    :value="series.title"
-                    class="input text-sm flex-1"
-                    placeholder="系列名称"
-                    @change="updateChapterSeries(series.id, { title: ($event.target as HTMLInputElement).value })"
-                  />
-                  <button class="btn btn-secondary text-sm shrink-0" @click="removeSeries(series.id)">删除</button>
-                </div>
-              </div>
-            </div>
           </div>
           <div class="flex justify-end gap-3 mt-7">
             <button @click="closeChapterModal" class="btn btn-secondary">取消</button>
@@ -368,6 +347,7 @@ const chapterToDelete = ref<Chapter | null>(null);
 
 const newSeriesTitle = ref('');
 const seriesError = ref('');
+const quickSeriesMode = ref(false);
 const relationForm = ref({ fromChapterId: '', toChapterId: '', label: '' });
 const relationError = ref('');
 
@@ -389,6 +369,19 @@ const seriesByChapter = computed(() => {
     });
   });
   return map;
+});
+
+const precedingChapters = computed(() => {
+  if (!editingChapter.value) return [];
+  const sortedVolumes = [...volumes.value].sort((a, b) => a.order - b.order);
+  const globalOrder: Chapter[] = [];
+  for (const vol of sortedVolumes) {
+    const chs = chapters.value.filter(c => c.volumeId === vol.id).sort((a, b) => a.order - b.order);
+    globalOrder.push(...chs);
+  }
+  const idx = globalOrder.findIndex(c => c.id === editingChapter.value!.id);
+  if (idx <= 0) return [];
+  return globalOrder.slice(0, idx);
 });
 
 const closeCopyMenu = (e: MouseEvent) => {
@@ -520,6 +513,7 @@ const editChapter = (chapter: Chapter) => {
     volumeId: chapter.volumeId,
     seriesId: seriesByChapter.value.get(chapter.id) ?? '',
   };
+  relationForm.value = { fromChapterId: '', toChapterId: chapter.id, label: '' };
   showChapterModal.value = true;
 };
 
@@ -624,6 +618,23 @@ const createSeries = () => {
   newSeriesTitle.value = '';
 };
 
+const quickCreateSeries = () => {
+  const title = newSeriesTitle.value.trim();
+  if (!title) return;
+  const exists = chapterSeries.value.some(series => series.title.trim() === title);
+  if (exists) {
+    const found = chapterSeries.value.find(series => series.title.trim() === title)!;
+    chapterForm.value.seriesId = found.id;
+    newSeriesTitle.value = '';
+    quickSeriesMode.value = false;
+    return;
+  }
+  const created = addChapterSeries(title);
+  chapterForm.value.seriesId = created.id;
+  newSeriesTitle.value = '';
+  quickSeriesMode.value = false;
+};
+
 const removeSeries = (id: string) => {
   deleteChapterSeries(id);
 };
@@ -642,13 +653,10 @@ const assignChapterSeries = (chapterId: string, seriesIdValue: string) => {
 };
 
 const createRelation = () => {
-  const { fromChapterId, toChapterId, label } = relationForm.value;
+  const toChapterId = editingChapter.value?.id;
+  const { fromChapterId, label } = relationForm.value;
   if (!fromChapterId || !toChapterId) {
-    relationError.value = '请选择起点与终点章节。';
-    return;
-  }
-  if (fromChapterId === toChapterId) {
-    relationError.value = '关系不能指向同一章节。';
+    relationError.value = '请选择前置章节。';
     return;
   }
   const exists = chapterRelations.value.some(rel =>
@@ -663,7 +671,7 @@ const createRelation = () => {
     relationError.value = '关系创建失败，请检查章节数据。';
     return;
   }
-  relationForm.value = { fromChapterId: '', toChapterId: '', label: '' };
+  relationForm.value = { fromChapterId: '', toChapterId: toChapterId, label: '' };
 };
 
 const removeRelation = (id: string) => {
