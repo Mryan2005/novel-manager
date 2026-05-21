@@ -51,6 +51,7 @@
               <input v-model="newSeriesTitle" class="input text-sm" placeholder="输入系列名称" />
               <button class="btn btn-primary shrink-0" @click="createSeries">添加</button>
             </div>
+            <p v-if="seriesError" class="text-xs text-[var(--error)]">{{ seriesError }}</p>
 
             <div v-if="chapterSeries.length === 0" class="text-sm text-[var(--text-muted)]">
               暂无系列，先创建系列以归类章节。
@@ -158,6 +159,7 @@ const mermaidRef = ref<HTMLDivElement | null>(null);
 const mermaidError = ref('');
 
 const newSeriesTitle = ref('');
+const seriesError = ref('');
 const relationForm = ref({ fromChapterId: '', toChapterId: '', label: '' });
 
 const seriesByChapter = computed(() => {
@@ -172,6 +174,10 @@ const seriesByChapter = computed(() => {
   return map;
 });
 
+watch(newSeriesTitle, () => {
+  seriesError.value = '';
+});
+
 const canvasStyle = computed(() => ({
   transform: `translate(${offset.value.x}px, ${offset.value.y}px) scale(${scale.value})`,
 }));
@@ -181,7 +187,7 @@ const sanitizeId = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '_');
 const escapeLabel = (value: string) => value
   .replace(/"/g, '\'')
   .replace(/\|/g, '/')
-  .replace(/\n/g, '<br/>');
+  .replace(/\n/g, ' ');
 
 const nodeId = (id: string) => `ch_${sanitizeId(id)}`;
 const seriesId = (id: string) => `series_${sanitizeId(id)}`;
@@ -242,7 +248,7 @@ watch(mermaidCode, async () => {
 });
 
 onMounted(() => {
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
   renderMermaid();
 });
 
@@ -289,6 +295,12 @@ const onPointerUp = (event: PointerEvent) => {
 const createSeries = () => {
   const title = newSeriesTitle.value.trim();
   if (!title) return;
+  const exists = chapterSeries.value.some(series => series.title.trim().toLowerCase() === title.toLowerCase());
+  if (exists) {
+    seriesError.value = '该系列名称已存在，请更换名称。';
+    return;
+  }
+  seriesError.value = '';
   addChapterSeries(title);
   newSeriesTitle.value = '';
 };
@@ -314,7 +326,7 @@ const createRelation = () => {
   const { fromChapterId, toChapterId, label } = relationForm.value;
   if (!fromChapterId || !toChapterId || fromChapterId === toChapterId) return;
   const exists = chapterRelations.value.some(rel =>
-    rel.fromChapterId === fromChapterId && rel.toChapterId === toChapterId && (rel.label || '') === label.trim()
+    rel.fromChapterId === fromChapterId && rel.toChapterId === toChapterId
   );
   if (exists) return;
   addChapterRelation({ fromChapterId, toChapterId, label: label.trim() || undefined });

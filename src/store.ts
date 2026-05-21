@@ -364,7 +364,11 @@ export const useStore = () => {
     }
   }
 
-  function addChapterRelation(relation: Omit<ChapterRelation, 'id' | 'createdAt'>) {
+  function addChapterRelation(relation: Omit<ChapterRelation, 'id' | 'createdAt'>): ChapterRelation | null {
+    if (relation.fromChapterId === relation.toChapterId) return null;
+    const hasFrom = state.novel.chapters.some(chapter => chapter.id === relation.fromChapterId);
+    const hasTo = state.novel.chapters.some(chapter => chapter.id === relation.toChapterId);
+    if (!hasFrom || !hasTo) return null;
     const newRelation: ChapterRelation = {
       ...relation,
       id: Date.now().toString(),
