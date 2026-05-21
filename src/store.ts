@@ -369,6 +369,10 @@ export const useStore = () => {
     const hasFrom = state.novel.chapters.some(chapter => chapter.id === relation.fromChapterId);
     const hasTo = state.novel.chapters.some(chapter => chapter.id === relation.toChapterId);
     if (!hasFrom || !hasTo) return null;
+    const exists = state.novel.chapterRelations.some(rel =>
+      rel.fromChapterId === relation.fromChapterId && rel.toChapterId === relation.toChapterId
+    );
+    if (exists) return null;
     const newRelation: ChapterRelation = {
       ...relation,
       id: Date.now().toString(),

@@ -145,6 +145,8 @@ import { useStore } from '../store';
 
 const { chapters, chapterSeries, chapterRelations, addChapterSeries, updateChapterSeries, deleteChapterSeries, addChapterRelation, deleteChapterRelation } = useStore();
 
+let mermaidInitialized = false;
+
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 2;
 
@@ -185,9 +187,13 @@ const canvasStyle = computed(() => ({
 const sanitizeId = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '_');
 
 const escapeLabel = (value: string) => value
-  .replace(/"/g, '\'')
+  .replace(/[\[\]<>]/g, '')
+  .replace(/[(){}]/g, '')
+  .replace(/["']/g, '')
   .replace(/\|/g, '/')
-  .replace(/\n/g, ' ');
+  .replace(/\n/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 
 const nodeId = (id: string) => `ch_${sanitizeId(id)}`;
 const seriesId = (id: string) => `series_${sanitizeId(id)}`;
@@ -248,16 +254,19 @@ watch(mermaidCode, async () => {
 });
 
 onMounted(() => {
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+  if (!mermaidInitialized) {
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+    mermaidInitialized = true;
+  }
   renderMermaid();
 });
 
 const zoomIn = () => {
-  scale.value = Math.min(MAX_SCALE, Number((scale.value + 0.1).toFixed(2)));
+  scale.value = Math.min(MAX_SCALE, scale.value + 0.1);
 };
 
 const zoomOut = () => {
-  scale.value = Math.max(MIN_SCALE, Number((scale.value - 0.1).toFixed(2)));
+  scale.value = Math.max(MIN_SCALE, scale.value - 0.1);
 };
 
 const resetViewport = () => {
@@ -268,7 +277,7 @@ const resetViewport = () => {
 const onWheel = (event: WheelEvent) => {
   const direction = event.deltaY > 0 ? -1 : 1;
   const next = scale.value + direction * 0.1;
-  scale.value = Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(next.toFixed(2))));
+  scale.value = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
 };
 
 const onPointerDown = (event: PointerEvent) => {
@@ -295,7 +304,7 @@ const onPointerUp = (event: PointerEvent) => {
 const createSeries = () => {
   const title = newSeriesTitle.value.trim();
   if (!title) return;
-  const exists = chapterSeries.value.some(series => series.title.trim().toLowerCase() === title.toLowerCase());
+  const exists = chapterSeries.value.some(series => series.title.trim() === title);
   if (exists) {
     seriesError.value = '该系列名称已存在，请更换名称。';
     return;
