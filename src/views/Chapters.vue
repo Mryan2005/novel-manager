@@ -112,7 +112,7 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-4 mb-0.5">
-                      <h3 class="font-semibold text-[var(--text)] truncate">{{ chapter.title }}</h3>
+                      <h3 class="font-semibold text-[var(--text)] truncate">{{ chapter.title.length > 15 ? chapter.title.slice(0, 15) + '...' : chapter.title }}</h3>
                       <span class="tag" :class="statusClass(chapter.status)">{{ statusText(chapter.status) }}</span>
                     </div>
                     <p class="text-sm text-[var(--text-muted)]">
@@ -155,99 +155,6 @@
         </div>
       </div>
 
-      <div v-if="volumes.length > 0" class="space-y-5">
-        <div class="card pad-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-[var(--text)]">系列管理</h2>
-            <span class="text-xs text-[var(--text-muted)]">{{ chapterSeries.length }} 个系列</span>
-          </div>
-
-          <div class="flex gap-2">
-            <input v-model="newSeriesTitle" class="input text-sm" placeholder="输入系列名称" @keyup.enter="createSeries" />
-            <button class="btn btn-primary shrink-0" @click="createSeries">添加</button>
-          </div>
-          <p v-if="seriesError" class="text-xs text-[var(--error)]">{{ seriesError }}</p>
-
-          <div v-if="chapterSeries.length === 0" class="text-sm text-[var(--text-muted)]">
-            暂无系列，先创建系列以归类章节。
-          </div>
-
-          <div v-else class="space-y-2">
-            <div v-for="series in chapterSeries" :key="series.id" class="series-row">
-              <input
-                :value="series.title"
-                class="input text-sm flex-1"
-                placeholder="系列名称"
-                @change="updateChapterSeries(series.id, { title: ($event.target as HTMLInputElement).value })"
-              />
-              <button class="btn btn-secondary text-sm shrink-0" @click="removeSeries(series.id)">删除</button>
-            </div>
-          </div>
-
-          <div class="border-t border-[var(--border)] pt-4 space-y-2">
-            <h3 class="text-sm font-semibold text-[var(--text)]">章节归属</h3>
-            <div v-if="chapters.length === 0" class="text-sm text-[var(--text-muted)]">
-              还没有章节可分配。
-            </div>
-            <div v-else class="space-y-2 max-h-56 overflow-y-auto pr-1">
-              <div v-for="chapter in chapters" :key="chapter.id" class="chapter-row">
-                <span class="text-sm text-[var(--text)] truncate">{{ chapter.title || '未命名章节' }}</span>
-                <select
-                  class="input text-sm w-36"
-                  :value="seriesByChapter.get(chapter.id) ?? ''"
-                  @change="assignChapterSeries(chapter.id, ($event.target as HTMLSelectElement).value)"
-                >
-                  <option value="">无系列</option>
-                  <option v-for="series in chapterSeries" :key="series.id" :value="series.id">
-                    {{ series.title || '未命名系列' }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card pad-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-[var(--text)]">章节关系</h2>
-            <span class="text-xs text-[var(--text-muted)]">{{ chapterRelations.length }} 条关系</span>
-          </div>
-
-          <div class="space-y-2">
-            <select v-model="relationForm.fromChapterId" class="input text-sm">
-              <option value="">选择起点章节</option>
-              <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
-                {{ chapter.title || '未命名章节' }}
-              </option>
-            </select>
-            <select v-model="relationForm.toChapterId" class="input text-sm">
-              <option value="">选择终点章节</option>
-              <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
-                {{ chapter.title || '未命名章节' }}
-              </option>
-            </select>
-            <input v-model="relationForm.label" class="input text-sm" placeholder="关系说明（可选）" />
-            <button class="btn btn-primary w-full" @click="createRelation">添加关系</button>
-            <p v-if="relationError" class="text-xs text-[var(--error)]">{{ relationError }}</p>
-          </div>
-
-          <div v-if="chapterRelations.length === 0" class="text-sm text-[var(--text-muted)]">
-            暂无关系，添加后将显示在关系图中。
-          </div>
-
-          <div v-else class="space-y-2 max-h-60 overflow-y-auto pr-1">
-            <div v-for="relation in chapterRelations" :key="relation.id" class="relation-row">
-              <div class="text-sm text-[var(--text)]">
-                {{ chapterName(relation.fromChapterId) }}
-                <span class="text-[var(--text-muted)]">→</span>
-                {{ chapterName(relation.toChapterId) }}
-                <span v-if="relation.label" class="text-xs text-[var(--text-muted)] ml-1">({{ relation.label }})</span>
-              </div>
-              <button class="btn btn-secondary text-xs shrink-0" @click="removeRelation(relation.id)">删除</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 卷 添加/编辑模态框 -->
@@ -270,7 +177,7 @@
     <!-- 章节 添加/编辑模态框 -->
     <Teleport to="body">
       <div v-if="showChapterModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeChapterModal">
-        <div class="card w-full max-w-md pad-8">
+        <div class="card w-full max-w-xl pad-8 overflow-y-auto" style="max-height: 90vh;">
           <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
             {{ editingChapter ? '编辑章节' : '新建章节' }}
           </h2>
@@ -292,6 +199,83 @@
                 <option value="in-progress">撰写中</option>
                 <option value="completed">已完成</option>
               </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-[var(--text)] mb-2">所属系列</label>
+              <select v-model="chapterForm.seriesId" class="input">
+                <option value="">无系列</option>
+                <option v-for="series in chapterSeries" :key="series.id" :value="series.id">
+                  {{ series.title || '未命名系列' }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="editingChapter" class="border-t border-[var(--border)] pt-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-[var(--text)]">章节关系</h3>
+                <span class="text-xs text-[var(--text-muted)]">{{ chapterRelations.length }} 条关系</span>
+              </div>
+
+              <div class="space-y-2">
+                <select v-model="relationForm.fromChapterId" class="input text-sm">
+                  <option value="">选择起点章节</option>
+                  <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
+                    {{ chapter.title || '未命名章节' }}
+                  </option>
+                </select>
+                <select v-model="relationForm.toChapterId" class="input text-sm">
+                  <option value="">选择终点章节</option>
+                  <option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">
+                    {{ chapter.title || '未命名章节' }}
+                  </option>
+                </select>
+                <input v-model="relationForm.label" class="input text-sm" placeholder="关系说明（可选）" />
+                <button class="btn btn-primary w-full" @click="createRelation">添加关系</button>
+                <p v-if="relationError" class="text-xs text-[var(--error)]">{{ relationError }}</p>
+              </div>
+
+              <div v-if="chapterRelations.length === 0" class="text-sm text-[var(--text-muted)]">
+                暂无关系，添加后将显示在关系图中。
+              </div>
+              <div v-else class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                <div v-for="relation in chapterRelations" :key="relation.id" class="flex items-center justify-between">
+                  <div class="text-sm text-[var(--text)]">
+                    {{ chapterName(relation.fromChapterId) }}
+                    <span class="text-[var(--text-muted)]">→</span>
+                    {{ chapterName(relation.toChapterId) }}
+                    <span v-if="relation.label" class="text-xs text-[var(--text-muted)] ml-1">({{ relation.label }})</span>
+                  </div>
+                  <button class="btn btn-secondary text-xs shrink-0" @click="removeRelation(relation.id)">删除</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-[var(--border)] pt-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-[var(--text)]">系列管理</h3>
+                <span class="text-xs text-[var(--text-muted)]">{{ chapterSeries.length }} 个系列</span>
+              </div>
+
+              <div class="flex gap-2">
+                <input v-model="newSeriesTitle" class="input text-sm" placeholder="输入系列名称" @keyup.enter="createSeries" />
+                <button class="btn btn-primary shrink-0" @click="createSeries">添加</button>
+              </div>
+              <p v-if="seriesError" class="text-xs text-[var(--error)]">{{ seriesError }}</p>
+
+              <div v-if="chapterSeries.length === 0" class="text-sm text-[var(--text-muted)]">
+                暂无系列，先创建系列以归类章节。
+              </div>
+              <div v-else class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                <div v-for="series in chapterSeries" :key="series.id" class="flex items-center gap-3">
+                  <input
+                    :value="series.title"
+                    class="input text-sm flex-1"
+                    placeholder="系列名称"
+                    @change="updateChapterSeries(series.id, { title: ($event.target as HTMLInputElement).value })"
+                  />
+                  <button class="btn btn-secondary text-sm shrink-0" @click="removeSeries(series.id)">删除</button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex justify-end gap-3 mt-7">
@@ -378,7 +362,7 @@ const volumeToDelete = ref<Volume | null>(null);
 // Chapter modals
 const showChapterModal = ref(false);
 const editingChapter = ref<Chapter | null>(null);
-const chapterForm = ref({ title: '', status: 'draft' as Chapter['status'], volumeId: '' });
+const chapterForm = ref({ title: '', status: 'draft' as Chapter['status'], volumeId: '', seriesId: '' });
 const showDeleteChapterModal = ref(false);
 const chapterToDelete = ref<Chapter | null>(null);
 
@@ -524,7 +508,7 @@ const deleteVolume = () => {
 // === Chapter actions ===
 const openAddChapter = (volumeId: string) => {
   editingChapter.value = null;
-  chapterForm.value = { title: '', status: 'draft', volumeId };
+  chapterForm.value = { title: '', status: 'draft', volumeId, seriesId: '' };
   showChapterModal.value = true;
 };
 
@@ -534,6 +518,7 @@ const editChapter = (chapter: Chapter) => {
     title: chapter.title,
     status: chapter.status,
     volumeId: chapter.volumeId,
+    seriesId: seriesByChapter.value.get(chapter.id) ?? '',
   };
   showChapterModal.value = true;
 };
@@ -546,6 +531,8 @@ const closeChapterModal = () => {
 const saveChapter = () => {
   if (!chapterForm.value.title.trim()) return;
 
+  let chapterId = editingChapter.value?.id;
+
   if (editingChapter.value) {
     updateChapter(editingChapter.value.id, {
       title: chapterForm.value.title,
@@ -555,7 +542,7 @@ const saveChapter = () => {
   } else {
     const vid = chapterForm.value.volumeId || volumes.value[0]?.id;
     if (!vid) return;
-    addChapter({
+    const newChapter = addChapter({
       title: chapterForm.value.title,
       content: '',
       outline: '',
@@ -564,6 +551,11 @@ const saveChapter = () => {
       status: chapterForm.value.status,
       volumeId: vid,
     });
+    chapterId = newChapter.id;
+  }
+
+  if (chapterId) {
+    assignChapterSeries(chapterId, chapterForm.value.seriesId);
   }
 
   closeChapterModal();
