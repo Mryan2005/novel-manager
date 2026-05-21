@@ -150,7 +150,7 @@ const mermaidCode = computed(() => {
     .filter(rel => chapters.value.some(c => c.id === rel.fromChapterId) && chapters.value.some(c => c.id === rel.toChapterId))
     .map(rel => {
       const label = rel.label ? `|${escapeLabel(rel.label)}|` : '';
-      return `  ${nodeId(rel.fromChapterId)} -->${label} ${nodeId(rel.toChapterId)}`;
+      return `  ${nodeId(rel.fromChapterId)} ---${label} ${nodeId(rel.toChapterId)}`;
     });
 
   return [
