@@ -142,7 +142,7 @@ const mermaidCode = computed(() => {
       '    direction LR',
       ...chapterIds.map(id => `    ${nodeId(id)}`),
       '  end',
-      `  style ${subgraphId} fill:rgba(16,185,129,0.08),stroke:rgba(16,185,129,0.3),stroke-width:1px,rx:12,ry:12`,
+      `  style ${subgraphId} fill:#10b98114,stroke:#10b9814d,stroke-width:1px,rx:12,ry:12`,
     ].join('\n');
   }).filter(Boolean);
 
@@ -201,7 +201,7 @@ const handleEsc = (e: KeyboardEvent) => {
 
 onMounted(() => {
   if (!mermaidInitialized.value) {
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', flowchart: { rankDir: 'LR' } });
     mermaidInitialized.value = true;
   }
   renderMermaid();
