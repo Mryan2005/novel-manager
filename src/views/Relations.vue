@@ -113,6 +113,7 @@
               </select>
               <input v-model="relationForm.label" class="input text-sm" placeholder="关系说明（可选）" />
               <button class="btn btn-primary w-full" @click="createRelation">添加关系</button>
+              <p v-if="relationError" class="text-xs text-[var(--error)]">{{ relationError }}</p>
             </div>
 
             <div v-if="chapterRelations.length === 0" class="text-sm text-[var(--text-muted)]">
@@ -145,7 +146,8 @@ import { useStore } from '../store';
 
 const { chapters, chapterSeries, chapterRelations, addChapterSeries, updateChapterSeries, deleteChapterSeries, addChapterRelation, deleteChapterRelation } = useStore();
 
-let mermaidInitialized = false;
+const mermaidInitialized = ref(false);
+const mermaidRenderIndex = ref(0);
 
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 2;
@@ -163,6 +165,7 @@ const mermaidError = ref('');
 const newSeriesTitle = ref('');
 const seriesError = ref('');
 const relationForm = ref({ fromChapterId: '', toChapterId: '', label: '' });
+const relationError = ref('');
 
 const seriesByChapter = computed(() => {
   const map = new Map<string, string>();
@@ -179,6 +182,10 @@ const seriesByChapter = computed(() => {
 watch(newSeriesTitle, () => {
   seriesError.value = '';
 });
+
+watch(relationForm, () => {
+  relationError.value = '';
+}, { deep: true });
 
 const canvasStyle = computed(() => ({
   transform: `translate(${offset.value.x}px, ${offset.value.y}px) scale(${scale.value})`,
@@ -239,7 +246,7 @@ const renderMermaid = async () => {
   if (!mermaidRef.value || chapters.value.length === 0) return;
   try {
     mermaidError.value = '';
-    const id = `mermaid-${Date.now()}`;
+    const id = `mermaid-${mermaidRenderIndex.value++}`;
     const { svg } = await mermaid.render(id, mermaidCode.value);
     mermaidRef.value.innerHTML = svg;
   } catch (error) {
@@ -254,9 +261,9 @@ watch(mermaidCode, async () => {
 });
 
 onMounted(() => {
-  if (!mermaidInitialized) {
+  if (!mermaidInitialized.value) {
     mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
-    mermaidInitialized = true;
+    mermaidInitialized.value = true;
   }
   renderMermaid();
 });
@@ -333,12 +340,26 @@ const assignChapterSeries = (chapterId: string, seriesIdValue: string) => {
 
 const createRelation = () => {
   const { fromChapterId, toChapterId, label } = relationForm.value;
-  if (!fromChapterId || !toChapterId || fromChapterId === toChapterId) return;
+  if (!fromChapterId || !toChapterId) {
+    relationError.value = '请选择起点与终点章节。';
+    return;
+  }
+  if (fromChapterId === toChapterId) {
+    relationError.value = '关系不能指向同一章节。';
+    return;
+  }
   const exists = chapterRelations.value.some(rel =>
     rel.fromChapterId === fromChapterId && rel.toChapterId === toChapterId
   );
-  if (exists) return;
-  addChapterRelation({ fromChapterId, toChapterId, label: label.trim() || undefined });
+  if (exists) {
+    relationError.value = '该章节关系已存在。';
+    return;
+  }
+  const created = addChapterRelation({ fromChapterId, toChapterId, label: label.trim() || undefined });
+  if (!created) {
+    relationError.value = '关系创建失败，请检查章节数据。';
+    return;
+  }
   relationForm.value = { fromChapterId: '', toChapterId: '', label: '' };
 };
 
