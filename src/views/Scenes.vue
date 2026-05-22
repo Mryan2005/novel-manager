@@ -32,7 +32,7 @@
       </div>
 
       <div v-else-if="scenes.length === 0" class="card pad-12 text-center empty-state-card">
-        <Map class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
+        <MapIcon class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
         <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有地点</h3>
         <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个地点，让故事发生在特定的地方</p>
       </div>
@@ -252,7 +252,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Map, MapPin, Plus, Edit, Trash2, Search, X, Share2 } from 'lucide-vue-next';
+import { Map as MapIcon, MapPin, Plus, Edit, Trash2, Search, X, Share2 } from 'lucide-vue-next';
 import mermaid from 'mermaid';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
