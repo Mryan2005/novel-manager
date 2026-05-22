@@ -96,14 +96,6 @@
             系列管理
           </router-link>
           <router-link
-            to="/relations"
-            class="nav-link"
-            :class="$route.path === '/relations' ? 'nav-link-active' : ''"
-          >
-            <Share2 class="w-5 h-5" />
-            关系图
-          </router-link>
-          <router-link
             to="/characters"
             class="nav-link"
             :class="$route.path === '/characters' ? 'nav-link-active' : ''"

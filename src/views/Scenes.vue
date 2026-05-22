@@ -10,6 +10,10 @@
           <Plus class="w-4 h-4" />
           新建地点
         </button>
+        <button @click="showGraph = true" class="btn btn-secondary">
+          <Share2 class="w-4 h-4" />
+          关系图
+        </button>
       </div>
 
       <div class="relative search-field-wrap">
@@ -48,6 +52,7 @@
               <p class="text-sm text-[var(--text-light)] flex items-center gap-1.5 mt-2">
                 <MapPin class="w-4 h-4" />
                 {{ scene.location || '未设置地点' }}
+                <span v-if="scene.belongsTo" class="text-xs text-[var(--text-muted)] ml-1">· 隶属 {{ scene.belongsTo }}</span>
               </p>
             </div>
             <div class="flex items-center gap-1 shrink-0" @click.stop>
@@ -117,6 +122,15 @@
             />
           </div>
           <div>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">归属哪里？</label>
+            <input
+              v-model="form.belongsTo"
+              type="text"
+              class="input"
+              placeholder="如：王城、北境"
+            />
+          </div>
+          <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">氛围标签（用逗号分隔）</label>
             <input
               v-model="atmosphereInput"
@@ -179,6 +193,7 @@
             <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ detailScene.name }}</h3>
             <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed space-y-1">
               <p v-if="detailScene.location">地点：{{ detailScene.location }}</p>
+              <p v-if="detailScene.belongsTo">归属：{{ detailScene.belongsTo }}</p>
               <p v-if="detailScene.atmosphere.length > 0">氛围：{{ detailScene.atmosphere.join('、') }}</p>
               <p v-if="detailScene.description" class="!mt-3">{{ detailScene.description }}</p>
             </div>
@@ -196,13 +211,49 @@
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showGraph" class="fixed inset-0 z-50 flex flex-col" style="background: rgba(0,0,0,0.85);" @click.self="showGraph = false">
+        <div class="flex items-center justify-between pad-4 bg-[var(--surface)] border-b border-[var(--border)]">
+          <h2 class="text-lg font-semibold text-[var(--text)]">地点关系图</h2>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-secondary" @click="zoomOut" :disabled="gScale <= 0.4">缩小</button>
+            <span class="text-sm font-semibold text-[var(--text-light)] w-14 text-center">{{ Math.round(gScale * 100) }}%</span>
+            <button class="btn btn-secondary" @click="zoomIn" :disabled="gScale >= 2">放大</button>
+            <button class="btn btn-primary" @click="resetView">重置视图</button>
+            <button class="btn btn-secondary" @click="showGraph = false">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <div
+          class="flex-1 m-4 rounded-xl overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
+          :class="gPanning ? 'is-panning' : ''"
+          style="cursor: grab;"
+          @pointerdown="onGPointerDown"
+          @pointermove="onGPointerMove"
+          @pointerup="onGPointerUp"
+          @pointerleave="onGPointerUp"
+          @wheel.prevent="onGWheel"
+          @selectstart.prevent
+        >
+          <div class="mermaid-canvas" :style="gCanvasStyle" style="min-height: calc(100vh - 8rem);">
+            <div v-if="scenes.length === 0" class="empty-state" style="min-height: calc(100vh - 8rem);">
+              还没有地点，先创建地点再查看关系图。
+            </div>
+            <div v-else ref="gRef" class="mermaid-render"></div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Map, MapPin, Plus, Edit, Trash2, Search, X } from 'lucide-vue-next';
+import { Map, MapPin, Plus, Edit, Trash2, Search, X, Share2 } from 'lucide-vue-next';
+import mermaid from 'mermaid';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Scene } from '../types';
@@ -233,6 +284,7 @@ const form = ref({
   location: '',
   description: '',
   atmosphere: [] as string[],
+  belongsTo: '',
 });
 
 const filteredScenes = computed(() => {
@@ -262,7 +314,7 @@ watch(searchQuery, () => {
 const closeModal = () => {
   showAddModal.value = false;
   showEditModal.value = false;
-  form.value = { name: '', location: '', description: '', atmosphere: [] };
+  form.value = { name: '', location: '', description: '', atmosphere: [], belongsTo: '' };
   atmosphereInput.value = '';
   editingId.value = null;
 };
@@ -319,6 +371,7 @@ const editScene = (scene: Scene) => {
     location: scene.location,
     description: scene.description,
     atmosphere: [...scene.atmosphere],
+    belongsTo: scene.belongsTo || '',
   };
   atmosphereInput.value = scene.atmosphere.join(', ');
   editingId.value = scene.id;
@@ -361,4 +414,115 @@ const deleteScene = () => {
     sceneToDelete.value = null;
   }
 };
+
+// === 关系图 ===
+const showGraph = ref(false);
+const gRef = ref<HTMLDivElement | null>(null);
+const gScale = ref(1);
+const gOffset = ref({ x: 0, y: 0 });
+const gPanning = ref(false);
+const gPanStart = ref({ x: 0, y: 0 });
+const gPanOffset = ref({ x: 0, y: 0 });
+const mInit = ref(false);
+const mIdx = ref(0);
+
+const gCanvasStyle = computed(() => ({
+  transform: `translate(${gOffset.value.x}px, ${gOffset.value.y}px) scale(${gScale.value})`,
+}));
+
+const sid = (v: string) => v.replace(/[^a-zA-Z0-9_]/g, '_');
+const elbl = (v: string) => v.replace(/[\[\]<>]/g, '').replace(/[(){}]/g, '').replace(/["']/g, '').replace(/\|/g, '/').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+const snId = (id: string) => `sc_${sid(id)}`;
+
+const graphCode = computed(() => {
+  const byBelongs = new Map<string, typeof scenes.value>();
+  const unassigned: typeof scenes.value = [];
+  for (const s of scenes.value) {
+    const key = (s.belongsTo || '').trim();
+    if (key) {
+      if (!byBelongs.has(key)) byBelongs.set(key, []);
+      byBelongs.get(key)!.push(s);
+    } else {
+      unassigned.push(s);
+    }
+  }
+  const parts: string[] = ['flowchart LR'];
+  for (const [key, group] of byBelongs) {
+    parts.push(`  subgraph ${snId(key)}["${elbl(key)}"]`, '    direction LR');
+    for (const s of group) parts.push(`    ${snId(s.id)}["${elbl(s.name)}"]`);
+    parts.push('  end', `  style ${snId(key)} fill:#06b6d414,stroke:#06b6d44d,stroke-width:1px,rx:12,ry:12`);
+  }
+  for (const s of unassigned) parts.push(`  ${snId(s.id)}["${elbl(s.name)}"]`);
+  return parts.join('\n');
+});
+
+const renderGraph = async () => {
+  const el = gRef.value;
+  if (!el || scenes.value.length === 0) return;
+  try {
+    const id = `sg-${mIdx.value++}`;
+    const { svg } = await mermaid.render(id, graphCode.value);
+    el.innerHTML = svg;
+  } catch (e) { console.error(e); }
+};
+
+watch(graphCode, async () => { await nextTick(); renderGraph(); });
+watch(showGraph, async (v) => {
+  if (v) {
+    if (!mInit.value) { mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' }); mInit.value = true; }
+    await nextTick(); renderGraph();
+  }
+});
+
+const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape' && showGraph.value) showGraph.value = false; };
+onMounted(() => document.addEventListener('keydown', handleEsc));
+onUnmounted(() => document.removeEventListener('keydown', handleEsc));
+
+const zoomIn = () => { gScale.value = Math.min(2, gScale.value + 0.1); };
+const zoomOut = () => { gScale.value = Math.max(0.4, gScale.value - 0.1); };
+const resetView = () => { gScale.value = 1; gOffset.value = { x: 0, y: 0 }; };
+const onGWheel = (e: WheelEvent) => {
+  gScale.value = Math.min(2, Math.max(0.4, gScale.value + (e.deltaY > 0 ? -0.1 : 0.1)));
+};
+const onGPointerDown = (e: PointerEvent) => {
+  if (e.button !== 0) return;
+  gPanning.value = true;
+  gPanStart.value = { x: e.clientX, y: e.clientY };
+  gPanOffset.value = { x: gOffset.value.x, y: gOffset.value.y };
+  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+};
+const onGPointerMove = (e: PointerEvent) => {
+  if (!gPanning.value) return;
+  gOffset.value = { x: gPanOffset.value.x + e.clientX - gPanStart.value.x, y: gPanOffset.value.y + e.clientY - gPanStart.value.y };
+};
+const onGPointerUp = (e: PointerEvent) => {
+  if (!gPanning.value) return;
+  gPanning.value = false;
+  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+};
 </script>
+
+<style scoped>
+.mermaid-canvas {
+  min-height: 520px;
+  transform-origin: 0 0;
+}
+
+.mermaid-render :deep(svg) {
+  max-width: none;
+  height: auto;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 520px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.is-panning {
+  cursor: grabbing;
+}
+</style>

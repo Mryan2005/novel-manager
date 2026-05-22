@@ -823,6 +823,7 @@ const submitQuickAdd = () => {
       location: quickAddForm.value.extra.trim(),
       description: '',
       atmosphere: tags,
+      belongsTo: '',
     });
   } else {
     addItem({

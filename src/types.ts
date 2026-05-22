@@ -53,6 +53,7 @@ export interface Scene {
   location: string;
   description: string;
   atmosphere: string[];
+  belongsTo: string;
   createdAt: string;
 }
 
