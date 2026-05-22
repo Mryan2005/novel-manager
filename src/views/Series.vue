@@ -26,7 +26,7 @@
       <div v-else class="space-y-6">
         <div v-for="series in chapterSeries" :key="series.id" class="card overflow-hidden">
           <div
-            class="pad-5 flex items-center justify-between cursor-pointer hover:bg-[var(--surface-hover)] transition-colors"
+            class="pad-3 flex items-center justify-between cursor-pointer hover:bg-[var(--surface-hover)] transition-colors"
             style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(16, 185, 129, 0.04) 100%);"
             @click="toggleSeries(series.id)"
           >
