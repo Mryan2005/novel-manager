@@ -326,7 +326,7 @@
           </div>
         </div>
         <div
-          class="flex-1 m-4 rounded-xl overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
+          class="flex-1 m-4 overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
           :class="graphPanning ? 'is-panning' : ''"
           style="cursor: grab;"
           @pointerdown="onGraphPointerDown"

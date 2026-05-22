@@ -227,7 +227,7 @@
           </div>
         </div>
         <div
-          class="flex-1 m-4 rounded-xl overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
+          class="flex-1 m-4 overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)] relative"
           :class="gPanning ? 'is-panning' : ''"
           style="cursor: grab;"
           @pointerdown="onGPointerDown"
@@ -236,12 +236,22 @@
           @pointerleave="onGPointerUp"
           @wheel.prevent="onGWheel"
           @selectstart.prevent
+          @click="onGraphClick"
         >
           <div class="mermaid-canvas" :style="gCanvasStyle" style="min-height: calc(100vh - 8rem);">
             <div v-if="scenes.length === 0" class="empty-state" style="min-height: calc(100vh - 8rem);">
               还没有地点，先创建地点再查看关系图。
             </div>
             <div v-else ref="gRef" class="mermaid-render"></div>
+          </div>
+          <div v-if="graphDetail" class="absolute bottom-4 left-4 card pad-4 shadow-lg max-w-xs text-sm space-y-1 z-10">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-[var(--text)]">{{ graphDetail.name }}</span>
+              <button class="text-[var(--text-muted)] hover:text-[var(--text)]" @click.stop="graphDetail = null"><X class="w-3.5 h-3.5" /></button>
+            </div>
+            <p v-if="graphDetail.location" class="text-[var(--text-light)]">地点：{{ graphDetail.location }}</p>
+            <p v-if="graphDetail.belongsTo" class="text-[var(--text-light)]">归属：{{ graphDetail.belongsTo }}</p>
+            <p v-if="graphDetail.atmosphere.length" class="text-[var(--text-light)]">氛围：{{ graphDetail.atmosphere.join('、') }}</p>
           </div>
         </div>
       </div>
@@ -425,6 +435,7 @@ const deleteScene = () => {
 // === 关系图 ===
 const showGraph = ref(false);
 const gRef = ref<HTMLDivElement | null>(null);
+const graphDetail = ref<Scene | null>(null);
 const gScale = ref(1);
 const gOffset = ref({ x: 0, y: 0 });
 const gPanning = ref(false);
@@ -522,6 +533,19 @@ const onGPointerUp = (e: PointerEvent) => {
   if (!gPanning.value) return;
   gPanning.value = false;
   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+};
+
+const onGraphClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  const node = target.closest('[id*="sc_"]');
+  if (!node) { graphDetail.value = null; return; }
+  const idAttr = node.getAttribute('id') || '';
+  const m = idAttr.match(/sc_(\d+)/);
+  if (m) {
+    const scene = scenes.value.find(s => s.id === m[1]);
+    if (scene) { graphDetail.value = scene; e.stopPropagation(); return; }
+  }
+  graphDetail.value = null;
 };
 </script>
 
