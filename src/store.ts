@@ -22,6 +22,27 @@ export function buildChapterSynopsis(chapter: Pick<Chapter, 'outline' | 'content
   return chapter.outline?.trim() || chapter.content?.trim().slice(0, MAX_OUTLINE_PREVIEW_LENGTH) || '—';
 }
 
+export function buildChapterRelationTitleMap(
+  data: Pick<Novel, 'chapters' | 'chapterRelations'>
+): Map<string, Set<string>> {
+  const chapterTitleMap = new Map(data.chapters.map(chapter => [chapter.id, chapter.title || '未命名章节']));
+  const relationMap = new Map<string, Set<string>>();
+
+  data.chapterRelations.forEach(relation => {
+    const fromTitle = chapterTitleMap.get(relation.fromChapterId);
+    const toTitle = chapterTitleMap.get(relation.toChapterId);
+    if (!fromTitle || !toTitle) return;
+
+    if (!relationMap.has(relation.fromChapterId)) relationMap.set(relation.fromChapterId, new Set<string>());
+    if (!relationMap.has(relation.toChapterId)) relationMap.set(relation.toChapterId, new Set<string>());
+
+    relationMap.get(relation.fromChapterId)?.add(toTitle);
+    relationMap.get(relation.toChapterId)?.add(fromTitle);
+  });
+
+  return relationMap;
+}
+
 function loadFromStorage(): Novel {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -579,20 +600,7 @@ export const useStore = () => {
 
   function downloadPlotOutlineExcel() {
     const sortedVolumes = [...state.novel.volumes].sort((a, b) => a.order - b.order);
-    const chapterTitleMap = new Map(state.novel.chapters.map(chapter => [chapter.id, chapter.title]));
-    const relationMap = new Map<string, Set<string>>();
-
-    state.novel.chapterRelations.forEach(relation => {
-      const fromTitle = chapterTitleMap.get(relation.fromChapterId);
-      const toTitle = chapterTitleMap.get(relation.toChapterId);
-      if (!fromTitle || !toTitle) return;
-
-      if (!relationMap.has(relation.fromChapterId)) relationMap.set(relation.fromChapterId, new Set<string>());
-      if (!relationMap.has(relation.toChapterId)) relationMap.set(relation.toChapterId, new Set<string>());
-
-      relationMap.get(relation.fromChapterId)?.add(toTitle);
-      relationMap.get(relation.toChapterId)?.add(fromTitle);
-    });
+    const relationMap = buildChapterRelationTitleMap(state.novel);
 
     const rows: string[] = [];
 

@@ -104,7 +104,7 @@
             class="nav-link"
             :class="$route.path === '/plot-outline' ? 'nav-link-active' : ''"
           >
-            <Share2 class="w-5 h-5" />
+            <FileText class="w-5 h-5" />
             整理情节
           </router-link>
           <router-link
@@ -185,7 +185,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Share2, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';

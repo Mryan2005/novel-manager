@@ -50,25 +50,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Layout from '../components/Layout.vue';
-import { useStore, buildChapterSynopsis } from '../store';
+import { useStore, buildChapterSynopsis, buildChapterRelationTitleMap } from '../store';
 
 const { novel, downloadPlotOutlineExcel } = useStore();
 
 const groupedRows = computed(() => {
   const sortedVolumes = [...novel.value.volumes].sort((a, b) => a.order - b.order);
   const volumeMap = new Map(sortedVolumes.map(volume => [volume.id, volume.title || '未分卷']));
-  const chapterTitleMap = new Map(novel.value.chapters.map(chapter => [chapter.id, chapter.title || '未命名章节']));
-  const relationMap = new Map<string, Set<string>>();
-
-  novel.value.chapterRelations.forEach(relation => {
-    const fromTitle = chapterTitleMap.get(relation.fromChapterId);
-    const toTitle = chapterTitleMap.get(relation.toChapterId);
-    if (!fromTitle || !toTitle) return;
-    if (!relationMap.has(relation.fromChapterId)) relationMap.set(relation.fromChapterId, new Set<string>());
-    if (!relationMap.has(relation.toChapterId)) relationMap.set(relation.toChapterId, new Set<string>());
-    relationMap.get(relation.fromChapterId)?.add(toTitle);
-    relationMap.get(relation.toChapterId)?.add(fromTitle);
-  });
+  const relationMap = buildChapterRelationTitleMap(novel.value);
 
   const groups: { key: string; process: string; chapters: { id: string; title: string; summary: string; related: string }[] }[] = [];
 
