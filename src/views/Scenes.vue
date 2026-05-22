@@ -435,8 +435,8 @@ const elbl = (v: string) => v.replace(/[\[\]<>]/g, '').replace(/[(){}]/g, '').re
 const snId = (id: string) => `sc_${sid(id)}`;
 
 const graphCode = computed(() => {
-  const byBelongs = new Map<string, typeof scenes.value>();
-  const unassigned: typeof scenes.value = [];
+  const byBelongs = new Map<string, Scene[]>();
+  const unassigned: Scene[] = [];
   for (const s of scenes.value) {
     const key = (s.belongsTo || '').trim();
     if (key) {
