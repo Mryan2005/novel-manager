@@ -95,16 +95,16 @@
       <div v-if="showAddModal || showEditModal" class="fixed inset-0 flex items-center justify-center z-50 pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="closeModal">
       <div class="card w-full pad-8 overflow-y-auto" style="width: min(90vw, 560px); max-height: 90vh;">
         <h2 class="text-2xl font-bold text-[var(--text)] mb-6">
-          {{ showEditModal ? '编辑场景' : '新建场景' }}
+          {{ showEditModal ? '编辑地点' : '新建地点' }}
         </h2>
         <div class="space-y-5">
           <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">场景名称</label>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">地点名称</label>
             <input
               v-model="form.name"
               type="text"
               class="input"
-              placeholder="输入场景名称"
+              placeholder="输入地点名称"
             />
           </div>
           <div>
@@ -126,11 +126,11 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-semibold text-[var(--text)] mb-2">场景描述</label>
+            <label class="block text-sm font-semibold text-[var(--text)] mb-2">地点描述</label>
             <textarea
               v-model="form.description"
               class="input min-h-[140px]"
-              placeholder="描述这个场景的环境、氛围等"
+              placeholder="描述这个地点的环境、氛围等"
             ></textarea>
           </div>
         </div>
