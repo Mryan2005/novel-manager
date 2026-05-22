@@ -70,7 +70,7 @@
             </div>
             <div v-else class="space-y-1">
               <div v-for="chapterId in series.chapterIds" :key="chapterId" class="flex items-center justify-between pad-3 rounded-lg hover:bg-[var(--surface-alt)] transition-colors">
-                <span class="text-sm text-[var(--text)]">{{ chapterTitle(chapterId) }}</span>
+                <span class="text-sm text-[var(--text)] cursor-pointer hover:text-[var(--primary)] transition-colors" @click="goToEditor(chapterId)">{{ chapterTitle(chapterId) }}</span>
                 <button
                   @click="removeFromSeries(series.id, chapterId)"
                   class="pad-1 rounded hover:bg-red-500/10 text-[var(--text-muted)] hover:text-[var(--error)] transition-colors"
@@ -89,9 +89,12 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { Plus, Trash2, Layers, ChevronRight, X } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
+
+const router = useRouter();
 
 const {
   chapters, chapterSeries,
@@ -154,5 +157,9 @@ const removeFromSeries = (seriesId: string, chapterId: string) => {
   if (series) {
     updateChapterSeries(seriesId, { chapterIds: series.chapterIds.filter(id => id !== chapterId) });
   }
+};
+
+const goToEditor = (chapterId: string) => {
+  router.push(`/editor/${chapterId}`);
 };
 </script>
