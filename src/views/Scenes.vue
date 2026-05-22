@@ -123,12 +123,12 @@
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">归属哪里？</label>
-            <input
-              v-model="form.belongsTo"
-              type="text"
-              class="input"
-              placeholder="如：王城、北境"
-            />
+            <select v-model="form.belongsTo" class="input">
+              <option value="">无</option>
+              <option v-for="s in otherScenes" :key="s.id" :value="s.name">
+                {{ s.name }}
+              </option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-semibold text-[var(--text)] mb-2">氛围标签（用逗号分隔）</label>
@@ -297,6 +297,13 @@ const filteredScenes = computed(() => {
   });
 });
 
+const otherScenes = computed(() => {
+  if (showEditModal.value && editingId.value) {
+    return scenes.value.filter(s => s.id !== editingId.value);
+  }
+  return scenes.value;
+});
+
 const totalPages = computed(() => Math.ceil(filteredScenes.value.length / PAGE_SIZE));
 const pagedScenes = computed(() => {
   const start = (currentPage.value - 1) * PAGE_SIZE;
@@ -435,24 +442,42 @@ const elbl = (v: string) => v.replace(/[\[\]<>]/g, '').replace(/[(){}]/g, '').re
 const snId = (id: string) => `sc_${sid(id)}`;
 
 const graphCode = computed(() => {
-  const byBelongs = new Map<string, Scene[]>();
-  const unassigned: Scene[] = [];
+  const parentNames = new Set(scenes.value.filter(s => s.belongsTo).map(s => s.belongsTo!));
+  const parents = scenes.value.filter(s => parentNames.has(s.name));
+  const childrenByParent = new Map<string, Scene[]>();
+  const standalone: Scene[] = [];
+  const included = new Set<string>();
+  for (const p of parents) {
+    childrenByParent.set(p.id, []);
+    included.add(p.name);
+  }
   for (const s of scenes.value) {
-    const key = (s.belongsTo || '').trim();
-    if (key) {
-      if (!byBelongs.has(key)) byBelongs.set(key, []);
-      byBelongs.get(key)!.push(s);
-    } else {
-      unassigned.push(s);
+    if (s.belongsTo && parentNames.has(s.belongsTo)) {
+      const parent = parents.find(p => p.name === s.belongsTo);
+      if (parent) {
+        childrenByParent.get(parent.id)!.push(s);
+        continue;
+      }
+    }
+    if (!parentNames.has(s.name)) {
+      standalone.push(s);
     }
   }
   const parts: string[] = ['flowchart LR'];
-  for (const [key, group] of byBelongs) {
-    parts.push(`  subgraph ${snId(key)}["${elbl(key)}"]`, '    direction LR');
-    for (const s of group) parts.push(`    ${snId(s.id)}["${elbl(s.name)}"]`);
-    parts.push('  end', `  style ${snId(key)} fill:#06b6d414,stroke:#06b6d44d,stroke-width:1px,rx:12,ry:12`);
+  for (const p of parents) {
+    const children = childrenByParent.get(p.id) || [];
+    parts.push(`  subgraph ${snId(p.id)}[${elbl(p.name)}]`, '    direction LR');
+    parts.push(`    ${snId(p.id)}[${elbl(p.name)}]`);
+    for (const c of children) parts.push(`    ${snId(c.id)}[${elbl(c.name)}]`);
+    parts.push('  end', `  style ${snId(p.id)} fill:#06b6d414,stroke:#06b6d44d,stroke-width:2px`);
   }
-  for (const s of unassigned) parts.push(`  ${snId(s.id)}["${elbl(s.name)}"]`);
+  for (const s of standalone) parts.push(`  ${snId(s.id)}[${elbl(s.name)}]`);
+  for (const s of scenes.value) {
+    if (s.belongsTo) {
+      const parent = scenes.value.find(p => p.name === s.belongsTo);
+      if (parent) parts.push(`  ${snId(s.id)} --- ${snId(parent.id)}`);
+    }
+  }
   return parts.join('\n');
 });
 
