@@ -87,13 +87,14 @@
           </div>
         </div>
       </div>
-    </div>
 
       <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
         <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1" class="btn btn-secondary text-sm">上一页</button>
         <span class="text-sm font-medium text-[var(--text)]">{{ currentPage }} / {{ totalPages }}</span>
         <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages" class="btn btn-secondary text-sm">下一页</button>
+      </div>
     </div>
+
 
     <!-- 添加/编辑模态框 -->
     <Teleport to="body">
