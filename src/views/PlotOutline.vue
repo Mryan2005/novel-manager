@@ -25,10 +25,29 @@
             <template v-for="group in groupedRows" :key="group.key">
               <tr v-for="(chapter, index) in group.chapters" :key="chapter.id">
                 <td v-if="index === 0" :rowspan="group.chapters.length" class="merge-cell">
-                  {{ group.process }}
+                  <input
+                    v-if="group.key !== '__orphan__'"
+                    :value="group.process"
+                    class="table-input merge-input"
+                    @change="updateProcess(group.key, ($event.target as HTMLInputElement).value)"
+                  />
+                  <span v-else>未分卷</span>
                 </td>
-                <td>{{ chapter.title }}</td>
-                <td>{{ chapter.summary }}</td>
+                <td>
+                  <input
+                    :value="chapter.title"
+                    class="table-input"
+                    @change="updateChapterTitle(chapter.id, ($event.target as HTMLInputElement).value)"
+                  />
+                </td>
+                <td>
+                  <textarea
+                    :value="chapter.summary"
+                    class="table-input table-textarea"
+                    rows="3"
+                    @change="updateChapterSynopsis(chapter.id, ($event.target as HTMLTextAreaElement).value)"
+                  />
+                </td>
                 <td>{{ chapter.related }}</td>
               </tr>
             </template>
@@ -52,7 +71,7 @@ import { computed } from 'vue';
 import Layout from '../components/Layout.vue';
 import { useStore, buildChapterSynopsis, buildChapterRelationTitleMap } from '../store';
 
-const { novel, downloadPlotOutlineExcel } = useStore();
+const { novel, updateVolume, updateChapter, downloadPlotOutlineExcel } = useStore();
 
 const groupedRows = computed(() => {
   const sortedVolumes = [...novel.value.volumes].sort((a, b) => a.order - b.order);
@@ -106,6 +125,22 @@ const groupedRows = computed(() => {
 
   return groups;
 });
+
+function updateProcess(volumeId: string, title: string) {
+  const next = title.trim();
+  if (!next) return;
+  updateVolume(volumeId, { title: next });
+}
+
+function updateChapterTitle(chapterId: string, title: string) {
+  const next = title.trim();
+  if (!next) return;
+  updateChapter(chapterId, { title: next });
+}
+
+function updateChapterSynopsis(chapterId: string, synopsis: string) {
+  updateChapter(chapterId, { outline: synopsis.trim() });
+}
 </script>
 
 <style scoped>
@@ -132,6 +167,31 @@ const groupedRows = computed(() => {
 
 .merge-cell {
   background: rgba(59, 130, 246, 0.07);
+  font-weight: 600;
+}
+
+.table-input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.4rem;
+  text-align: center;
+}
+
+.table-input:focus {
+  border-color: var(--primary);
+  background: rgba(16, 185, 129, 0.06);
+  outline: none;
+}
+
+.table-textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+  text-align: left;
+}
+
+.merge-input {
   font-weight: 600;
 }
 </style>
