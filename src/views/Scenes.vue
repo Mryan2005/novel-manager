@@ -3,12 +3,12 @@
     <div class="page-space">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-[var(--text)]">场景设定</h1>
-          <p class="text-[var(--text-light)] mt-1 text-lg">管理你的小说场景</p>
+          <h1 class="text-3xl font-bold text-[var(--text)]">地点设定</h1>
+          <p class="text-[var(--text-light)] mt-1 text-lg">管理你的小说地点</p>
         </div>
         <button @click="showAddModal = true" class="btn btn-primary">
           <Plus class="w-4 h-4" />
-          新建场景
+          新建地点
         </button>
       </div>
 
@@ -18,19 +18,19 @@
           v-model="searchQuery"
           type="text"
           class="input input-with-left-icon"
-          placeholder="搜索场景名称、地点、描述..."
+          placeholder="搜索地点名称、描述..."
         />
       </div>
 
       <div v-if="filteredScenes.length === 0 && scenes.length > 0" class="card pad-12 text-center empty-state-card">
         <Search class="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
-        <p class="text-[var(--text-light)]">没有匹配的场景</p>
+        <p class="text-[var(--text-light)]">没有匹配的地点</p>
       </div>
 
       <div v-else-if="scenes.length === 0" class="card pad-12 text-center empty-state-card">
         <Map class="w-20 h-20 text-[var(--text-muted)] mx-auto mb-6" />
-        <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有场景</h3>
-        <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个场景，让故事发生在特定的地方</p>
+        <h3 class="text-xl font-semibold text-[var(--text)] mb-3">还没有地点</h3>
+        <p class="text-[var(--text-light)] mb-6 max-w-md mx-auto">点击上方按钮创建你的第一个地点，让故事发生在特定的地方</p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
