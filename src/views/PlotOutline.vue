@@ -50,10 +50,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Layout from '../components/Layout.vue';
-import { useStore } from '../store';
+import { useStore, buildChapterSynopsis } from '../store';
 
 const { novel, downloadPlotOutlineExcel } = useStore();
-const OUTLINE_PREVIEW_LIMIT = 120;
 
 const groupedRows = computed(() => {
   const sortedVolumes = [...novel.value.volumes].sort((a, b) => a.order - b.order);
@@ -82,7 +81,7 @@ const groupedRows = computed(() => {
         return {
           id: chapter.id,
           title: chapter.title || '未命名章节',
-          summary: chapter.outline?.trim() || chapter.content?.trim().slice(0, OUTLINE_PREVIEW_LIMIT) || '—',
+          summary: buildChapterSynopsis(chapter),
           related: relatedTitles.length > 0 ? relatedTitles.join('、') : '—',
         };
       });
@@ -103,7 +102,7 @@ const groupedRows = computed(() => {
       return {
         id: chapter.id,
         title: chapter.title || '未命名章节',
-        summary: chapter.outline?.trim() || chapter.content?.trim().slice(0, OUTLINE_PREVIEW_LIMIT) || '—',
+        summary: buildChapterSynopsis(chapter),
         related: relatedTitles.length > 0 ? relatedTitles.join('、') : '—',
       };
     });

@@ -18,6 +18,10 @@ const EMPTY_SEARCH_RESULTS = Object.freeze({
   items: [] as Item[],
 });
 
+export function buildChapterSynopsis(chapter: Pick<Chapter, 'outline' | 'content'>): string {
+  return chapter.outline?.trim() || chapter.content?.trim().slice(0, MAX_OUTLINE_PREVIEW_LENGTH) || '—';
+}
+
 function loadFromStorage(): Novel {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -600,7 +604,7 @@ export const useStore = () => {
 
       volumeChapters.forEach((chapter, index) => {
         const chapterTitle = chapter.title || '未命名章节';
-        const outline = chapter.outline?.trim() || chapter.content?.trim().slice(0, MAX_OUTLINE_PREVIEW_LENGTH) || '';
+        const outline = buildChapterSynopsis(chapter);
         const relatedTitles = [...(relationMap.get(chapter.id) ?? new Set<string>())];
         const related = relatedTitles.length > 0 ? relatedTitles.join('、') : '—';
         const cells: string[] = [];
@@ -614,7 +618,7 @@ export const useStore = () => {
         }
 
         cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(chapterTitle)}</Data></Cell>`);
-        cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(outline || '—')}</Data></Cell>`);
+        cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(outline)}</Data></Cell>`);
         cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(related)}</Data></Cell>`);
         rows.push(`<Row>${cells.join('')}</Row>`);
       });
