@@ -46,6 +46,10 @@
             <FileText class="w-4 h-4" />
             导出 TXT
           </button>
+          <button @mousedown.prevent="exportPlotExcel" class="dropdown-item">
+            <FileText class="w-4 h-4" />
+            导出情节表（Excel）
+          </button>
         </div>
         </div>
         <button @click="triggerImport" class="btn btn-secondary">
@@ -182,7 +186,7 @@ import AIAssistantWidget from './AIAssistantWidget.vue';
 import ExportDialog from './ExportDialog.vue';
 import ImportDialog from './ImportDialog.vue';
 
-const { novel, downloadTxt, buildExportParts, importParts, wrapLegacyData } = useStore();
+const { novel, downloadTxt, downloadPlotOutlineExcel, buildExportParts, importParts, wrapLegacyData } = useStore();
 const { settings, importSettings } = useSettings();
 const { sessions, importSessions } = useAIChat();
 
@@ -271,6 +275,11 @@ const handleExport = (selected: string[]) => {
 
 const exportTxt = () => {
   downloadTxt();
+  showDropdown.value = false;
+};
+
+const exportPlotExcel = () => {
+  downloadPlotOutlineExcel();
   showDropdown.value = false;
 };
 
