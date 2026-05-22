@@ -287,7 +287,7 @@ const atmosphereInput = ref('');
 const searchQuery = ref('');
 const focusedId = ref('');
 const currentPage = ref(1);
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 4;
 
 const form = ref({
   name: '',
