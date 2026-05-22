@@ -446,15 +446,13 @@ const graphCode = computed(() => {
   const parents = scenes.value.filter(s => parentNames.has(s.name));
   const childrenByParent = new Map<string, Scene[]>();
   const standalone: Scene[] = [];
-  const included = new Set<string>();
   for (const p of parents) {
     childrenByParent.set(p.id, []);
-    included.add(p.name);
   }
   for (const s of scenes.value) {
     if (s.belongsTo && parentNames.has(s.belongsTo)) {
       const parent = parents.find(p => p.name === s.belongsTo);
-      if (parent) {
+      if (parent && parent.id !== s.id) {
         childrenByParent.get(parent.id)!.push(s);
         continue;
       }
@@ -467,14 +465,14 @@ const graphCode = computed(() => {
   for (const p of parents) {
     const children = childrenByParent.get(p.id) || [];
     parts.push(`  subgraph ${snId(p.id)}[${elbl(p.name)}]`, '    direction LR');
-    parts.push(`    ${snId(p.id)}[${elbl(p.name)}]`);
     for (const c of children) parts.push(`    ${snId(c.id)}[${elbl(c.name)}]`);
     parts.push('  end', `  style ${snId(p.id)} fill:#06b6d414,stroke:#06b6d44d,stroke-width:2px`);
+    parts.push(`  ${snId(p.id)}[${elbl(p.name)}]`);
   }
   for (const s of standalone) parts.push(`  ${snId(s.id)}[${elbl(s.name)}]`);
   for (const s of scenes.value) {
     if (s.belongsTo) {
-      const parent = scenes.value.find(p => p.name === s.belongsTo);
+      const parent = scenes.value.find(p => p.name === s.belongsTo && p.id !== s.id);
       if (parent) parts.push(`  ${snId(s.id)} --- ${snId(parent.id)}`);
     }
   }
