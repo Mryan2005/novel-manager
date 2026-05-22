@@ -7,6 +7,7 @@ import Items from '../views/Items.vue';
 import Search from '../views/Search.vue';
 import Editor from '../views/Editor.vue';
 import Series from '../views/Series.vue';
+import PlotOutline from '../views/PlotOutline.vue';
 import Settings from '../views/Settings.vue';
 
 const routes = [
@@ -14,6 +15,7 @@ const routes = [
   { path: '/home', name: 'Home', component: Home },
   { path: '/chapters', name: 'Chapters', component: Chapters },
   { path: '/series', name: 'Series', component: Series },
+  { path: '/plot-outline', name: 'PlotOutline', component: PlotOutline },
   { path: '/characters', name: 'Characters', component: Characters },
   { path: '/scenes', name: 'Scenes', component: Scenes },
   { path: '/items', name: 'Items', component: Items },

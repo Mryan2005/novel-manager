@@ -46,6 +46,10 @@
             <FileText class="w-4 h-4" />
             导出 TXT
           </button>
+          <button @mousedown.prevent="exportPlotExcel" class="dropdown-item">
+            <FileText class="w-4 h-4" />
+            导出情节表（Excel）
+          </button>
         </div>
         </div>
         <button @click="triggerImport" class="btn btn-secondary">
@@ -94,6 +98,14 @@
           >
             <Layers class="w-5 h-5" />
             系列管理
+          </router-link>
+          <router-link
+            to="/plot-outline"
+            class="nav-link"
+            :class="$route.path === '/plot-outline' ? 'nav-link-active' : ''"
+          >
+            <FileText class="w-5 h-5" />
+            整理情节
           </router-link>
           <router-link
             to="/characters"
@@ -173,7 +185,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Share2, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';
@@ -182,7 +194,7 @@ import AIAssistantWidget from './AIAssistantWidget.vue';
 import ExportDialog from './ExportDialog.vue';
 import ImportDialog from './ImportDialog.vue';
 
-const { novel, downloadTxt, buildExportParts, importParts, wrapLegacyData } = useStore();
+const { novel, downloadTxt, downloadPlotOutlineExcel, buildExportParts, importParts, wrapLegacyData } = useStore();
 const { settings, importSettings } = useSettings();
 const { sessions, importSessions } = useAIChat();
 
@@ -271,6 +283,11 @@ const handleExport = (selected: string[]) => {
 
 const exportTxt = () => {
   downloadTxt();
+  showDropdown.value = false;
+};
+
+const exportPlotExcel = () => {
+  downloadPlotOutlineExcel();
   showDropdown.value = false;
 };
 

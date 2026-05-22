@@ -6,12 +6,42 @@ const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DRAFT_PREFIX = 'novel-draft-';
 const BACKUP_PREFIX = 'novel-backup-';
 const MAX_BACKUPS = 5;
+const MAX_OUTLINE_PREVIEW_LENGTH = 120;
+const PROCESS_COLUMN_WIDTH = 140;
+const CHAPTER_COLUMN_WIDTH = 180;
+const SUMMARY_COLUMN_WIDTH = 340;
+const RELATION_COLUMN_WIDTH = 220;
 const EMPTY_SEARCH_RESULTS = Object.freeze({
   chapters: [] as Chapter[],
   characters: [] as Character[],
   scenes: [] as Scene[],
   items: [] as Item[],
 });
+
+export function buildChapterSynopsis(chapter: Pick<Chapter, 'outline' | 'content'>): string {
+  return chapter.outline?.trim() || chapter.content?.trim().slice(0, MAX_OUTLINE_PREVIEW_LENGTH) || '—';
+}
+
+export function buildChapterRelationTitleMap(
+  data: Pick<Novel, 'chapters' | 'chapterRelations'>
+): Map<string, Set<string>> {
+  const chapterTitleMap = new Map(data.chapters.map(chapter => [chapter.id, chapter.title || '未命名章节']));
+  const relationMap = new Map<string, Set<string>>();
+
+  data.chapterRelations.forEach(relation => {
+    const fromTitle = chapterTitleMap.get(relation.fromChapterId);
+    const toTitle = chapterTitleMap.get(relation.toChapterId);
+    if (!fromTitle || !toTitle) return;
+
+    if (!relationMap.has(relation.fromChapterId)) relationMap.set(relation.fromChapterId, new Set<string>());
+    if (!relationMap.has(relation.toChapterId)) relationMap.set(relation.toChapterId, new Set<string>());
+
+    relationMap.get(relation.fromChapterId)?.add(toTitle);
+    relationMap.get(relation.toChapterId)?.add(fromTitle);
+  });
+
+  return relationMap;
+}
 
 function loadFromStorage(): Novel {
   try {
@@ -559,6 +589,116 @@ export const useStore = () => {
     URL.revokeObjectURL(url);
   }
 
+  function escapeXml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('\'', '&apos;');
+  }
+
+  function downloadPlotOutlineExcel() {
+    const sortedVolumes = [...state.novel.volumes].sort((a, b) => a.order - b.order);
+    const relationMap = buildChapterRelationTitleMap(state.novel);
+
+    const rows: string[] = [];
+
+    for (const volume of sortedVolumes) {
+      const volumeChapters = state.novel.chapters
+        .filter(chapter => chapter.volumeId === volume.id)
+        .sort((a, b) => a.order - b.order);
+      if (volumeChapters.length === 0) continue;
+
+      volumeChapters.forEach((chapter, index) => {
+        const chapterTitle = chapter.title || '未命名章节';
+        const outline = buildChapterSynopsis(chapter);
+        const relatedTitles = [...(relationMap.get(chapter.id) ?? new Set<string>())];
+        const related = relatedTitles.length > 0 ? relatedTitles.join('、') : '—';
+        const cells: string[] = [];
+
+        if (index === 0) {
+          const mergeDown = volumeChapters.length - 1;
+          const mergeAttr = mergeDown > 0 ? ` ss:MergeDown="${mergeDown}"` : '';
+          cells.push(
+            `<Cell ss:StyleID="mergeCenter"${mergeAttr}><Data ss:Type="String">${escapeXml(volume.title || '未分卷')}</Data></Cell>`
+          );
+        }
+
+        cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(chapterTitle)}</Data></Cell>`);
+        cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(outline)}</Data></Cell>`);
+        cells.push(`<Cell ss:StyleID="body"><Data ss:Type="String">${escapeXml(related)}</Data></Cell>`);
+        rows.push(`<Row>${cells.join('')}</Row>`);
+      });
+    }
+
+    if (rows.length === 0) {
+      rows.push('<Row><Cell ss:StyleID="mergeCenter"><Data ss:Type="String">未分卷</Data></Cell><Cell ss:StyleID="body"><Data ss:Type="String">暂无章节</Data></Cell><Cell ss:StyleID="body"><Data ss:Type="String">—</Data></Cell><Cell ss:StyleID="body"><Data ss:Type="String">—</Data></Cell></Row>');
+    }
+
+    const content = `<?xml version="1.0" encoding="UTF-8"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="header">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+   <Font ss:Bold="1"/>
+   <Interior ss:Color="#E8F5E9" ss:Pattern="Solid"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="mergeCenter">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="body">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="情节整理">
+  <Table>
+   <Column ss:Width="${PROCESS_COLUMN_WIDTH}"/>
+   <Column ss:Width="${CHAPTER_COLUMN_WIDTH}"/>
+   <Column ss:Width="${SUMMARY_COLUMN_WIDTH}"/>
+   <Column ss:Width="${RELATION_COLUMN_WIDTH}"/>
+   <Row>
+    <Cell ss:StyleID="header"><Data ss:Type="String">目录（大概的过程）</Data></Cell>
+    <Cell ss:StyleID="header"><Data ss:Type="String">目录（章节标题）</Data></Cell>
+    <Cell ss:StyleID="header"><Data ss:Type="String">梗概</Data></Cell>
+    <Cell ss:StyleID="header"><Data ss:Type="String">关联的章节</Data></Cell>
+   </Row>
+   ${rows.join('')}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.novel.title || '小说'}-情节整理表.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportToJson(): string {
     return JSON.stringify(state.novel, null, 2);
   }
@@ -945,6 +1085,7 @@ export const useStore = () => {
     deleteItem,
     exportToTxt,
     downloadTxt,
+    downloadPlotOutlineExcel,
     exportToJson,
     downloadJson,
     importFromJson,
