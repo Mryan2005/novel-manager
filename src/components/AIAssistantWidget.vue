@@ -177,7 +177,7 @@
                   函数
                 </button>
               </template>
-              <div class="ai-temp-slider" :title="'温度: ' + (activeAIConfig?.temperature?.toFixed(1) ?? '0.7')">
+              <div v-if="!isClaudeModel" class="ai-temp-slider" :title="'温度: ' + (activeAIConfig?.temperature?.toFixed(1) ?? '0.7')">
                 <Thermometer class="w-3.5 h-3.5" />
                 <span class="text-xs text-[var(--text-muted)] min-w-[2.5rem] text-right">{{ activeAIConfig?.temperature?.toFixed(1) ?? '0.7' }}</span>
                 <input
@@ -320,6 +320,7 @@ const hasConfig = computed(() => {
 });
 
 const isEditorRoute = computed(() => route.path.startsWith('/editor'));
+const isClaudeModel = computed(() => activeAIConfig.value?.model?.toLowerCase().includes('claude') ?? false);
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
@@ -508,7 +509,8 @@ async function callOpenAiLike(
   }
 
   const endpoint = normalizeUrl(apiUrl, '/chat/completions');
-  const body: Record<string, unknown> = { model: model.trim(), messages, temperature };
+  const body: Record<string, unknown> = { model: model.trim(), messages };
+  if (!model.toLowerCase().includes('claude')) body.temperature = temperature;
   if (tools && tools.length > 0) body.tools = tools;
   if (enableJsonMode) body.response_format = { type: 'json_object' };
   if (thinkingLevel) {
@@ -597,7 +599,7 @@ async function callGemini(
     if (tl) config.thinkingConfig = { thinkingLevel: tl };
   }
 
-  config.temperature = temperature;
+  if (!model.toLowerCase().includes('claude')) config.temperature = temperature;
 
   if (enableJsonMode) {
     config.responseSchema = { type: 'JSON' };
