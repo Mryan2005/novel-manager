@@ -6,6 +6,11 @@ const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DRAFT_PREFIX = 'novel-draft-';
 const BACKUP_PREFIX = 'novel-backup-';
 const MAX_BACKUPS = 5;
+const MAX_OUTLINE_PREVIEW_LENGTH = 120;
+const PROCESS_COLUMN_WIDTH = 140;
+const CHAPTER_COLUMN_WIDTH = 180;
+const SUMMARY_COLUMN_WIDTH = 340;
+const RELATION_COLUMN_WIDTH = 220;
 const EMPTY_SEARCH_RESULTS = Object.freeze({
   chapters: [] as Chapter[],
   characters: [] as Character[],
@@ -595,7 +600,7 @@ export const useStore = () => {
 
       volumeChapters.forEach((chapter, index) => {
         const chapterTitle = chapter.title || '未命名章节';
-        const outline = chapter.outline?.trim() || chapter.content?.trim().slice(0, 120) || '';
+        const outline = chapter.outline?.trim() || chapter.content?.trim().slice(0, MAX_OUTLINE_PREVIEW_LENGTH) || '';
         const relatedTitles = [...(relationMap.get(chapter.id) ?? new Set<string>())];
         const related = relatedTitles.length > 0 ? relatedTitles.join('、') : '—';
         const cells: string[] = [];
@@ -658,10 +663,10 @@ export const useStore = () => {
  </Styles>
  <Worksheet ss:Name="情节整理">
   <Table>
-   <Column ss:Width="140"/>
-   <Column ss:Width="180"/>
-   <Column ss:Width="340"/>
-   <Column ss:Width="220"/>
+   <Column ss:Width="${PROCESS_COLUMN_WIDTH}"/>
+   <Column ss:Width="${CHAPTER_COLUMN_WIDTH}"/>
+   <Column ss:Width="${SUMMARY_COLUMN_WIDTH}"/>
+   <Column ss:Width="${RELATION_COLUMN_WIDTH}"/>
    <Row>
     <Cell ss:StyleID="header"><Data ss:Type="String">目录（大概的过程）</Data></Cell>
     <Cell ss:StyleID="header"><Data ss:Type="String">目录（章节标题）</Data></Cell>

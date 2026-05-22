@@ -100,6 +100,14 @@
             系列管理
           </router-link>
           <router-link
+            to="/plot-outline"
+            class="nav-link"
+            :class="$route.path === '/plot-outline' ? 'nav-link-active' : ''"
+          >
+            <Share2 class="w-5 h-5" />
+            整理情节
+          </router-link>
+          <router-link
             to="/characters"
             class="nav-link"
             :class="$route.path === '/characters' ? 'nav-link-active' : ''"
