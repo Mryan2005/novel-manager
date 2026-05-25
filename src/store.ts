@@ -606,18 +606,19 @@ export const useStore = () => {
     const pages: string[] = [];
 
     const pushPage = (content: string) => {
-      pages.push(`<div class="page">${content}</div>`);
+      pages.push(content);
     };
 
     const formatText = (text: string) => escapeHtml(text).replaceAll('\n', '<br />');
 
+    const formatAge = (value: unknown) => {
+      if (typeof value === 'string' && value.trim() === '') return '—';
+      const ageNumber = Number(value);
+      return Number.isFinite(ageNumber) ? ageNumber.toString() : '—';
+    };
+
     state.novel.characters.forEach(character => {
-      const rawAge = character.age as unknown;
-      const ageText = typeof rawAge === 'string' ? rawAge.trim() : '';
-      const ageNumber = typeof rawAge === 'string' ? Number(rawAge) : Number(character.age);
-      const ageValue = ageText === '' && typeof rawAge === 'string'
-        ? '—'
-        : (Number.isFinite(ageNumber) ? ageNumber.toString() : '—');
+      const ageValue = formatAge(character.age);
       const lines = [
         `<p><strong>性别：</strong>${escapeHtml(character.gender || '—')}</p>`,
         `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
@@ -703,10 +704,9 @@ export const useStore = () => {
       pushPage('<h2>暂无可导出的内容</h2>');
     }
 
-    if (pages.length > 0) {
-      const lastIndex = pages.length - 1;
-      pages[lastIndex] = pages[lastIndex]!.replace('class="page"', 'class="page page-last"');
-    }
+    const pageMarkup = pages.map((content, index) => (
+      `<div class="page${index === pages.length - 1 ? ' page-last' : ''}">${content}</div>`
+    )).join('\n');
 
     return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -724,7 +724,7 @@ export const useStore = () => {
 </style>
 </head>
 <body>
-${pages.join('\n')}
+${pageMarkup}
 </body>
 </html>`;
   }
