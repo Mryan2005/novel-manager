@@ -612,8 +612,12 @@ export const useStore = () => {
     const formatText = (text: string) => escapeHtml(text).replaceAll('\n', '<br />');
 
     state.novel.characters.forEach(character => {
-      const ageNumber = Number(character.age);
-      const ageValue = Number.isFinite(ageNumber) ? ageNumber.toString() : '—';
+      const rawAge = character.age as unknown;
+      const ageText = typeof rawAge === 'string' ? rawAge.trim() : '';
+      const ageNumber = typeof rawAge === 'string' ? Number(rawAge) : Number(character.age);
+      const ageValue = ageText === '' && typeof rawAge === 'string'
+        ? '—'
+        : (Number.isFinite(ageNumber) ? ageNumber.toString() : '—');
       const lines = [
         `<p><strong>性别：</strong>${escapeHtml(character.gender || '—')}</p>`,
         `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
@@ -701,10 +705,7 @@ export const useStore = () => {
 
     if (pages.length > 0) {
       const lastIndex = pages.length - 1;
-      const lastPage = pages[lastIndex];
-      if (lastPage) {
-        pages[lastIndex] = lastPage.replace('class="page"', 'class="page page-last"');
-      }
+      pages[lastIndex] = pages[lastIndex]!.replace('class="page"', 'class="page page-last"');
     }
 
     return `<!DOCTYPE html>
