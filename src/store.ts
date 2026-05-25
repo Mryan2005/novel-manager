@@ -589,6 +589,15 @@ export const useStore = () => {
     URL.revokeObjectURL(url);
   }
 
+  function escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('\'', '&#39;');
+  }
+
   function escapeXml(value: string): string {
     return value
       .replaceAll('&', '&amp;')
@@ -596,6 +605,144 @@ export const useStore = () => {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll('\'', '&apos;');
+  }
+
+  function exportToWord(): string {
+    const pages: string[] = [];
+
+    const pushPage = (content: string) => {
+      pages.push(content);
+    };
+
+    const formatText = (text: string) => escapeHtml(text).replaceAll('\n', '<br />');
+
+    const formatAge = (value: unknown) => {
+      if (typeof value === 'string' && value.trim() === '') return '—';
+      const ageNumber = Number(value);
+      return Number.isFinite(ageNumber) ? ageNumber.toString() : '—';
+    };
+
+    state.novel.characters.forEach(character => {
+      const ageValue = formatAge(character.age);
+      const lines = [
+        `<p><strong>性别：</strong>${escapeHtml(character.gender || '—')}</p>`,
+        `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
+        `<p><strong>身份：</strong>${escapeHtml(character.role || '—')}</p>`,
+        `<p><strong>描述：</strong>${escapeHtml(character.description || '—')}</p>`,
+      ];
+      if (character.traits.length > 0) {
+        lines.push(`<p><strong>性格特点：</strong>${escapeHtml(character.traits.join('、'))}</p>`);
+      }
+      if (character.tags.length > 0) {
+        lines.push(`<p><strong>标签：</strong>${escapeHtml(character.tags.join('、'))}</p>`);
+      }
+      pushPage([
+        `<h2>角色设定</h2>`,
+        `<h3>${escapeHtml(character.name || '未命名角色')}</h3>`,
+        ...lines,
+      ].join(''));
+    });
+
+    state.novel.scenes.forEach(scene => {
+      const lines = [
+        `<p><strong>地点：</strong>${escapeHtml(scene.location || '—')}</p>`,
+        `<p><strong>描述：</strong>${escapeHtml(scene.description || '—')}</p>`,
+      ];
+      if (scene.atmosphere.length > 0) {
+        lines.push(`<p><strong>氛围：</strong>${escapeHtml(scene.atmosphere.join('、'))}</p>`);
+      }
+      pushPage([
+        `<h2>地点设定</h2>`,
+        `<h3>${escapeHtml(scene.name || '未命名地点')}</h3>`,
+        ...lines,
+      ].join(''));
+    });
+
+    state.novel.items.forEach(item => {
+      const lines = [
+        `<p><strong>类型：</strong>${escapeHtml(item.type || '—')}</p>`,
+        `<p><strong>所属：</strong>${escapeHtml(item.owner || '—')}</p>`,
+        `<p><strong>描述：</strong>${escapeHtml(item.description || '—')}</p>`,
+      ];
+      if (item.abilities.length > 0) {
+        lines.push(`<p><strong>能力：</strong>${escapeHtml(item.abilities.join('、'))}</p>`);
+      }
+      pushPage([
+        `<h2>物品设定</h2>`,
+        `<h3>${escapeHtml(item.name || '未命名物品')}</h3>`,
+        ...lines,
+      ].join(''));
+    });
+
+    const sortedVolumes = [...state.novel.volumes].sort((a, b) => a.order - b.order);
+    const volumeMap = new Map(sortedVolumes.map(volume => [volume.id, volume.title || '未分卷']));
+
+    const pushChapterPages = (volumeTitle: string, chapters: Chapter[]) => {
+      chapters.forEach(chapter => {
+        const chapterTitle = chapter.title || '未命名章节';
+        const content = chapter.content?.trim() || '（无正文内容）';
+        pushPage([
+          `<h2>${escapeHtml(volumeTitle)}</h2>`,
+          `<h3>${escapeHtml(chapterTitle)}</h3>`,
+          `<div class="content">${formatText(content)}</div>`,
+        ].join(''));
+      });
+    };
+
+    sortedVolumes.forEach(volume => {
+      const chapters = state.novel.chapters
+        .filter(chapter => chapter.volumeId === volume.id)
+        .sort((a, b) => a.order - b.order);
+      if (chapters.length > 0) {
+        pushChapterPages(volume.title || '未分卷', chapters);
+      }
+    });
+
+    const orphanChapters = state.novel.chapters
+      .filter(chapter => !volumeMap.has(chapter.volumeId))
+      .sort((a, b) => a.order - b.order);
+    if (orphanChapters.length > 0) {
+      pushChapterPages('未分卷', orphanChapters);
+    }
+
+    if (pages.length === 0) {
+      pushPage('<h2>暂无可导出的内容</h2>');
+    }
+
+    const pageMarkup = pages.map((content, index) => (
+      `<div class="page${index === pages.length - 1 ? ' page-last' : ''}">${content}</div>`
+    )).join('\n');
+
+    return `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(state.novel.title || '小说')}</title>
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", "SimSun", sans-serif; color: #1f2937; }
+  h2 { font-size: 20pt; margin: 0 0 10pt; }
+  h3 { font-size: 14pt; margin: 0 0 8pt; }
+  p { margin: 6pt 0; line-height: 1.6; }
+  .content { margin-top: 10pt; line-height: 1.8; white-space: pre-wrap; }
+  .page { page-break-after: always; padding: 12pt 10pt; }
+  .page.page-last { page-break-after: auto; }
+</style>
+</head>
+<body>
+${pageMarkup}
+</body>
+</html>`;
+  }
+
+  function downloadWord() {
+    const content = exportToWord();
+    const blob = new Blob([content], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.novel.title || '小说'}.doc`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function downloadPlotOutlineExcel() {
@@ -1085,6 +1232,7 @@ export const useStore = () => {
     deleteItem,
     exportToTxt,
     downloadTxt,
+    downloadWord,
     downloadPlotOutlineExcel,
     exportToJson,
     downloadJson,
