@@ -599,7 +599,12 @@ export const useStore = () => {
   }
 
   function escapeXml(value: string): string {
-    return escapeHtml(value);
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('\'', '&apos;');
   }
 
   function exportToWord(): string {
