@@ -612,7 +612,8 @@ export const useStore = () => {
     const formatText = (text: string) => escapeHtml(text).replaceAll('\n', '<br />');
 
     state.novel.characters.forEach(character => {
-      const ageValue = Number.isFinite(character.age) ? character.age.toString() : '—';
+      const ageNumber = Number(character.age);
+      const ageValue = Number.isFinite(ageNumber) ? ageNumber.toString() : '—';
       const lines = [
         `<p><strong>性别：</strong>${escapeHtml(character.gender || '—')}</p>`,
         `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
