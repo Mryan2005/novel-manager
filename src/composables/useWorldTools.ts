@@ -1,5 +1,3 @@
-import { useStore } from '../store';
-
 interface ToolDef {
   type: 'function';
   function: {
@@ -13,9 +11,25 @@ interface ToolDef {
   };
 }
 
-export function useWorldTools() {
-  const store = useStore();
+interface NovelData {
+  volumes?: { id: string; title: string }[];
+  chapters?: { id: string; title: string; content: string; outline: string; status: string; wordCount: number; volumeId: string }[];
+  characters?: { id: string; name: string; gender: string; age: number; role: string; description: string; traits: string[] }[];
+  scenes?: { id: string; name: string; location: string; description: string; atmosphere: string[] }[];
+  items?: { id: string; name: string; type: string; description: string; owner: string; abilities: string[] }[];
+}
 
+function loadNovelData(): NovelData {
+  try {
+    const raw = localStorage.getItem('novel-workshop-data');
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch { /* ignore */ }
+  return {};
+}
+
+export function useWorldTools() {
   function getToolDefinitions(): ToolDef[] {
     return [
       {
@@ -78,11 +92,15 @@ export function useWorldTools() {
   }
 
   function executeTool(name: string, args: Record<string, string>): string {
+    const data = loadNovelData();
+
     switch (name) {
       case 'read_chapter': {
-        const ch = store.chapters.value.find(c => c.id === args.chapterId);
+        const chapters = data.chapters || [];
+        const volumes = data.volumes || [];
+        const ch = chapters.find(c => c.id === args.chapterId);
         if (!ch) return JSON.stringify({ error: `未找到章节: ${args.chapterId}` });
-        const vol = store.volumes.value.find(v => v.id === ch.volumeId);
+        const vol = volumes.find(v => v.id === ch.volumeId);
         return JSON.stringify({
           id: ch.id,
           title: ch.title,
@@ -94,7 +112,8 @@ export function useWorldTools() {
         });
       }
       case 'read_character': {
-        const ch = store.characters.value.find(c => c.id === args.characterId);
+        const characters = data.characters || [];
+        const ch = characters.find(c => c.id === args.characterId);
         if (!ch) return JSON.stringify({ error: `未找到角色: ${args.characterId}` });
         return JSON.stringify({
           id: ch.id,
@@ -107,7 +126,8 @@ export function useWorldTools() {
         });
       }
       case 'read_location': {
-        const sc = store.scenes.value.find(s => s.id === args.sceneId);
+        const scenes = data.scenes || [];
+        const sc = scenes.find(s => s.id === args.sceneId);
         if (!sc) return JSON.stringify({ error: `未找到场景: ${args.sceneId}` });
         return JSON.stringify({
           id: sc.id,
@@ -118,7 +138,8 @@ export function useWorldTools() {
         });
       }
       case 'read_item': {
-        const it = store.items.value.find(i => i.id === args.itemId);
+        const items = data.items || [];
+        const it = items.find(i => i.id === args.itemId);
         if (!it) return JSON.stringify({ error: `未找到物品: ${args.itemId}` });
         return JSON.stringify({
           id: it.id,
