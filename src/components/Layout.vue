@@ -151,6 +151,14 @@
             <Edit class="w-5 h-5" />
             小说编辑
           </router-link>
+          <router-link
+            to="/world-simulation"
+            class="nav-link"
+            :class="$route.path === '/world-simulation' ? 'nav-link-active' : ''"
+          >
+            <CircuitBoard class="w-5 h-5" />
+            世界模拟
+          </router-link>
           <div class="my-3 border-t border-[var(--border)]"></div>
           <router-link
             to="/settings"
@@ -189,7 +197,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';

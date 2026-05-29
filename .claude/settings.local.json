@@ -20,7 +20,8 @@
       "Bash(mv src/views/Editor.vue.tmp src/views/Editor.vue)",
       "Bash(python *)",
       "Bash(pnpm install *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(curl -s http://localhost:5000/)"
     ]
   }
 }

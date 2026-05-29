@@ -9,6 +9,7 @@ import Editor from '../views/Editor.vue';
 import Series from '../views/Series.vue';
 import PlotOutline from '../views/PlotOutline.vue';
 import Settings from '../views/Settings.vue';
+import WorldSimulation from '../views/WorldSimulation.vue';
 
 const routes = [
   { path: '/', redirect: '/home' },
@@ -22,6 +23,7 @@ const routes = [
   { path: '/search', name: 'Search', component: Search },
   { path: '/editor', name: 'Editor', component: Editor },
   { path: '/editor/:id', name: 'EditorWithId', component: Editor },
+  { path: '/world-simulation', name: 'WorldSimulation', component: WorldSimulation },
   { path: '/settings', name: 'Settings', component: Settings },
 ];
 
