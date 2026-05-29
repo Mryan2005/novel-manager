@@ -630,7 +630,7 @@ export const useStore = () => {
           `<p><strong>性别：</strong>${escapeHtml(c.gender || '—')}</p>`,
           `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
           `<p><strong>身份：</strong>${escapeHtml(c.role || '—')}</p>`,
-          `<p><strong>描述：</strong>${escapeHtml(c.description || '—')}</p>`,
+          `<p><strong>描述：</strong>${formatText(c.description || '—')}</p>`,
         ];
         if (c.traits.length > 0) lines.push(`<p><strong>性格特点：</strong>${escapeHtml(c.traits.join('、'))}</p>`);
         if (c.tags.length > 0) lines.push(`<p><strong>标签：</strong>${escapeHtml(c.tags.join('、'))}</p>`);
@@ -644,7 +644,7 @@ export const useStore = () => {
       const cards = state.novel.scenes.map(s => {
         const lines = [
           `<p><strong>地点：</strong>${escapeHtml(s.location || '—')}</p>`,
-          `<p><strong>描述：</strong>${escapeHtml(s.description || '—')}</p>`,
+          `<p><strong>描述：</strong>${formatText(s.description || '—')}</p>`,
         ];
         if (s.atmosphere.length > 0) lines.push(`<p><strong>氛围：</strong>${escapeHtml(s.atmosphere.join('、'))}</p>`);
         return `<div class="card"><h3>${escapeHtml(s.name || '未命名地点')}</h3>${lines.join('')}</div>`;
@@ -658,7 +658,7 @@ export const useStore = () => {
         const lines = [
           `<p><strong>类型：</strong>${escapeHtml(i.type || '—')}</p>`,
           `<p><strong>所属：</strong>${escapeHtml(i.owner || '—')}</p>`,
-          `<p><strong>描述：</strong>${escapeHtml(i.description || '—')}</p>`,
+          `<p><strong>描述：</strong>${formatText(i.description || '—')}</p>`,
         ];
         if (i.abilities.length > 0) lines.push(`<p><strong>能力：</strong>${escapeHtml(i.abilities.join('、'))}</p>`);
         return `<div class="card"><h3>${escapeHtml(i.name || '未命名物品')}</h3>${lines.join('')}</div>`;
