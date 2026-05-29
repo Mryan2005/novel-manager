@@ -2,9 +2,11 @@ import { ref, computed, watch } from 'vue';
 import type { WorldSimSession, WSMessage, WSMode, WSSubMode, SuperPowerPlan } from '../types-world-sim';
 import type { MemoryCard } from '../types-world-sim';
 import { useMemoryCards } from './useMemoryCards';
+import { useNovelManager } from './useNovelManager';
 
-const SESSIONS_KEY = 'novel-workshop-worldsim-sessions';
-const ACTIVE_KEY = 'novel-workshop-worldsim-active';
+let sessionsKey = 'novel-workshop-worldsim-sessions';
+let activeKey = 'novel-workshop-worldsim-active';
+let initialized = false;
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -12,7 +14,7 @@ function generateId(): string {
 
 function loadSessions(): WorldSimSession[] {
   try {
-    const raw = localStorage.getItem(SESSIONS_KEY);
+    const raw = localStorage.getItem(sessionsKey);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -26,18 +28,18 @@ function loadSessions(): WorldSimSession[] {
 }
 
 function saveSessions(sessions: WorldSimSession[]) {
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+  localStorage.setItem(sessionsKey, JSON.stringify(sessions));
 }
 
 function loadActiveId(): string | null {
-  return localStorage.getItem(ACTIVE_KEY);
+  return localStorage.getItem(activeKey);
 }
 
 function saveActiveId(id: string | null) {
   if (id) {
-    localStorage.setItem(ACTIVE_KEY, id);
+    localStorage.setItem(activeKey, id);
   } else {
-    localStorage.removeItem(ACTIVE_KEY);
+    localStorage.removeItem(activeKey);
   }
 }
 
@@ -58,6 +60,24 @@ watch(sessions, (v) => saveSessions(v), { deep: true });
 watch(activeSessionId, (id) => saveActiveId(id));
 
 export function useWorldSimulation() {
+  if (!initialized) {
+    initialized = true;
+    const { getKey, activeNovelId, migrateIfNeeded } = useNovelManager();
+    migrateIfNeeded();
+
+    sessionsKey = getKey('novel-workshop-worldsim-sessions');
+    activeKey = getKey('novel-workshop-worldsim-active');
+
+    watch(activeNovelId, () => {
+      saveSessions(sessions.value);
+      saveActiveId(activeSessionId.value);
+      sessionsKey = getKey('novel-workshop-worldsim-sessions');
+      activeKey = getKey('novel-workshop-worldsim-active');
+      sessions.value = loadSessions();
+      activeSessionId.value = loadActiveId();
+    });
+  }
+
   function createSession(title?: string, mode?: WSMode, subMode?: WSSubMode): WorldSimSession {
     const now = Date.now();
     const session: WorldSimSession = {

@@ -263,6 +263,14 @@
             </div>
           </div>
 
+          <!-- HTTP on HTTPS warning -->
+          <div
+            v-if="isHttpsPage && settings.webdavUrl.startsWith('http://')"
+            class="p-3 rounded-xl text-sm text-amber-700 bg-amber-50 border border-amber-200"
+          >
+            当前页面使用 HTTPS，但 WebDAV 地址使用 HTTP。浏览器可能会阻止此请求。建议将 WebDAV 地址改为 HTTPS，或通过反向代理访问。
+          </div>
+
           <!-- Status message -->
           <div
             v-if="wdav.statusMessage.value"
@@ -320,6 +328,7 @@ import { useWebDAV } from '../composables/useWebDAV';
 
 const { settings, activeAIConfig, addAIConfig, removeAIConfig, setActiveAIConfig, resetFontSize, resetDisplayScale, clearAllCache, clearNovelData, clearDrafts, clearBackups, getCacheStats, formatSize } = useSettings();
 const wdav = useWebDAV();
+const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
 const stats = computed(() => getCacheStats());
 

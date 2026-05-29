@@ -1,4 +1,5 @@
 import { ref, computed, watch } from 'vue';
+import { useNovelManager } from './useNovelManager';
 
 const SETTINGS_KEY = 'novel-workshop-settings';
 
@@ -210,6 +211,21 @@ export function useSettings() {
   }
 
   function clearNovelData() {
+    const { getKey, activeNovelId } = useNovelManager();
+    const id = activeNovelId.value;
+    const prefixes = [
+      `novel-workshop-data-${id}`,
+      `novel-workshop-timestamp-${id}`,
+      `novel-workshop-ai-chats-${id}`,
+      `novel-workshop-ai-active-session-${id}`,
+      `novel-workshop-worldsim-sessions-${id}`,
+      `novel-workshop-worldsim-active-${id}`,
+      `novel-workshop-worldsim-memories-${id}`,
+    ];
+    for (const key of prefixes) {
+      localStorage.removeItem(key);
+    }
+    // Also clear legacy non-scoped keys (migration path)
     localStorage.removeItem('novel-workshop-data');
     localStorage.removeItem('novel-workshop-timestamp');
     window.location.reload();
@@ -244,7 +260,7 @@ export function useSettings() {
       if (!key) continue;
       const val = localStorage.getItem(key) || '';
       const size = new Blob([val]).size;
-      if (key === 'novel-workshop-data' || key === 'novel-workshop-timestamp') {
+      if (key.startsWith('novel-workshop-data') || key.startsWith('novel-workshop-timestamp')) {
         novelData += size;
       } else if (key.startsWith('novel-draft-')) {
         drafts += size;

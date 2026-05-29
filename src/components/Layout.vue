@@ -6,6 +6,48 @@
           <BookOpen class="text-white w-5 h-5" />
         </div>
         <span class="font-bold text-xl text-gradient">小说工坊</span>
+
+        <!-- Novel selector -->
+        <div class="relative" ref="novelDropdownRef">
+          <button
+            @click="showNovelDropdown = !showNovelDropdown"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-alt)] transition-colors text-sm text-[var(--text)] min-w-[140px]"
+          >
+            <BookOpen class="w-3.5 h-3.5 text-[var(--primary)]" />
+            <span class="truncate max-w-[120px]">{{ activeNovel?.title || '我的小说' }}</span>
+            <ChevronDown class="w-3 h-3 text-[var(--text-muted)]" :class="{ 'rotate-180': showNovelDropdown }" />
+          </button>
+
+          <div v-if="showNovelDropdown" class="novel-dropdown-menu">
+            <div class="novel-dropdown-header">切换小说</div>
+            <button
+              v-for="novel in novels"
+              :key="novel.id"
+              @click="handleSwitchNovel(novel.id); showNovelDropdown = false"
+              class="novel-dropdown-item"
+              :class="{ active: novel.id === activeNovelId }"
+            >
+              <BookOpen class="w-3.5 h-3.5 shrink-0" />
+              <span class="truncate">{{ novel.title }}</span>
+              <span v-if="novel.id === activeNovelId" class="text-xs text-[var(--primary)] ml-auto">当前</span>
+            </button>
+            <div class="novel-dropdown-divider"></div>
+            <button @click="showCreateNovel = true; showNovelDropdown = false" class="novel-dropdown-item">
+              <Plus class="w-3.5 h-3.5" /> 新建小说
+            </button>
+            <label class="novel-dropdown-item cursor-pointer">
+              <Upload class="w-3.5 h-3.5" /> 导入 JSON
+              <input type="file" accept=".json" class="hidden" @change="handleImportNovelJson" />
+            </label>
+            <button
+              v-if="novels.length > 1"
+              @click="handleDeleteNovel(activeNovelId); showNovelDropdown = false"
+              class="novel-dropdown-item text-red-500 hover:bg-red-50"
+            >
+              <Trash2 class="w-3.5 h-3.5" /> 删除当前小说
+            </button>
+          </div>
+        </div>
       </div>
       <div class="flex items-center gap-3">
         <div class="relative w-56">
@@ -191,13 +233,31 @@
       @close="showImportDialog = false"
       @import="handleImport"
     />
+
+    <!-- Create novel dialog -->
+    <div v-if="showCreateNovel" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showCreateNovel = false">
+      <div class="card p-6 max-w-sm w-full mx-4 space-y-4">
+        <h3 class="text-lg font-semibold text-[var(--text)]">新建小说</h3>
+        <input
+          v-model="newNovelTitle"
+          type="text"
+          class="input w-full"
+          placeholder="小说名称"
+          @keyup.enter="handleCreateNovel"
+        />
+        <div class="flex gap-3 justify-end">
+          <button @click="showCreateNovel = false" class="btn btn-secondary text-sm">取消</button>
+          <button @click="handleCreateNovel" class="btn btn-primary text-sm" :disabled="!newNovelTitle.trim()">创建</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard, Plus, Trash2 } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';
@@ -205,6 +265,7 @@ import type { ExportBundle } from '../types';
 import AIAssistantWidget from './AIAssistantWidget.vue';
 import ExportDialog from './ExportDialog.vue';
 import ImportDialog from './ImportDialog.vue';
+import { useNovelManager } from '../composables/useNovelManager';
 
 const { novel, downloadTxt, downloadWord, downloadPlotOutlineExcel, buildExportParts, importParts, wrapLegacyData } = useStore();
 const { settings, importSettings } = useSettings();
@@ -222,6 +283,12 @@ const aiVisible = ref(false);
 
 const showExportDialog = ref(false);
 const showImportDialog = ref(false);
+const showNovelDropdown = ref(false);
+const showCreateNovel = ref(false);
+const newNovelTitle = ref('');
+const novelDropdownRef = ref<HTMLElement | null>(null);
+
+const { novels, activeNovelId, activeNovel, createNovel, switchNovel, deleteNovel } = useNovelManager();
 const importSections = ref<{ key: string; label: string; summary: string; checked: boolean }[]>([]);
 const pendingImportData = ref<ExportBundle | null>(null);
 
@@ -443,4 +510,140 @@ const handleImport = (selected: string[]) => {
   importSuccess.value = true;
   setTimeout(() => { importMessage.value = ''; }, 3000);
 };
+
+// === Novel management ===
+function handleSwitchNovel(id: string) {
+  switchNovel(id);
+}
+
+function handleCreateNovel() {
+  const title = newNovelTitle.value.trim();
+  if (!title) return;
+  createNovel(title);
+  newNovelTitle.value = '';
+  showCreateNovel.value = false;
+}
+
+function handleDeleteNovel(id: string) {
+  if (novels.value.length <= 1) return;
+  deleteNovel(id);
+}
+
+async function handleImportNovelJson(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    // Determine novel title
+    const title = data.title || data.articles?.title || file.name.replace('.json', '');
+    const novel = createNovel(title);
+
+    // If it's an ExportBundle, import the articles
+    if (data.articles?.chapters) {
+      const scopedDataKey = `novel-workshop-data-${novel.id}`;
+      const novelData = {
+        title: data.articles.title || title,
+        volumes: data.articles.volumes || [],
+        chapters: data.articles.chapters || [],
+        chapterSeries: data.articles.chapterSeries || [],
+        chapterRelations: data.articles.chapterRelations || [],
+        characters: data.lore?.characters || [],
+        scenes: data.lore?.scenes || [],
+        items: data.lore?.items || [],
+        dayCount: data.dayCount || {},
+      };
+      localStorage.setItem(scopedDataKey, JSON.stringify(novelData));
+    } else if (data.chapters) {
+      // Direct Novel data
+      const scopedDataKey = `novel-workshop-data-${novel.id}`;
+      localStorage.setItem(scopedDataKey, JSON.stringify(data));
+    }
+
+    importMessage.value = `已导入小说「${title}」`;
+    importSuccess.value = true;
+    setTimeout(() => { importMessage.value = ''; }, 3000);
+    // Reload to apply the new data
+    window.location.reload();
+  } catch {
+    importMessage.value = '导入失败：无法解析 JSON 文件';
+    importSuccess.value = false;
+    setTimeout(() => { importMessage.value = ''; }, 3000);
+  }
+
+  input.value = '';
+}
+
+// Click outside to close novel dropdown
+function handleClickOutside(e: MouseEvent) {
+  if (novelDropdownRef.value && !novelDropdownRef.value.contains(e.target as Node)) {
+    showNovelDropdown.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+</script>
+
+<style scoped>
+.novel-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.novel-dropdown-header {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.novel-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.novel-dropdown-item:hover {
+  background: var(--surface-alt);
+}
+
+.novel-dropdown-item.active {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.novel-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+</style>
 </script>

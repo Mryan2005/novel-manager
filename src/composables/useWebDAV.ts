@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { useNovelManager, type NovelMeta } from './useNovelManager';
 
 export interface WebDAVConfig {
   url: string;
@@ -6,13 +7,14 @@ export interface WebDAVConfig {
   password: string;
 }
 
-const KEYS = [
+const NOVEL_KEYS = [
   'novel-workshop-data',
-  'novel-workshop-settings',
-  'novel-workshop-worldsim-sessions',
-  'novel-workshop-worldsim-memories',
   'novel-workshop-ai-chats',
-] as const;
+  'novel-workshop-ai-active-session',
+  'novel-workshop-worldsim-sessions',
+  'novel-workshop-worldsim-active',
+  'novel-workshop-worldsim-memories',
+];
 
 function authHeaders(config: WebDAVConfig): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -22,13 +24,9 @@ function authHeaders(config: WebDAVConfig): Record<string, string> {
   return headers;
 }
 
-function buildUrl(base: string, key: string): string {
-  let clean = base.replace(/\/+$/, '');
-  // Auto-upgrade to HTTPS when page is served over HTTPS (mixed content prevention)
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && clean.startsWith('http://')) {
-    clean = clean.replace(/^http:\/\//, 'https://');
-  }
-  return `${clean}/${key}.json`;
+function buildUrl(base: string, ...parts: string[]): string {
+  const clean = base.replace(/\/+$/, '');
+  return [clean, ...parts].join('/');
 }
 
 export function useWebDAV() {
@@ -43,10 +41,10 @@ export function useWebDAV() {
     setTimeout(() => {
       statusMessage.value = '';
       statusType.value = '';
-    }, 4000);
+    }, 6000);
   }
 
-  /** Upload all localStorage keys to WebDAV as JSON files */
+  /** Upload all novels + settings to WebDAV */
   async function uploadAll(config: WebDAVConfig): Promise<boolean> {
     if (!config.url) {
       setStatus('请先配置 WebDAV 地址', 'error');
@@ -55,36 +53,68 @@ export function useWebDAV() {
 
     uploading.value = true;
     try {
-      for (const key of KEYS) {
-        const raw = localStorage.getItem(key);
-        const data = raw ? raw : '{}';
-        const url = buildUrl(config.url, key);
+      const { novels } = useNovelManager();
 
-        const res = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...authHeaders(config),
-          },
-          body: data,
-        });
+      // Upload novel list
+      const novelListUrl = buildUrl(config.url, 'novel-list.json');
+      let res = await fetch(novelListUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
+        body: JSON.stringify(novels.value),
+      });
+      if (!res.ok) {
+        setStatus(`上传 novel-list.json 失败: ${res.status}`, 'error');
+        return false;
+      }
 
-        if (!res.ok) {
-          setStatus(`上传 ${key} 失败: ${res.status} ${res.statusText}`, 'error');
-          return false;
+      // Upload settings
+      const settingsRaw = localStorage.getItem('novel-workshop-settings');
+      res = await fetch(buildUrl(config.url, 'novel-workshop-settings.json'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
+        body: settingsRaw || '{}',
+      });
+      if (!res.ok) {
+        setStatus(`上传 settings 失败: ${res.status}`, 'error');
+        return false;
+      }
+
+      // Upload each novel's data
+      for (const novel of novels.value) {
+        for (const baseKey of NOVEL_KEYS) {
+          const scopedKey = `${baseKey}-${novel.id}`;
+          const raw = localStorage.getItem(scopedKey);
+          const data = raw || '{}';
+          const url = buildUrl(config.url, 'novels', novel.id, `${baseKey}.json`);
+
+          res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
+            body: data,
+          });
+          if (!res.ok) {
+            setStatus(`上传 ${novel.title}/${baseKey}.json 失败: ${res.status}`, 'error');
+            return false;
+          }
         }
       }
-      setStatus(`成功上传 ${KEYS.length} 个文件到 WebDAV`, 'success');
+
+      setStatus(`成功备份 ${novels.value.length} 部小说到 WebDAV`, 'success');
       return true;
     } catch (e) {
-      setStatus(`上传失败: ${e instanceof Error ? e.message : String(e)}`, 'error');
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        setStatus('连接失败：请检查 WebDAV 地址是否可访问。如果页面使用 HTTPS，WebDAV 也必须使用 HTTPS。', 'error');
+      } else {
+        setStatus(`上传失败: ${msg}`, 'error');
+      }
       return false;
     } finally {
       uploading.value = false;
     }
   }
 
-  /** Download all data from WebDAV and write to localStorage */
+  /** Download all novels + settings from WebDAV and restore to localStorage */
   async function downloadAll(config: WebDAVConfig): Promise<boolean> {
     if (!config.url) {
       setStatus('请先配置 WebDAV 地址', 'error');
@@ -93,32 +123,76 @@ export function useWebDAV() {
 
     downloading.value = true;
     try {
-      for (const key of KEYS) {
-        const url = buildUrl(config.url, key);
-
-        const res = await fetch(url, {
-          method: 'GET',
-          headers: authHeaders(config),
-        });
-
-        if (!res.ok) {
-          if (res.status === 404) continue; // skip missing files
-          setStatus(`下载 ${key} 失败: ${res.status} ${res.statusText}`, 'error');
-          return false;
-        }
-
-        const text = await res.text();
-        // Validate JSON before writing
-        try { JSON.parse(text); } catch {
-          setStatus(`${key}.json 内容不是有效的 JSON`, 'error');
-          return false;
-        }
-        localStorage.setItem(key, text);
+      // Download novel list
+      let res = await fetch(buildUrl(config.url, 'novel-list.json'), {
+        headers: authHeaders(config),
+      });
+      if (!res.ok && res.status !== 404) {
+        setStatus(`下载 novel-list.json 失败: ${res.status}`, 'error');
+        return false;
       }
-      setStatus('成功从 WebDAV 下载并恢复所有数据，请刷新页面', 'success');
+
+      let novels: NovelMeta[] = [];
+      if (res.ok) {
+        const text = await res.text();
+        try { novels = JSON.parse(text); } catch {
+          setStatus('novel-list.json 格式无效', 'error');
+          return false;
+        }
+        localStorage.setItem('novel-workshop-novels', text);
+      }
+
+      // Download settings
+      res = await fetch(buildUrl(config.url, 'novel-workshop-settings.json'), {
+        headers: authHeaders(config),
+      });
+      if (res.ok) {
+        const text = await res.text();
+        try { JSON.parse(text); } catch {
+          setStatus('settings.json 格式无效', 'error');
+          return false;
+        }
+        localStorage.setItem('novel-workshop-settings', text);
+      }
+
+      // Download each novel's data
+      let restored = 0;
+      for (const novel of novels) {
+        for (const baseKey of NOVEL_KEYS) {
+          const url = buildUrl(config.url, 'novels', novel.id, `${baseKey}.json`);
+          res = await fetch(url, { headers: authHeaders(config) });
+
+          if (!res.ok) {
+            if (res.status === 404) continue;
+            setStatus(`下载 novels/${novel.title}/${baseKey}.json 失败: ${res.status}`, 'error');
+            return false;
+          }
+
+          const text = await res.text();
+          try { JSON.parse(text); } catch {
+            setStatus(`${novel.title}/${baseKey}.json 格式无效`, 'error');
+            return false;
+          }
+          const scopedKey = `${baseKey}-${novel.id}`;
+          localStorage.setItem(scopedKey, text);
+        }
+        restored++;
+      }
+
+      // Set active novel to the first one if available
+      if (novels.length > 0) {
+        localStorage.setItem('novel-workshop-active-novel', novels[0]!.id);
+      }
+
+      setStatus(`成功恢复 ${restored} 部小说，请刷新页面`, 'success');
       return true;
     } catch (e) {
-      setStatus(`下载失败: ${e instanceof Error ? e.message : String(e)}`, 'error');
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        setStatus('连接失败：请检查 WebDAV 地址是否可访问。如果页面使用 HTTPS，WebDAV 也必须使用 HTTPS。', 'error');
+      } else {
+        setStatus(`下载失败: ${msg}`, 'error');
+      }
       return false;
     } finally {
       downloading.value = false;

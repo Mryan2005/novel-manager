@@ -1,8 +1,10 @@
 import { ref, watch } from 'vue';
 import type { MemoryCard, MemoryCardType } from '../types-world-sim';
 import { MEMORY_CARD_TYPE_ORDER } from '../types-world-sim';
+import { useNovelManager } from './useNovelManager';
 
-const STORAGE_KEY = 'novel-workshop-worldsim-memories';
+let storageKey = 'novel-workshop-worldsim-memories';
+let initialized = false;
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -10,7 +12,7 @@ function generateId(): string {
 
 function load(): MemoryCard[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -24,7 +26,7 @@ function load(): MemoryCard[] {
 }
 
 function save(cards: MemoryCard[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  localStorage.setItem(storageKey, JSON.stringify(cards));
 }
 
 const cards = ref<MemoryCard[]>(load());
@@ -32,6 +34,20 @@ const cards = ref<MemoryCard[]>(load());
 watch(cards, (v) => save(v), { deep: true });
 
 export function useMemoryCards() {
+  if (!initialized) {
+    initialized = true;
+    const { getKey, activeNovelId, migrateIfNeeded } = useNovelManager();
+    migrateIfNeeded();
+
+    storageKey = getKey('novel-workshop-worldsim-memories');
+
+    watch(activeNovelId, () => {
+      save(cards.value);
+      storageKey = getKey('novel-workshop-worldsim-memories');
+      cards.value = load();
+    });
+  }
+
   function addCard(type: MemoryCardType, title: string, content: string): MemoryCard {
     const now = Date.now();
     const card: MemoryCard = {

@@ -11,6 +11,11 @@ interface ToolDef {
   };
 }
 
+import { useNovelManager } from './useNovelManager';
+
+let dataKey = 'novel-workshop-data';
+let toolsInit = false;
+
 interface NovelData {
   volumes?: { id: string; title: string }[];
   chapters?: { id: string; title: string; content: string; outline: string; status: string; wordCount: number; volumeId: string }[];
@@ -21,7 +26,7 @@ interface NovelData {
 
 function loadNovelData(): NovelData {
   try {
-    const raw = localStorage.getItem('novel-workshop-data');
+    const raw = localStorage.getItem(dataKey);
     if (raw) {
       return JSON.parse(raw);
     }
@@ -68,6 +73,13 @@ function findChaptersMentioning(
 }
 
 export function useWorldTools() {
+  if (!toolsInit) {
+    toolsInit = true;
+    const { getKey, migrateIfNeeded } = useNovelManager();
+    migrateIfNeeded();
+    dataKey = getKey('novel-workshop-data');
+  }
+
   function getToolDefinitions(): ToolDef[] {
     return [
       {

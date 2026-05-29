@@ -1,7 +1,10 @@
 import { ref, computed, watch } from 'vue';
+import { useNovelManager } from './useNovelManager';
 
-const CHATS_KEY = 'novel-workshop-ai-chats';
-const ACTIVE_SESSION_KEY = 'novel-workshop-ai-active-session';
+let chatsKey = 'novel-workshop-ai-chats';
+let activeSessionKey = 'novel-workshop-ai-active-session';
+let dataKey = 'novel-workshop-data';
+let initialized = false;
 
 export interface ChatMessage {
   id: string;
@@ -25,7 +28,7 @@ function generateId(): string {
 
 function loadSessions(): ChatSession[] {
   try {
-    const raw = localStorage.getItem(CHATS_KEY);
+    const raw = localStorage.getItem(chatsKey);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
@@ -35,18 +38,18 @@ function loadSessions(): ChatSession[] {
 }
 
 function saveSessions(sessions: ChatSession[]) {
-  localStorage.setItem(CHATS_KEY, JSON.stringify(sessions));
+  localStorage.setItem(chatsKey, JSON.stringify(sessions));
 }
 
 function loadActiveSessionId(): string | null {
-  return localStorage.getItem(ACTIVE_SESSION_KEY);
+  return localStorage.getItem(activeSessionKey);
 }
 
 function saveActiveSessionId(id: string | null) {
   if (id) {
-    localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    localStorage.setItem(activeSessionKey, id);
   } else {
-    localStorage.removeItem(ACTIVE_SESSION_KEY);
+    localStorage.removeItem(activeSessionKey);
   }
 }
 
@@ -70,6 +73,29 @@ watch(activeSessionId, (id) => {
 });
 
 export function useAIChat() {
+  if (!initialized) {
+    initialized = true;
+    const { getKey, activeNovelId, migrateIfNeeded } = useNovelManager();
+    migrateIfNeeded();
+
+    chatsKey = getKey('novel-workshop-ai-chats');
+    activeSessionKey = getKey('novel-workshop-ai-active-session');
+    dataKey = getKey('novel-workshop-data');
+
+    watch(activeNovelId, () => {
+      // Save current
+      saveSessions(sessions.value);
+      saveActiveSessionId(activeSessionId.value);
+      // Update keys
+      chatsKey = getKey('novel-workshop-ai-chats');
+      activeSessionKey = getKey('novel-workshop-ai-active-session');
+      dataKey = getKey('novel-workshop-data');
+      // Reload
+      sessions.value = loadSessions();
+      activeSessionId.value = loadActiveSessionId();
+    });
+  }
+
   function createSession(title?: string): ChatSession {
     const session: ChatSession = {
       id: generateId(),
@@ -155,7 +181,7 @@ export function useAIChat() {
 
   function getContextForRoute(routePath: string): string {
     try {
-      const raw = localStorage.getItem('novel-workshop-data');
+      const raw = localStorage.getItem(dataKey);
       if (!raw) return '';
       const data = JSON.parse(raw);
 

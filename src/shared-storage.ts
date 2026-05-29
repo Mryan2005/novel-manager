@@ -1,5 +1,10 @@
-const STORAGE_KEY = 'novel-workshop-data';
-const TIMESTAMP_KEY = 'novel-workshop-timestamp';
+let dataKey = 'novel-workshop-data';
+let timestampKey = 'novel-workshop-timestamp';
+
+export function setSharedStorageKeys(data: string, ts: string) {
+  dataKey = data;
+  timestampKey = ts;
+}
 
 const DOMAIN_PAIRS: Record<string, string> = {
   'novelmanager.mryan2005.top': 'https://novel-manager.mryan2005.top',
@@ -67,12 +72,12 @@ let bridgeIframe: HTMLIFrameElement | null = null;
 let syncInProgress = false;
 
 function getLocalTimestamp(): number {
-  const ts = localStorage.getItem(TIMESTAMP_KEY);
+  const ts = localStorage.getItem(timestampKey);
   return ts ? parseInt(ts, 10) : 0;
 }
 
 function setLocalTimestamp(ts: number) {
-  localStorage.setItem(TIMESTAMP_KEY, ts.toString());
+  localStorage.setItem(timestampKey, ts.toString());
 }
 
 export async function initCrossDomainSync(getData: () => string, setData: (json: string) => boolean): Promise<boolean> {

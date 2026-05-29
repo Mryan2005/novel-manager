@@ -1,10 +1,13 @@
-import { reactive, computed } from 'vue';
+import { reactive, computed, watch } from 'vue';
 import type { Novel, Volume, Chapter, ChapterSeries, ChapterRelation, Character, Scene, Item, DailyWordRecord, DayCount, ExportBundle } from './types';
+import { useNovelManager } from './composables/useNovelManager';
+import { setSharedStorageKeys } from './shared-storage';
 
-const STORAGE_KEY = 'novel-workshop-data';
-const TIMESTAMP_KEY = 'novel-workshop-timestamp';
 const DRAFT_PREFIX = 'novel-draft-';
 const BACKUP_PREFIX = 'novel-backup-';
+let currentDataKey = 'novel-workshop-data';
+let currentTimestampKey = 'novel-workshop-timestamp';
+let storeInitialized = false;
 const MAX_BACKUPS = 5;
 const MAX_OUTLINE_PREVIEW_LENGTH = 120;
 const PROCESS_COLUMN_WIDTH = 140;
@@ -45,7 +48,7 @@ export function buildChapterRelationTitleMap(
 
 function loadFromStorage(): Novel {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(currentDataKey);
     if (data) {
       const novel = JSON.parse(data);
       // Backward compat: ensure volumes exists
@@ -118,8 +121,8 @@ function loadFromStorage(): Novel {
 function saveToStorage() {
   try {
     const json = JSON.stringify(state.novel);
-    localStorage.setItem(STORAGE_KEY, json);
-    localStorage.setItem(TIMESTAMP_KEY, Date.now().toString());
+    localStorage.setItem(currentDataKey, json);
+    localStorage.setItem(currentTimestampKey, Date.now().toString());
     // Try to push to paired domain
     try {
       const win = window as unknown as Record<string, unknown>;
@@ -138,6 +141,38 @@ const state = reactive({
 });
 
 export const useStore = () => {
+  // Novel-scoped key setup (runs once at module level)
+  if (!storeInitialized) {
+    storeInitialized = true;
+    const { getKey, activeNovelId, migrateIfNeeded } = useNovelManager();
+
+    // Migrate legacy global keys on first load
+    migrateIfNeeded();
+
+    // Set initial scoped keys
+    currentDataKey = getKey('novel-workshop-data');
+    currentTimestampKey = getKey('novel-workshop-timestamp');
+    setSharedStorageKeys(currentDataKey, currentTimestampKey);
+
+    // Watch novel switches: save current data, reload new data
+    let previousId = activeNovelId.value;
+    watch(activeNovelId, (newId) => {
+      // Save current data to old key
+      saveToStorage();
+
+      // Update keys
+      currentDataKey = getKey('novel-workshop-data');
+      currentTimestampKey = getKey('novel-workshop-timestamp');
+      setSharedStorageKeys(currentDataKey, currentTimestampKey);
+
+      // Reload data for new novel
+      Object.assign(state.novel, loadFromStorage());
+      state.currentChapterId = null;
+
+      previousId = newId;
+    });
+  }
+
   const totalChapters = computed(() => state.novel.chapters.length);
   const totalWords = computed(() => 
     state.novel.chapters.reduce((sum, chapter) => sum + chapter.wordCount, 0)
