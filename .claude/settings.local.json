@@ -21,7 +21,13 @@
       "Bash(python *)",
       "Bash(pnpm install *)",
       "Bash(npx tsc *)",
-      "Bash(curl -s http://localhost:5000/)"
+      "Bash(curl -s http://localhost:5000/)",
+      "Bash(where pnpm *)",
+      "Bash(where npm *)",
+      "Bash(node -e \"console.log\\(process.env.PATH\\)\")",
+      "Read(//c/Users/A2564/AppData/Local/pnpm/**)",
+      "Read(//c/Program Files/nodejs/node_modules/pnpm/bin/**)",
+      "Bash(npm list *)"
     ]
   }
 }
