@@ -23,7 +23,11 @@ function authHeaders(config: WebDAVConfig): Record<string, string> {
 }
 
 function buildUrl(base: string, key: string): string {
-  const clean = base.replace(/\/+$/, '');
+  let clean = base.replace(/\/+$/, '');
+  // Auto-upgrade to HTTPS when page is served over HTTPS (mixed content prevention)
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && clean.startsWith('http://')) {
+    clean = clean.replace(/^http:\/\//, 'https://');
+  }
   return `${clean}/${key}.json`;
 }
 
