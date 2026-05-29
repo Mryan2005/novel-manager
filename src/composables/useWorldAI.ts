@@ -180,6 +180,8 @@ export function useWorldAI() {
     return { content: text, thinking, toolCalls };
   }
 
+  type ToolCallback = (name: string, args: Record<string, string>, result: string) => void;
+
   // ---- Core: send message with optional tool loop ----
   async function sendWithTools(
     userContent: string,
@@ -188,6 +190,7 @@ export function useWorldAI() {
     previousMessages: WSMessage[],
     toolDefs: Record<string, unknown>[] | undefined,
     executeToolFn: ((name: string, args: Record<string, string>) => string) | undefined,
+    onToolCall?: ToolCallback,
   ): Promise<{ content: string; thinking?: string }> {
     const cfg = activeAIConfig.value;
     if (!cfg) throw new Error('未选择 AI 配置');
@@ -231,6 +234,7 @@ export function useWorldAI() {
           const responseParts: { functionResponse?: { name: string; response: unknown } }[] = [];
           for (const tc of result.toolCalls) {
             const toolResult = executeToolFn!(tc.name, tc.args);
+            onToolCall?.(tc.name, tc.args, toolResult);
             responseParts.push({
               functionResponse: { name: tc.name, response: safeParseJson(toolResult, { raw: toolResult }) },
             });
@@ -275,6 +279,7 @@ export function useWorldAI() {
         // Execute tools and push tool results
         for (const tc of result.toolCalls) {
           const toolResult = executeToolFn!(tc.name, tc.args);
+          onToolCall?.(tc.name, tc.args, toolResult);
           messages.push({
             role: 'tool',
             tool_call_id: tc.id,
@@ -297,8 +302,9 @@ export function useWorldAI() {
     previousMessages: WSMessage[],
     toolDefs?: Record<string, unknown>[],
     executeToolFn?: (name: string, args: Record<string, string>) => string,
+    onToolCall?: ToolCallback,
   ): Promise<{ content: string; thinking?: string }> {
-    return sendWithTools(userContent, '', fullSystemPrompt, previousMessages, toolDefs, executeToolFn);
+    return sendWithTools(userContent, '', fullSystemPrompt, previousMessages, toolDefs, executeToolFn, onToolCall);
   }
 
   // ---- Guided generation: AI asks a guiding question ----
@@ -308,16 +314,21 @@ export function useWorldAI() {
     previousMessages: WSMessage[],
     toolDefs?: Record<string, unknown>[],
     executeToolFn?: (name: string, args: Record<string, string>) => string,
+    onToolCall?: ToolCallback,
   ): Promise<{ content: string; thinking?: string }> {
-    const guidedPrompt = `你是一位专业的小说创作导师。你可以使用工具查询小说数据库中的章节、角色、场景和物品信息，以便提出更有针对性的建议。
+    const guidedPrompt = `你是一位专业的小说创作导师。
+
+**重要：你必须先使用工具查询小说数据库中的相关数据，然后再提出建议。不要在未查询数据的情况下说你"不知道"——请先用 search_novel 或 read_chapter 工具搜索相关内容。如果一次查询不够，可以多次调用工具，直到获取到所有需要的信息。**
 
 请根据当前上下文和查询到的数据，向作者提出引导性问题或创作建议，帮助作者理清思路、完善设定或推进剧情。
 
 ${context}
 
-请先使用工具了解当前小说的设定和数据，然后提出1-3个有深度的问题或建议。`;
+步骤：
+1. 先使用工具（search_novel / read_chapter / read_character 等）查询相关的章节、角色、场景数据
+2. 基于查询结果，提出1-3个有深度的问题或具体创作建议`;
 
-    return sendWithTools(guidedPrompt, fullSystemPrompt, fullSystemPrompt, previousMessages, toolDefs, executeToolFn);
+    return sendWithTools(guidedPrompt, fullSystemPrompt, fullSystemPrompt, previousMessages, toolDefs, executeToolFn, onToolCall);
   }
 
   // ---- Guided generation: generate content after author confirms ----
@@ -327,15 +338,20 @@ ${context}
     previousMessages: WSMessage[],
     toolDefs?: Record<string, unknown>[],
     executeToolFn?: (name: string, args: Record<string, string>) => string,
+    onToolCall?: ToolCallback,
   ): Promise<{ content: string; thinking?: string }> {
-    const genPrompt = `请根据以下创作指令和上下文，生成小说内容。你可以使用工具查询小说数据库中的章节、角色、场景和物品信息，确保生成的内容与已有设定保持一致。
+    const genPrompt = `请根据以下创作指令和上下文，生成小说内容。
+
+**重要：你必须先使用工具（search_novel / read_chapter / read_character / read_location / read_item）查询小说数据库中已有的章节、角色、场景和物品信息，确保生成的内容与已有设定保持一致。不要凭空创作——先查数据再写。你可以多次调用工具，直到收集到所有必要的上下文信息。**
 
 创作指令：
 ${instruction}
 
-请先使用工具查询相关的小说数据（角色、场景、章节等），然后基于查询结果生成连贯、生动的创作内容。`;
+步骤：
+1. 先使用工具查询相关的小说数据（角色、场景、已有章节等）
+2. 基于查询到的真实数据，生成连贯、生动、符合设定的创作内容`;
 
-    return sendWithTools(genPrompt, fullSystemPrompt, fullSystemPrompt, previousMessages, toolDefs, executeToolFn);
+    return sendWithTools(genPrompt, fullSystemPrompt, fullSystemPrompt, previousMessages, toolDefs, executeToolFn, onToolCall);
   }
 
   // ---- Super Power mode: plan + execute tool loop ----
@@ -346,6 +362,7 @@ ${instruction}
     toolDefs: Record<string, unknown>[],
     executeTool: (name: string, args: Record<string, string>) => string,
     onStepUpdate: (step: SuperPowerStep) => void,
+    onToolCall?: ToolCallback,
   ): Promise<{
     content: string;
     thinking?: string;
@@ -438,6 +455,7 @@ ${instruction}
 
           try {
             const toolResult = executeTool(tc.name, tc.args);
+            onToolCall?.(tc.name, tc.args, toolResult);
             const toolResultObj: WSToolResult = {
               toolCallId: tc.id,
               name: tc.name,

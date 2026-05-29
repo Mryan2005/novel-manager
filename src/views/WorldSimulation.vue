@@ -96,6 +96,26 @@ async function copyText(text: string) {
   await navigator.clipboard.writeText(text);
 }
 
+function toolNameLabel(name: string): string {
+  const map: Record<string, string> = {
+    read_chapter: '读取章节',
+    read_character: '读取角色',
+    read_location: '读取场景',
+    read_item: '读取物品',
+    search_novel: '全局搜索',
+  };
+  return map[name] || name;
+}
+
+function makeOnToolCall() {
+  return (name: string, args: Record<string, string>, result: string) => {
+    ws.addMessage('system', `调用工具: ${toolNameLabel(name)}`, {
+      toolCalls: [{ id: 'tc_' + Date.now(), name, args }],
+      toolResults: [{ toolCallId: 'tc_' + Date.now(), name, result }],
+    });
+  };
+}
+
 async function handleSend(text: string) {
   if (!hasConfig.value || ai.loading.value) return;
 
@@ -104,11 +124,9 @@ async function handleSend(text: string) {
   if (!session) return;
 
   const fullSystemPrompt = fullSystemPromptPreview.value;
+  const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
 
   if (currentMode.value === 'super-power') {
-    // Super power mode
-    const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
-
     ws.addMessage('user', text);
 
     try {
@@ -118,9 +136,8 @@ async function handleSend(text: string) {
         session.messages.slice(0, -1),
         toolDefs,
         wt.executeTool,
-        (step: SuperPowerStep) => {
-          // Plan step update - handled via the plan object in the result
-        }
+        (step: SuperPowerStep) => {},
+        makeOnToolCall(),
       );
 
       ws.addMessage('assistant', result.content, {
@@ -132,60 +149,25 @@ async function handleSend(text: string) {
       ai.error.value = e instanceof Error ? e.message : '请求失败';
     }
   } else if (currentSubMode.value === 'guided-gen') {
-    // Guided generation - two-phase
     const lastMsg = session.messages.slice(-1)[0];
-
-    // Check if we're in the "ask" phase or the "generate" phase
     const isGenerating = lastMsg && lastMsg.role === 'user' &&
       session.messages.filter(m => m.role === 'user').length > 1;
 
-    if (isGenerating) {
-      ws.addMessage('user', text);
-
-      try {
-        const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
-        const result = await ai.sendGuidedGeneration(
-          text,
-          fullSystemPrompt,
-          session.messages.slice(0, -1),
-          toolDefs,
-          wt.executeTool,
-        );
-        ws.addMessage('assistant', result.content, { thinking: result.thinking });
-      } catch (e) {
-        ai.error.value = e instanceof Error ? e.message : '请求失败';
-      }
-    } else {
-      // First phase: ask guiding questions
-      ws.addMessage('user', text);
-
-      try {
-        const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
-        const result = await ai.sendGuidedQuestion(
-          text,
-          fullSystemPrompt,
-          session.messages.slice(0, -1),
-          toolDefs,
-          wt.executeTool,
-        );
-        ws.addMessage('assistant', result.content, { thinking: result.thinking });
-      } catch (e) {
-        ai.error.value = e instanceof Error ? e.message : '请求失败';
-      }
-    }
-  } else {
-    // Normal chapter generation
     ws.addMessage('user', text);
 
     try {
-      const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
-      const result = await ai.sendNormalMessage(
-        text,
-        fullSystemPrompt,
-        session.messages.slice(0, -1),
-        toolDefs,
-        wt.executeTool,
-      );
+      const result = isGenerating
+        ? await ai.sendGuidedGeneration(text, fullSystemPrompt, session.messages.slice(0, -1), toolDefs, wt.executeTool, makeOnToolCall())
+        : await ai.sendGuidedQuestion(text, fullSystemPrompt, session.messages.slice(0, -1), toolDefs, wt.executeTool, makeOnToolCall());
+      ws.addMessage('assistant', result.content, { thinking: result.thinking });
+    } catch (e) {
+      ai.error.value = e instanceof Error ? e.message : '请求失败';
+    }
+  } else {
+    ws.addMessage('user', text);
+
+    try {
+      const result = await ai.sendNormalMessage(text, fullSystemPrompt, session.messages.slice(0, -1), toolDefs, wt.executeTool, makeOnToolCall());
       ws.addMessage('assistant', result.content, { thinking: result.thinking });
     } catch (e) {
       ai.error.value = e instanceof Error ? e.message : '请求失败';
