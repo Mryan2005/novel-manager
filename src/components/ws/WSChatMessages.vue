@@ -3,6 +3,7 @@ import { ref, watch, nextTick } from 'vue';
 import { Brain, ChevronDown, ChevronRight, Copy, Wrench, CheckCircle, XCircle, Loader2 } from 'lucide-vue-next';
 import type { WSMessage } from '../../types-world-sim';
 import WSSuperPowerProgress from './WSSuperPowerProgress.vue';
+import MarkdownRenderer from '../MarkdownRenderer.vue';
 
 const props = defineProps<{
   messages: WSMessage[];
@@ -117,7 +118,7 @@ function formatToolResult(result: string): string {
 
         <!-- Message bubble -->
         <div v-if="msg.content" class="ws-bubble">
-          {{ msg.content }}
+          <MarkdownRenderer :text="msg.content" />
         </div>
 
         <!-- Actions for assistant -->

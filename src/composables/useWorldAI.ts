@@ -180,11 +180,14 @@ export function useWorldAI() {
     return { content: text, thinking, toolCalls };
   }
 
-  // ---- Normal mode: single message exchange ----
-  async function sendNormalMessage(
+  // ---- Core: send message with optional tool loop ----
+  async function sendWithTools(
     userContent: string,
+    systemPromptOverride: string,
     fullSystemPrompt: string,
     previousMessages: WSMessage[],
+    toolDefs: Record<string, unknown>[] | undefined,
+    executeToolFn: ((name: string, args: Record<string, string>) => string) | undefined,
   ): Promise<{ content: string; thinking?: string }> {
     const cfg = activeAIConfig.value;
     if (!cfg) throw new Error('未选择 AI 配置');
@@ -194,30 +197,108 @@ export function useWorldAI() {
     abortController.value = new AbortController();
     const signal = abortController.value.signal;
 
+    const hasTools = toolDefs && toolDefs.length > 0 && executeToolFn;
+    const systemPrompt = systemPromptOverride || fullSystemPrompt;
+
     try {
       if (cfg.provider === 'gemini') {
-        const contents = [
+        let contents: { role: string; parts: { text?: string; thought?: boolean; functionResponse?: { name: string; response: unknown } }[] }[] = [
           ...previousMessages.map(m => wsToGeminiContent(m)),
           { role: 'user' as const, parts: [{ text: userContent }] },
         ];
 
-        const result = await callGeminiWithTools(contents, undefined, fullSystemPrompt);
-        return { content: result.content, thinking: result.thinking };
+        let round = 0;
+        while (round < MAX_TOOL_ROUNDS) {
+          if (signal.aborted) throw new Error('请求已取消');
+          round++;
+
+          const result = await callGeminiWithTools(contents, toolDefs, systemPrompt);
+
+          if (!result.toolCalls || result.toolCalls.length === 0 || !hasTools) {
+            return { content: result.content, thinking: result.thinking };
+          }
+
+          // Push the model's function calls
+          const modelParts: { text?: string; thought?: boolean; functionCall?: { name: string; args: unknown } }[] = [];
+          if (result.thinking) modelParts.push({ text: result.thinking, thought: true });
+          if (result.content) modelParts.push({ text: result.content });
+          for (const tc of result.toolCalls) {
+            modelParts.push({ functionCall: { name: tc.name, args: tc.args } });
+          }
+          contents.push({ role: 'model', parts: modelParts as any });
+
+          // Execute tools and push function responses
+          const responseParts: { functionResponse?: { name: string; response: unknown } }[] = [];
+          for (const tc of result.toolCalls) {
+            const toolResult = executeToolFn!(tc.name, tc.args);
+            responseParts.push({
+              functionResponse: { name: tc.name, response: safeParseJson(toolResult, { raw: toolResult }) },
+            });
+          }
+          contents.push({ role: 'user', parts: responseParts as any });
+        }
+
+        throw new Error('已达到最大工具调用次数限制');
       }
 
       // OpenAI / OpenAI-like
-      const messages: Record<string, unknown>[] = [
-        ...(fullSystemPrompt ? [{ role: 'system', content: fullSystemPrompt }] : []),
+      let messages: Record<string, unknown>[] = [
+        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
         ...previousMessages.map(m => wsToOpenAiMessage(m)),
         { role: 'user', content: userContent },
       ];
 
-      const result = await callOpenAIWithTools(messages, undefined, signal);
-      return { content: result.content, thinking: result.thinking };
+      let round = 0;
+      while (round < MAX_TOOL_ROUNDS) {
+        if (signal.aborted) throw new Error('请求已取消');
+        round++;
+
+        const result = await callOpenAIWithTools(messages, toolDefs, signal);
+
+        if (!result.toolCalls || result.toolCalls.length === 0 || !hasTools) {
+          return { content: result.content, thinking: result.thinking };
+        }
+
+        // Push assistant message with tool calls
+        const assistantMsg: Record<string, unknown> = {
+          role: 'assistant',
+          content: result.content || '',
+          tool_calls: result.toolCalls.map(tc => ({
+            id: tc.id,
+            type: 'function',
+            function: { name: tc.name, arguments: JSON.stringify(tc.args) },
+          })),
+        };
+        if (result.thinking) assistantMsg.reasoning_content = result.thinking;
+        messages.push(assistantMsg);
+
+        // Execute tools and push tool results
+        for (const tc of result.toolCalls) {
+          const toolResult = executeToolFn!(tc.name, tc.args);
+          messages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            content: toolResult,
+          });
+        }
+      }
+
+      throw new Error('已达到最大工具调用次数限制');
     } finally {
       loading.value = false;
       abortController.value = null;
     }
+  }
+
+  // ---- Normal mode: chapter generation ----
+  async function sendNormalMessage(
+    userContent: string,
+    fullSystemPrompt: string,
+    previousMessages: WSMessage[],
+    toolDefs?: Record<string, unknown>[],
+    executeToolFn?: (name: string, args: Record<string, string>) => string,
+  ): Promise<{ content: string; thinking?: string }> {
+    return sendWithTools(userContent, '', fullSystemPrompt, previousMessages, toolDefs, executeToolFn);
   }
 
   // ---- Guided generation: AI asks a guiding question ----
@@ -225,14 +306,18 @@ export function useWorldAI() {
     context: string,
     fullSystemPrompt: string,
     previousMessages: WSMessage[],
+    toolDefs?: Record<string, unknown>[],
+    executeToolFn?: (name: string, args: Record<string, string>) => string,
   ): Promise<{ content: string; thinking?: string }> {
-    const guidedPrompt = `你是一位专业的小说创作导师。请根据当前上下文，向作者提出引导性问题或创作建议，帮助作者理清思路、完善设定或推进剧情。
+    const guidedPrompt = `你是一位专业的小说创作导师。你可以使用工具查询小说数据库中的章节、角色、场景和物品信息，以便提出更有针对性的建议。
+
+请根据当前上下文和查询到的数据，向作者提出引导性问题或创作建议，帮助作者理清思路、完善设定或推进剧情。
 
 ${context}
 
-请提出1-3个有深度的问题或建议，帮助作者进行下一步创作。`;
+请先使用工具了解当前小说的设定和数据，然后提出1-3个有深度的问题或建议。`;
 
-    return sendNormalMessage(guidedPrompt, fullSystemPrompt, previousMessages);
+    return sendWithTools(guidedPrompt, fullSystemPrompt, fullSystemPrompt, previousMessages, toolDefs, executeToolFn);
   }
 
   // ---- Guided generation: generate content after author confirms ----
@@ -240,15 +325,17 @@ ${context}
     instruction: string,
     fullSystemPrompt: string,
     previousMessages: WSMessage[],
+    toolDefs?: Record<string, unknown>[],
+    executeToolFn?: (name: string, args: Record<string, string>) => string,
   ): Promise<{ content: string; thinking?: string }> {
-    const genPrompt = `请根据以下创作指令和上下文，生成小说内容。确保内容连贯、生动、符合设定。
+    const genPrompt = `请根据以下创作指令和上下文，生成小说内容。你可以使用工具查询小说数据库中的章节、角色、场景和物品信息，确保生成的内容与已有设定保持一致。
 
 创作指令：
 ${instruction}
 
-请直接开始创作，不需要额外的解释或引导。`;
+请先使用工具查询相关的小说数据（角色、场景、章节等），然后基于查询结果生成连贯、生动的创作内容。`;
 
-    return sendNormalMessage(genPrompt, fullSystemPrompt, previousMessages);
+    return sendWithTools(genPrompt, fullSystemPrompt, fullSystemPrompt, previousMessages, toolDefs, executeToolFn);
   }
 
   // ---- Super Power mode: plan + execute tool loop ----

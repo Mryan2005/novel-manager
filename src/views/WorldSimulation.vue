@@ -143,10 +143,13 @@ async function handleSend(text: string) {
       ws.addMessage('user', text);
 
       try {
+        const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
         const result = await ai.sendGuidedGeneration(
           text,
           fullSystemPrompt,
           session.messages.slice(0, -1),
+          toolDefs,
+          wt.executeTool,
         );
         ws.addMessage('assistant', result.content, { thinking: result.thinking });
       } catch (e) {
@@ -157,10 +160,13 @@ async function handleSend(text: string) {
       ws.addMessage('user', text);
 
       try {
+        const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
         const result = await ai.sendGuidedQuestion(
           text,
           fullSystemPrompt,
           session.messages.slice(0, -1),
+          toolDefs,
+          wt.executeTool,
         );
         ws.addMessage('assistant', result.content, { thinking: result.thinking });
       } catch (e) {
@@ -172,10 +178,13 @@ async function handleSend(text: string) {
     ws.addMessage('user', text);
 
     try {
+      const toolDefs = wt.getToolDefinitions() as unknown as Record<string, unknown>[];
       const result = await ai.sendNormalMessage(
         text,
         fullSystemPrompt,
         session.messages.slice(0, -1),
+        toolDefs,
+        wt.executeTool,
       );
       ws.addMessage('assistant', result.content, { thinking: result.thinking });
     } catch (e) {

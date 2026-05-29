@@ -85,7 +85,9 @@
                 </button>
                 <div v-if="expandedThinking.has(msg.id)" class="ai-thinking-content">{{ msg.thinking }}</div>
               </div>
-              <div class="ai-bubble">{{ msg.content }}</div>
+              <div class="ai-bubble">
+                <MarkdownRenderer :text="msg.content" />
+              </div>
               <div class="ai-msg-actions" v-if="msg.role === 'assistant'">
                 <button class="ai-action-btn" @click="copyText(msg.content)" title="复制">
                   <Copy class="w-3 h-3" />
@@ -269,6 +271,7 @@ import {
 import { useSettings } from '../composables/useSettings';
 import { useAIChat } from '../composables/useAIChat';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
+import MarkdownRenderer from './MarkdownRenderer.vue';
 
 defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ close: [] }>();
