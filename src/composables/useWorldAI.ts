@@ -197,10 +197,7 @@ export function useWorldAI() {
     try {
       if (cfg.provider === 'gemini') {
         const contents = [
-          ...previousMessages.map(m => ({
-            role: m.role === 'assistant' ? 'model' as const : 'user' as const,
-            parts: [{ text: m.content }],
-          })),
+          ...previousMessages.map(m => wsToGeminiContent(m)),
           { role: 'user' as const, parts: [{ text: userContent }] },
         ];
 
@@ -211,7 +208,7 @@ export function useWorldAI() {
       // OpenAI / OpenAI-like
       const messages: Record<string, unknown>[] = [
         ...(fullSystemPrompt ? [{ role: 'system', content: fullSystemPrompt }] : []),
-        ...previousMessages.map(m => ({ role: m.role, content: m.content })),
+        ...previousMessages.map(m => wsToOpenAiMessage(m)),
         { role: 'user', content: userContent },
       ];
 
@@ -299,16 +296,13 @@ ${instruction}
 
       if (cfg.provider === 'gemini') {
         currentContents = [
-          ...previousMessages.map(m => ({
-            role: m.role === 'assistant' ? 'model' as const : 'user' as const,
-            parts: [{ text: m.content }],
-          })),
+          ...previousMessages.map(m => wsToGeminiContent(m)),
           { role: 'user' as const, parts: [{ text: userContent }] },
         ];
       } else {
         currentMessages = [
           { role: 'system', content: superSystemPrompt },
-          ...previousMessages.map(m => ({ role: m.role, content: m.content })),
+          ...previousMessages.map(m => wsToOpenAiMessage(m)),
           { role: 'user', content: userContent },
         ];
       }
@@ -363,17 +357,17 @@ ${instruction}
 
             // Append tool result for the next round
             if (cfg.provider === 'gemini') {
-              currentContents.push({
-                role: 'model',
-                parts: [{
-                  functionResponse: {
-                    name: tc.name,
-                    response: safeParseJson(toolResult, { raw: toolResult }),
-                  },
-                }],
+              const parts: { text?: string; thought?: boolean; functionResponse?: { name: string; response: unknown } }[] = [];
+              if (result.thinking) parts.push({ text: result.thinking, thought: true });
+              parts.push({
+                functionResponse: {
+                  name: tc.name,
+                  response: safeParseJson(toolResult, { raw: toolResult }),
+                },
               });
+              currentContents.push({ role: 'model', parts });
             } else {
-              currentMessages.push({
+              const assistantMsg: Record<string, unknown> = {
                 role: 'assistant',
                 content: result.content || '',
                 tool_calls: [{
@@ -381,7 +375,9 @@ ${instruction}
                   type: 'function',
                   function: { name: tc.name, arguments: JSON.stringify(tc.args) },
                 }],
-              });
+              };
+              if (result.thinking) assistantMsg.reasoning_content = result.thinking;
+              currentMessages.push(assistantMsg);
               currentMessages.push({
                 role: 'tool',
                 tool_call_id: tc.id,
@@ -398,9 +394,14 @@ ${instruction}
         // If we also got text content alongside tool calls, include it
         if (result.content && result.content.length > 0) {
           if (cfg.provider === 'gemini') {
-            currentContents.push({ role: 'model', parts: [{ text: result.content }] });
+            const parts: { text?: string; thought?: boolean }[] = [];
+            if (result.thinking) parts.push({ text: result.thinking, thought: true });
+            parts.push({ text: result.content });
+            currentContents.push({ role: 'model', parts });
           } else {
-            currentMessages.push({ role: 'assistant', content: result.content });
+            const msg: Record<string, unknown> = { role: 'assistant', content: result.content };
+            if (result.thinking) msg.reasoning_content = result.thinking;
+            currentMessages.push(msg);
           }
         }
       }
@@ -434,6 +435,26 @@ ${instruction}
     sendGuidedGeneration,
     sendSuperPowerMessage,
   };
+}
+
+/** Convert a WSMessage to an OpenAI-compatible message dict, preserving reasoning_content */
+function wsToOpenAiMessage(m: WSMessage): Record<string, unknown> {
+  const msg: Record<string, unknown> = { role: m.role, content: m.content };
+  if (m.role === 'assistant' && m.thinking) {
+    msg.reasoning_content = m.thinking;
+  }
+  return msg;
+}
+
+/** Convert a WSMessage to a Gemini-compatible content part, preserving thought parts */
+function wsToGeminiContent(m: WSMessage): { role: string; parts: { text?: string; thought?: boolean }[] } {
+  const role = m.role === 'assistant' ? 'model' : 'user';
+  const parts: { text?: string; thought?: boolean }[] = [];
+  if (m.thinking) {
+    parts.push({ text: m.thinking, thought: true });
+  }
+  parts.push({ text: m.content });
+  return { role, parts };
 }
 
 function safeParseJson(text: string, fallback: Record<string, unknown>): Record<string, unknown> {
