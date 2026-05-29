@@ -609,10 +609,7 @@ export const useStore = () => {
 
   function exportToWord(): string {
     const pages: string[] = [];
-
-    const pushPage = (content: string) => {
-      pages.push(content);
-    };
+    const pushPage = (content: string) => pages.push(content);
 
     const formatText = (text: string) => escapeHtml(text).replaceAll('\n', '<br />');
 
@@ -622,60 +619,61 @@ export const useStore = () => {
       return Number.isFinite(ageNumber) ? ageNumber.toString() : '—';
     };
 
-    state.novel.characters.forEach(character => {
-      const ageValue = formatAge(character.age);
-      const lines = [
-        `<p><strong>性别：</strong>${escapeHtml(character.gender || '—')}</p>`,
-        `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
-        `<p><strong>身份：</strong>${escapeHtml(character.role || '—')}</p>`,
-        `<p><strong>描述：</strong>${escapeHtml(character.description || '—')}</p>`,
-      ];
-      if (character.traits.length > 0) {
-        lines.push(`<p><strong>性格特点：</strong>${escapeHtml(character.traits.join('、'))}</p>`);
-      }
-      if (character.tags.length > 0) {
-        lines.push(`<p><strong>标签：</strong>${escapeHtml(character.tags.join('、'))}</p>`);
-      }
-      pushPage([
-        `<h2>角色设定</h2>`,
-        `<h3>${escapeHtml(character.name || '未命名角色')}</h3>`,
-        ...lines,
-      ].join(''));
-    });
+    // Build section blocks grouped by type
+    const sections: { heading: string; cards: string[] }[] = [];
 
-    state.novel.scenes.forEach(scene => {
-      const lines = [
-        `<p><strong>地点：</strong>${escapeHtml(scene.location || '—')}</p>`,
-        `<p><strong>描述：</strong>${escapeHtml(scene.description || '—')}</p>`,
-      ];
-      if (scene.atmosphere.length > 0) {
-        lines.push(`<p><strong>氛围：</strong>${escapeHtml(scene.atmosphere.join('、'))}</p>`);
-      }
-      pushPage([
-        `<h2>地点设定</h2>`,
-        `<h3>${escapeHtml(scene.name || '未命名地点')}</h3>`,
-        ...lines,
-      ].join(''));
-    });
+    // Characters section
+    if (state.novel.characters.length > 0) {
+      const cards = state.novel.characters.map(c => {
+        const ageValue = formatAge(c.age);
+        const lines = [
+          `<p><strong>性别：</strong>${escapeHtml(c.gender || '—')}</p>`,
+          `<p><strong>年龄：</strong>${escapeHtml(ageValue)}</p>`,
+          `<p><strong>身份：</strong>${escapeHtml(c.role || '—')}</p>`,
+          `<p><strong>描述：</strong>${escapeHtml(c.description || '—')}</p>`,
+        ];
+        if (c.traits.length > 0) lines.push(`<p><strong>性格特点：</strong>${escapeHtml(c.traits.join('、'))}</p>`);
+        if (c.tags.length > 0) lines.push(`<p><strong>标签：</strong>${escapeHtml(c.tags.join('、'))}</p>`);
+        return `<div class="card"><h3>${escapeHtml(c.name || '未命名角色')}</h3>${lines.join('')}</div>`;
+      });
+      sections.push({ heading: '角色设定', cards });
+    }
 
-    state.novel.items.forEach(item => {
-      const lines = [
-        `<p><strong>类型：</strong>${escapeHtml(item.type || '—')}</p>`,
-        `<p><strong>所属：</strong>${escapeHtml(item.owner || '—')}</p>`,
-        `<p><strong>描述：</strong>${escapeHtml(item.description || '—')}</p>`,
-      ];
-      if (item.abilities.length > 0) {
-        lines.push(`<p><strong>能力：</strong>${escapeHtml(item.abilities.join('、'))}</p>`);
-      }
-      pushPage([
-        `<h2>物品设定</h2>`,
-        `<h3>${escapeHtml(item.name || '未命名物品')}</h3>`,
-        ...lines,
-      ].join(''));
-    });
+    // Scenes section
+    if (state.novel.scenes.length > 0) {
+      const cards = state.novel.scenes.map(s => {
+        const lines = [
+          `<p><strong>地点：</strong>${escapeHtml(s.location || '—')}</p>`,
+          `<p><strong>描述：</strong>${escapeHtml(s.description || '—')}</p>`,
+        ];
+        if (s.atmosphere.length > 0) lines.push(`<p><strong>氛围：</strong>${escapeHtml(s.atmosphere.join('、'))}</p>`);
+        return `<div class="card"><h3>${escapeHtml(s.name || '未命名地点')}</h3>${lines.join('')}</div>`;
+      });
+      sections.push({ heading: '地点设定', cards });
+    }
 
+    // Items section
+    if (state.novel.items.length > 0) {
+      const cards = state.novel.items.map(i => {
+        const lines = [
+          `<p><strong>类型：</strong>${escapeHtml(i.type || '—')}</p>`,
+          `<p><strong>所属：</strong>${escapeHtml(i.owner || '—')}</p>`,
+          `<p><strong>描述：</strong>${escapeHtml(i.description || '—')}</p>`,
+        ];
+        if (i.abilities.length > 0) lines.push(`<p><strong>能力：</strong>${escapeHtml(i.abilities.join('、'))}</p>`);
+        return `<div class="card"><h3>${escapeHtml(i.name || '未命名物品')}</h3>${lines.join('')}</div>`;
+      });
+      sections.push({ heading: '物品设定', cards });
+    }
+
+    // Push each section as a single page
+    for (const section of sections) {
+      pushPage(`<h2>${escapeHtml(section.heading)}</h2>\n${section.cards.join('\n')}`);
+    }
+
+    // Chapters: each chapter on its own page
     const sortedVolumes = [...state.novel.volumes].sort((a, b) => a.order - b.order);
-    const volumeMap = new Map(sortedVolumes.map(volume => [volume.id, volume.title || '未分卷']));
+    const volumeMap = new Map(sortedVolumes.map(v => [v.id, v.title || '未分卷']));
 
     const pushChapterPages = (volumeTitle: string, chapters: Chapter[]) => {
       chapters.forEach(chapter => {
@@ -691,19 +689,15 @@ export const useStore = () => {
 
     sortedVolumes.forEach(volume => {
       const chapters = state.novel.chapters
-        .filter(chapter => chapter.volumeId === volume.id)
+        .filter(c => c.volumeId === volume.id)
         .sort((a, b) => a.order - b.order);
-      if (chapters.length > 0) {
-        pushChapterPages(volume.title || '未分卷', chapters);
-      }
+      if (chapters.length > 0) pushChapterPages(volume.title || '未分卷', chapters);
     });
 
     const orphanChapters = state.novel.chapters
-      .filter(chapter => !volumeMap.has(chapter.volumeId))
+      .filter(c => !volumeMap.has(c.volumeId))
       .sort((a, b) => a.order - b.order);
-    if (orphanChapters.length > 0) {
-      pushChapterPages('未分卷', orphanChapters);
-    }
+    if (orphanChapters.length > 0) pushChapterPages('未分卷', orphanChapters);
 
     if (pages.length === 0) {
       pushPage('<h2>暂无可导出的内容</h2>');
@@ -720,9 +714,10 @@ export const useStore = () => {
 <title>${escapeHtml(state.novel.title || '小说')}</title>
 <style>
   body { font-family: "Microsoft YaHei", "PingFang SC", "SimSun", sans-serif; color: #1f2937; }
-  h2 { font-size: 20pt; margin: 0 0 10pt; }
-  h3 { font-size: 14pt; margin: 0 0 8pt; }
-  p { margin: 6pt 0; line-height: 1.6; }
+  h2 { font-size: 20pt; margin: 0 0 10pt; border-bottom: 2px solid #6366f1; padding-bottom: 6pt; }
+  h3 { font-size: 14pt; margin: 8pt 0 6pt; }
+  p { margin: 4pt 0; line-height: 1.6; }
+  .card { margin: 8pt 0 14pt; padding: 8pt 10pt; border-left: 3pt solid #e2e8f0; }
   .content { margin-top: 10pt; line-height: 1.8; white-space: pre-wrap; }
   .page { page-break-after: always; padding: 12pt 10pt; }
   .page.page-last { page-break-after: auto; }
