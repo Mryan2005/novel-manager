@@ -218,6 +218,85 @@
         </div>
       </section>
 
+      <section class="card settings-card p-2 space-y-6">
+        <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+          <Cloud class="w-5 h-5" style="color: var(--primary);" />
+          WebDAV 同步
+        </h2>
+
+        <p class="text-sm text-[var(--text-muted)]">
+          将小说数据、设置、AI 聊天记录和世界模拟会话备份到 WebDAV 服务器，或从服务器恢复。
+        </p>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-sm font-medium text-[var(--text-light)]">WebDAV 地址</label>
+            <input
+              type="text"
+              :value="settings.webdavUrl"
+              @input="settings.webdavUrl = ($event.target as HTMLInputElement).value"
+              placeholder="https://dav.example.com/remote.php/dav/files/user/novel-backup"
+              class="input mt-1"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-[var(--text-light)]">用户名</label>
+              <input
+                type="text"
+                :value="settings.webdavUsername"
+                @input="settings.webdavUsername = ($event.target as HTMLInputElement).value"
+                placeholder="用户名"
+                class="input mt-1"
+              />
+            </div>
+            <div>
+              <label class="text-sm font-medium text-[var(--text-light)]">密码</label>
+              <input
+                type="password"
+                :value="settings.webdavPassword"
+                @input="settings.webdavPassword = ($event.target as HTMLInputElement).value"
+                placeholder="密码"
+                class="input mt-1"
+              />
+            </div>
+          </div>
+
+          <!-- Status message -->
+          <div
+            v-if="wdav.statusMessage.value"
+            class="p-3 rounded-xl text-sm font-medium"
+            :class="wdav.statusType.value === 'success'
+              ? 'text-green-700 bg-green-50 border border-green-200'
+              : 'text-red-700 bg-red-50 border border-red-200'"
+          >
+            {{ wdav.statusMessage.value }}
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              @click="handleWebDAVUpload"
+              class="btn btn-primary flex-1 justify-center"
+              :disabled="wdav.uploading.value || wdav.downloading.value || !settings.webdavUrl"
+            >
+              <CloudUpload v-if="!wdav.uploading.value" class="w-4 h-4" />
+              <span v-else class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              {{ wdav.uploading.value ? '上传中...' : '备份到 WebDAV' }}
+            </button>
+            <button
+              @click="handleWebDAVDownload"
+              class="btn btn-secondary flex-1 justify-center"
+              :disabled="wdav.uploading.value || wdav.downloading.value || !settings.webdavUrl"
+            >
+              <CloudDownload v-if="!wdav.downloading.value" class="w-4 h-4" />
+              <span v-else class="inline-block w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></span>
+              {{ wdav.downloading.value ? '下载中...' : '从 WebDAV 恢复' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div v-if="confirmAction" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="confirmAction = null">
         <div class="card p-6 max-w-sm w-full mx-4 space-y-4">
           <h3 class="text-lg font-semibold text-[var(--text)]">确认操作</h3>
@@ -234,11 +313,13 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles, Plus } from 'lucide-vue-next';
+import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles, Plus, Cloud, CloudDownload, CloudUpload } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useSettings } from '../composables/useSettings';
+import { useWebDAV } from '../composables/useWebDAV';
 
 const { settings, activeAIConfig, addAIConfig, removeAIConfig, setActiveAIConfig, resetFontSize, resetDisplayScale, clearAllCache, clearNovelData, clearDrafts, clearBackups, getCacheStats, formatSize } = useSettings();
+const wdav = useWebDAV();
 
 const stats = computed(() => getCacheStats());
 
@@ -294,6 +375,22 @@ function executeConfirm() {
 function adjustDisplayScale(delta: number) {
   const next = Number((settings.value.displayScale + delta).toFixed(2));
   settings.value.displayScale = Math.min(1.5, Math.max(0.75, next));
+}
+
+async function handleWebDAVUpload() {
+  await wdav.uploadAll({
+    url: settings.value.webdavUrl,
+    username: settings.value.webdavUsername,
+    password: settings.value.webdavPassword,
+  });
+}
+
+async function handleWebDAVDownload() {
+  await wdav.downloadAll({
+    url: settings.value.webdavUrl,
+    username: settings.value.webdavUsername,
+    password: settings.value.webdavPassword,
+  });
 }
 </script>
 

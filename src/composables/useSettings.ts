@@ -23,6 +23,9 @@ export interface AppSettings {
   displayScale: number;
   aiConfigs: AIConfig[];
   aiActiveConfigId: string;
+  webdavUrl: string;
+  webdavUsername: string;
+  webdavPassword: string;
 }
 
 const VALID_PROVIDERS: AIProvider[] = ['openai', 'openai-like', 'gemini'];
@@ -54,6 +57,9 @@ const defaults: AppSettings = {
   displayScale: 1,
   aiConfigs: [],
   aiActiveConfigId: '',
+  webdavUrl: '',
+  webdavUsername: '',
+  webdavPassword: '',
 };
 
 const DISPLAY_SCALE_MIN = 0.75;
@@ -104,6 +110,9 @@ function normalize(input: Partial<AppSettings>): AppSettings {
     displayScale: Number(nextScale.toFixed(2)),
     aiConfigs: configs,
     aiActiveConfigId: activeId,
+    webdavUrl: typeof input.webdavUrl === 'string' ? input.webdavUrl : '',
+    webdavUsername: typeof input.webdavUsername === 'string' ? input.webdavUsername : '',
+    webdavPassword: typeof input.webdavPassword === 'string' ? input.webdavPassword : '',
   };
 }
 
