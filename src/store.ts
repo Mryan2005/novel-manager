@@ -135,40 +135,55 @@ function saveToStorage() {
   }
 }
 
+const defaultNovel: Novel = {
+  title: '我的小说',
+  volumes: [],
+  chapters: [],
+  chapterSeries: [],
+  chapterRelations: [],
+  characters: [],
+  scenes: [],
+  items: [],
+  dayCount: {},
+};
+
 const state = reactive({
-  novel: loadFromStorage(),
+  novel: { ...defaultNovel },
   currentChapterId: null as string | null,
 });
 
+function setCurrentKeys(getKey: (base: string) => string) {
+  currentDataKey = getKey('novel-workshop-data');
+  currentTimestampKey = getKey('novel-workshop-timestamp');
+  setSharedStorageKeys(currentDataKey, currentTimestampKey);
+}
+
+function reloadNovel() {
+  const loaded = loadFromStorage();
+  // Only replace if the loaded data has actual content; otherwise keep existing
+  if (loaded.chapters.length > 0 || loaded.volumes.length > 0 || loaded.characters.length > 0) {
+    state.novel = loaded;
+  }
+}
+
 export const useStore = () => {
-  // Novel-scoped key setup (runs once at module level)
   if (!storeInitialized) {
     storeInitialized = true;
     const { getKey, activeNovelId, migrateIfNeeded } = useNovelManager();
 
-    // Migrate legacy global keys on first load
+    // Step 1: Migration first — moves legacy data to scoped key
     migrateIfNeeded();
 
-    // Set initial scoped keys and reload from the correct key
-    currentDataKey = getKey('novel-workshop-data');
-    currentTimestampKey = getKey('novel-workshop-timestamp');
-    setSharedStorageKeys(currentDataKey, currentTimestampKey);
+    // Step 2: Set scoped keys
+    setCurrentKeys(getKey);
 
-    // Reload: module-level loadFromStorage() ran with the wrong key before
-    // scoping was set up. Replace state.novel entirely with the correct data.
+    // Step 3: Load from scoped key
     state.novel = loadFromStorage();
 
-    // Watch novel switches: save current data, reload new data
-    watch(activeNovelId, (newId) => {
-      // Save current data to old key
+    // Step 4: Watch novel switches
+    watch(activeNovelId, () => {
       saveToStorage();
-
-      // Update keys
-      currentDataKey = getKey('novel-workshop-data');
-      currentTimestampKey = getKey('novel-workshop-timestamp');
-      setSharedStorageKeys(currentDataKey, currentTimestampKey);
-
-      // Reload data for new novel
+      setCurrentKeys(getKey);
       state.novel = loadFromStorage();
       state.currentChapterId = null;
     });
