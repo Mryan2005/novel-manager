@@ -176,11 +176,20 @@ export const useStore = () => {
 
     // Step 2: Set scoped keys
     setCurrentKeys(getKey);
+    console.log('[store] scoped data key:', currentDataKey);
+    console.log('[store] localStorage keys with novel data:',
+      Object.keys(localStorage).filter(k => k.includes('novel-workshop-data'))
+        .map(k => ({ key: k, size: (localStorage.getItem(k) || '').length }))
+    );
 
     // Step 3: Load from scoped key
-    state.novel = loadFromStorage();
+    const loaded = loadFromStorage();
+    console.log('[store] loaded chapters:', loaded.chapters?.length, 'volumes:', loaded.volumes?.length);
+    state.novel = loaded;
 
-    // Step 4: Watch novel switches
+    // Step 4: Force save to scoped key
+    saveToStorage();
+    console.log('[store] saved to key:', currentDataKey, 'chapters:', state.novel.chapters.length);
     watch(activeNovelId, () => {
       saveToStorage();
       setCurrentKeys(getKey);

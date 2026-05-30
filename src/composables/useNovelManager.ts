@@ -86,7 +86,11 @@ export function useNovelManager() {
       return val && val !== '{}' && val !== '[]';
     });
 
-    if (!hasLegacy) return;
+    if (!hasLegacy) {
+      console.log('[migrate] no legacy keys found, skipping');
+      return;
+    }
+    console.log('[migrate] found legacy keys, migrating...');
 
     // Create default novel if not exists
     let defaultNovel = novels.value.find(n => n.id === DEFAULT_ID);
@@ -99,6 +103,7 @@ export function useNovelManager() {
     for (const legacyKey of LEGACY_KEYS) {
       const val = localStorage.getItem(legacyKey);
       if (val !== null && val !== '{}' && val !== '[]') {
+        console.log('[migrate] copying', legacyKey, '→', `${legacyKey}-${DEFAULT_ID}`, 'size:', val.length);
         localStorage.setItem(`${legacyKey}-${DEFAULT_ID}`, val);
       }
       localStorage.removeItem(legacyKey);
