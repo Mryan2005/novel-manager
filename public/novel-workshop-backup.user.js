@@ -45,18 +45,15 @@
       return originalFetch(input, init);
     }
 
-    // Only intercept WebDAV-style requests (PUT/GET with JSON body containing novel data)
+    // Intercept all HTTP PUT requests (WebDAV upload) and HTTP GET to .json files (WebDAV download).
+    // The app's AI API calls all go to HTTPS endpoints, so intercepting all HTTP .json
+    // requests is safe and covers all WebDAV backup files.
     const method = (init?.method || 'GET').toUpperCase();
     const body = init?.body;
+    const isWebDAV = method === 'PUT' || method === 'DELETE' ||
+      (method === 'GET' && url.includes('.json'));
 
-    // Check if this looks like a WebDAV backup request (contains novel-workshop keys)
-    const isWebDAV = body && typeof body === 'string' &&
-      (body.includes('novel-workshop-data') || body.includes('novel-workshop-settings'));
-
-    // Also check if it's a GET to a .json file (download)
-    const isDownload = method === 'GET' && url.includes('.json');
-
-    if (!isWebDAV && !isDownload) {
+    if (!isWebDAV) {
       return originalFetch(input, init);
     }
 
