@@ -401,6 +401,7 @@ async function handleWebDAVDownload() {
     password: settings.value.webdavPassword,
   });
 }
+
 </script>
 
 <style scoped>
