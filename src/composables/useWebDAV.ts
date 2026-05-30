@@ -44,6 +44,29 @@ export function useWebDAV() {
     }, 6000);
   }
 
+  /** Create intermediate WebDAV directories recursively */
+  async function ensureDir(config: WebDAVConfig, url: string) {
+    // Extract directory path from file URL
+    const filePath = url.replace(config.url.replace(/\/+$/, ''), '').replace(/^\//, '');
+    const segments = filePath.split('/');
+    segments.pop(); // remove filename
+
+    let path = config.url.replace(/\/+$/, '');
+    for (const seg of segments) {
+      path += '/' + seg;
+      try {
+        const res = await fetch(path, {
+          method: 'MKCOL',
+          headers: authHeaders(config),
+        });
+        // 201 Created, 405 already exists, 409 conflict = exists — all OK
+        if (!res.ok && res.status !== 405 && res.status !== 409) {
+          // Directory might already exist, ignore
+        }
+      } catch { /* best effort */ }
+    }
+  }
+
   /** Upload all novels + settings to WebDAV */
   async function uploadAll(config: WebDAVConfig): Promise<boolean> {
     if (!config.url) {
@@ -55,13 +78,30 @@ export function useWebDAV() {
     try {
       const { novels } = useNovelManager();
 
+      // Ensure novels/ directories exist
+      for (const novel of novels.value) {
+        await ensureDir(config, buildUrl(config.url, 'novels', novel.id, '_.json'));
+      }
+
+      async function putWithRetry(url: string, data: string) {
+        let r = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
+          body: data,
+        });
+        if (r.status === 409) {
+          await fetch(url, { method: 'DELETE', headers: authHeaders(config) }).catch(function () {});
+          r = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
+            body: data,
+          });
+        }
+        return r;
+      }
+
       // Upload novel list
-      const novelListUrl = buildUrl(config.url, 'novel-list.json');
-      let res = await fetch(novelListUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
-        body: JSON.stringify(novels.value),
-      });
+      let res = await putWithRetry(buildUrl(config.url, 'novel-list.json'), JSON.stringify(novels.value));
       if (!res.ok) {
         setStatus(`上传 novel-list.json 失败: ${res.status}`, 'error');
         return false;
@@ -69,11 +109,7 @@ export function useWebDAV() {
 
       // Upload settings
       const settingsRaw = localStorage.getItem('novel-workshop-settings');
-      res = await fetch(buildUrl(config.url, 'novel-workshop-settings.json'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
-        body: settingsRaw || '{}',
-      });
+      res = await putWithRetry(buildUrl(config.url, 'novel-workshop-settings.json'), settingsRaw || '{}');
       if (!res.ok) {
         setStatus(`上传 settings 失败: ${res.status}`, 'error');
         return false;
@@ -87,11 +123,7 @@ export function useWebDAV() {
           const data = raw || '{}';
           const url = buildUrl(config.url, 'novels', novel.id, `${baseKey}.json`);
 
-          res = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
-            body: data,
-          });
+          res = await putWithRetry(url, data);
           if (!res.ok) {
             setStatus(`上传 ${novel.title}/${baseKey}.json 失败: ${res.status}`, 'error');
             return false;
