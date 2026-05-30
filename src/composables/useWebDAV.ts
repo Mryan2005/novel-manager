@@ -65,7 +65,11 @@ export function useWebDAV() {
       for (const novel of novels.value) {
         for (const baseKey of NOVEL_KEYS) {
           const scopedKey = `${baseKey}-${novel.id}`;
-          const raw = localStorage.getItem(scopedKey);
+          let raw = localStorage.getItem(scopedKey);
+          // Fallback: if scoped key is empty, check legacy unscoped key
+          if (!raw) {
+            raw = localStorage.getItem(baseKey);
+          }
           filesToSync.push({ name: `${novel.id}-${baseKey}.json`, data: raw || '{}' });
         }
       }

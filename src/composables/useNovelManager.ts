@@ -95,17 +95,13 @@ export function useNovelManager() {
       novels.value.unshift(defaultNovel);
     }
 
-    // Migrate each legacy key
+    // Migrate each legacy key (overwrite scoped — legacy always takes priority)
     for (const legacyKey of LEGACY_KEYS) {
       const val = localStorage.getItem(legacyKey);
-      if (val !== null) {
-        const scopedKey = `${legacyKey}-${DEFAULT_ID}`;
-        // Don't overwrite existing scoped data
-        if (!localStorage.getItem(scopedKey)) {
-          localStorage.setItem(scopedKey, val);
-        }
-        localStorage.removeItem(legacyKey);
+      if (val !== null && val !== '{}' && val !== '[]') {
+        localStorage.setItem(`${legacyKey}-${DEFAULT_ID}`, val);
       }
+      localStorage.removeItem(legacyKey);
     }
 
     // Migrate novel data timestamp
