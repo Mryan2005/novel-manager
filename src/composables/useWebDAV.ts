@@ -55,56 +55,41 @@ export function useWebDAV() {
     try {
       const { novels } = useNovelManager();
 
-      async function putWithRetry(url: string, data: string) {
-        let r = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
-          body: data,
-        });
-        if (r.status === 409) {
-          await fetch(url, { method: 'DELETE', headers: authHeaders(config) }).catch(function () {});
-          r = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...authHeaders(config) },
-            body: data,
-          });
-        }
-        return r;
-      }
+      // Build list of all files to sync
+      const filesToSync: { name: string; data: string }[] = [];
+      filesToSync.push({ name: 'novel-list.json', data: JSON.stringify(novels.value) });
 
-      // Upload novel list
-      let res = await putWithRetry(buildUrl(config.url, 'novel-list.json'), JSON.stringify(novels.value));
-      if (!res.ok) {
-        setStatus(`上传 novel-list.json 失败: ${res.status}`, 'error');
-        return false;
-      }
-
-      // Upload settings
       const settingsRaw = localStorage.getItem('novel-workshop-settings');
-      res = await putWithRetry(buildUrl(config.url, 'novel-workshop-settings.json'), settingsRaw || '{}');
-      if (!res.ok) {
-        setStatus(`上传 settings 失败: ${res.status}`, 'error');
-        return false;
-      }
+      filesToSync.push({ name: 'novel-workshop-settings.json', data: settingsRaw || '{}' });
 
-      // Upload each novel's data
       for (const novel of novels.value) {
         for (const baseKey of NOVEL_KEYS) {
           const scopedKey = `${baseKey}-${novel.id}`;
           const raw = localStorage.getItem(scopedKey);
-          const data = raw || '{}';
-          const fileName = `${novel.id}-${baseKey}.json`;
-          const url = buildUrl(config.url, fileName);
-
-          res = await putWithRetry(url, data);
-          if (!res.ok) {
-            setStatus(`上传 ${novel.title}/${baseKey}.json 失败: ${res.status}`, 'error');
-            return false;
-          }
+          filesToSync.push({ name: `${novel.id}-${baseKey}.json`, data: raw || '{}' });
         }
       }
 
-      setStatus(`成功备份 ${novels.value.length} 部小说到 WebDAV`, 'success');
+      // Phase 1: Delete all existing files (ignore errors — files may not exist)
+      const headers = authHeaders(config);
+      for (const file of filesToSync) {
+        await fetch(buildUrl(config.url, file.name), { method: 'DELETE', headers }).catch(function () {});
+      }
+
+      // Phase 2: Upload all files fresh
+      for (const file of filesToSync) {
+        const res = await fetch(buildUrl(config.url, file.name), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body: file.data,
+        });
+        if (!res.ok) {
+          setStatus(`上传 ${file.name} 失败: ${res.status}`, 'error');
+          return false;
+        }
+      }
+
+      setStatus(`成功备份 ${filesToSync.length} 个文件`, 'success');
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
