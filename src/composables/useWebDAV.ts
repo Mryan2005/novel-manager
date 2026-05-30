@@ -44,29 +44,6 @@ export function useWebDAV() {
     }, 6000);
   }
 
-  /** Create intermediate WebDAV directories recursively */
-  async function ensureDir(config: WebDAVConfig, url: string) {
-    // Extract directory path from file URL
-    const filePath = url.replace(config.url.replace(/\/+$/, ''), '').replace(/^\//, '');
-    const segments = filePath.split('/');
-    segments.pop(); // remove filename
-
-    let path = config.url.replace(/\/+$/, '');
-    for (const seg of segments) {
-      path += '/' + seg;
-      try {
-        const res = await fetch(path, {
-          method: 'MKCOL',
-          headers: authHeaders(config),
-        });
-        // 201 Created, 405 already exists, 409 conflict = exists — all OK
-        if (!res.ok && res.status !== 405 && res.status !== 409) {
-          // Directory might already exist, ignore
-        }
-      } catch { /* best effort */ }
-    }
-  }
-
   /** Upload all novels + settings to WebDAV */
   async function uploadAll(config: WebDAVConfig): Promise<boolean> {
     if (!config.url) {
@@ -77,11 +54,6 @@ export function useWebDAV() {
     uploading.value = true;
     try {
       const { novels } = useNovelManager();
-
-      // Ensure novels/ directories exist
-      for (const novel of novels.value) {
-        await ensureDir(config, buildUrl(config.url, 'novels', novel.id, '_.json'));
-      }
 
       async function putWithRetry(url: string, data: string) {
         let r = await fetch(url, {
@@ -121,7 +93,8 @@ export function useWebDAV() {
           const scopedKey = `${baseKey}-${novel.id}`;
           const raw = localStorage.getItem(scopedKey);
           const data = raw || '{}';
-          const url = buildUrl(config.url, 'novels', novel.id, `${baseKey}.json`);
+          const fileName = `novel-${novel.id}-${baseKey}.json`;
+          const url = buildUrl(config.url, fileName);
 
           res = await putWithRetry(url, data);
           if (!res.ok) {
@@ -191,18 +164,19 @@ export function useWebDAV() {
       let restored = 0;
       for (const novel of novels) {
         for (const baseKey of NOVEL_KEYS) {
-          const url = buildUrl(config.url, 'novels', novel.id, `${baseKey}.json`);
+          const fileName = `novel-${novel.id}-${baseKey}.json`;
+          const url = buildUrl(config.url, fileName);
           res = await fetch(url, { headers: authHeaders(config) });
 
           if (!res.ok) {
             if (res.status === 404) continue;
-            setStatus(`下载 novels/${novel.title}/${baseKey}.json 失败: ${res.status}`, 'error');
+            setStatus(`下载 ${fileName} 失败: ${res.status}`, 'error');
             return false;
           }
 
           const text = await res.text();
           try { JSON.parse(text); } catch {
-            setStatus(`${novel.title}/${baseKey}.json 格式无效`, 'error');
+            setStatus(`${fileName} 格式无效`, 'error');
             return false;
           }
           const scopedKey = `${baseKey}-${novel.id}`;
