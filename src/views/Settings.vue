@@ -305,6 +305,37 @@
         </div>
       </section>
 
+      <section v-if="isHttpsPage" class="card settings-card p-2 space-y-4">
+        <h2 class="text-lg font-semibold text-[var(--text)] flex items-center gap-2">
+          <Download class="w-5 h-5" style="color: var(--primary);" />
+          安装油猴脚本 — 解除 WebDAV HTTPS 限制
+        </h2>
+
+        <p class="text-sm text-[var(--text-muted)]">
+          当前页面使用 HTTPS，浏览器会阻止 HTTP 的 WebDAV 请求。安装此脚本后，WebDAV 请求将自动通过油猴脚本转发，无需修改 WebDAV 地址。
+        </p>
+
+        <div class="space-y-3">
+          <div class="flex flex-col gap-2">
+            <p class="text-xs text-[var(--text-muted)]">1. 先安装浏览器扩展 <strong>Tampermonkey</strong></p>
+            <p class="text-xs text-[var(--text-muted)]">2. 点击下方按钮安装脚本</p>
+          </div>
+
+          <a
+            href="/novel-workshop-backup.user.js"
+            class="btn btn-primary w-full justify-center"
+            target="_blank"
+          >
+            <Download class="w-4 h-4" />
+            安装油猴脚本
+          </a>
+
+          <p class="text-xs text-[var(--text-muted)]">
+            Tampermonkey 将提示你确认安装。安装后无需任何配置，HTTP 的 WebDAV 即可在 HTTPS 页面上正常使用。脚本开源于项目仓库。
+          </p>
+        </div>
+      </section>
+
       <div v-if="confirmAction" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="confirmAction = null">
         <div class="card p-6 max-w-sm w-full mx-4 space-y-4">
           <h3 class="text-lg font-semibold text-[var(--text)]">确认操作</h3>
@@ -321,7 +352,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles, Plus, Cloud, CloudDownload, CloudUpload } from 'lucide-vue-next';
+import { Monitor, Type, Maximize, HardDrive, FileText, Archive, Trash2, TriangleAlert, Sparkles, Plus, Cloud, CloudDownload, CloudUpload, Download } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useSettings } from '../composables/useSettings';
 import { useWebDAV } from '../composables/useWebDAV';
