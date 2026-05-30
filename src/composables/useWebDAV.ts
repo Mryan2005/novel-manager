@@ -93,7 +93,7 @@ export function useWebDAV() {
           const scopedKey = `${baseKey}-${novel.id}`;
           const raw = localStorage.getItem(scopedKey);
           const data = raw || '{}';
-          const fileName = `novel-${novel.id}-${baseKey}.json`;
+          const fileName = `${novel.id}-${baseKey}.json`;
           const url = buildUrl(config.url, fileName);
 
           res = await putWithRetry(url, data);
@@ -164,7 +164,7 @@ export function useWebDAV() {
       let restored = 0;
       for (const novel of novels) {
         for (const baseKey of NOVEL_KEYS) {
-          const fileName = `novel-${novel.id}-${baseKey}.json`;
+          const fileName = `${novel.id}-${baseKey}.json`;
           const url = buildUrl(config.url, fileName);
           res = await fetch(url, { headers: authHeaders(config) });
 
