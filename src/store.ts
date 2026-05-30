@@ -149,13 +149,16 @@ export const useStore = () => {
     // Migrate legacy global keys on first load
     migrateIfNeeded();
 
-    // Set initial scoped keys
+    // Set initial scoped keys and reload from the correct key
     currentDataKey = getKey('novel-workshop-data');
     currentTimestampKey = getKey('novel-workshop-timestamp');
     setSharedStorageKeys(currentDataKey, currentTimestampKey);
 
+    // Reload: module-level loadFromStorage() ran with the wrong key before
+    // scoping was set up. Replace state.novel entirely with the correct data.
+    state.novel = loadFromStorage();
+
     // Watch novel switches: save current data, reload new data
-    let previousId = activeNovelId.value;
     watch(activeNovelId, (newId) => {
       // Save current data to old key
       saveToStorage();
@@ -166,10 +169,8 @@ export const useStore = () => {
       setSharedStorageKeys(currentDataKey, currentTimestampKey);
 
       // Reload data for new novel
-      Object.assign(state.novel, loadFromStorage());
+      state.novel = loadFromStorage();
       state.currentChapterId = null;
-
-      previousId = newId;
     });
   }
 

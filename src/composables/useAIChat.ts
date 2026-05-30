@@ -82,6 +82,10 @@ export function useAIChat() {
     activeSessionKey = getKey('novel-workshop-ai-active-session');
     dataKey = getKey('novel-workshop-data');
 
+    // Reload with scoped keys (module-level load ran with default key)
+    sessions.value = loadSessions();
+    activeSessionId.value = loadActiveSessionId();
+
     watch(activeNovelId, () => {
       // Save current
       saveSessions(sessions.value);

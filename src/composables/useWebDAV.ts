@@ -164,10 +164,9 @@ export function useWebDAV() {
           }
 
           const text = await res.text();
-          try { JSON.parse(text); } catch {
-            setStatus(`${fileName} 格式无效`, 'error');
-            return false;
-          }
+          // Skip empty or whitespace-only files
+          if (!text || !text.trim()) continue;
+          try { JSON.parse(text); } catch { continue; }
           const scopedKey = `${baseKey}-${novel.id}`;
           localStorage.setItem(scopedKey, text);
         }

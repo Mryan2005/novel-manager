@@ -41,6 +41,8 @@ export function useMemoryCards() {
 
     storageKey = getKey('novel-workshop-worldsim-memories');
 
+    cards.value = load();
+
     watch(activeNovelId, () => {
       save(cards.value);
       storageKey = getKey('novel-workshop-worldsim-memories');

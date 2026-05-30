@@ -68,6 +68,9 @@ export function useWorldSimulation() {
     sessionsKey = getKey('novel-workshop-worldsim-sessions');
     activeKey = getKey('novel-workshop-worldsim-active');
 
+    sessions.value = loadSessions();
+    activeSessionId.value = loadActiveId();
+
     watch(activeNovelId, () => {
       saveSessions(sessions.value);
       saveActiveId(activeSessionId.value);
