@@ -59,7 +59,7 @@
               <select v-model="addChapterId[series.id]" class="input text-sm flex-1">
                 <option value="">添加章节到系列...</option>
                 <option v-for="chapter in unassignedChapters(series.id)" :key="chapter.id" :value="chapter.id">
-                  {{ chapter.title || '未命名章节' }}
+                  {{ chapter.title || '未命名章节' }}{{ chapter.status === 'discarded' ? ' [废稿]' : '' }}
                 </option>
               </select>
               <button class="btn btn-primary text-sm shrink-0" @click="addToSeries(series.id)" :disabled="!addChapterId[series.id]">添加</button>
@@ -70,7 +70,11 @@
             </div>
             <div v-else class="space-y-1">
               <div v-for="chapterId in series.chapterIds" :key="chapterId" class="flex items-center justify-between pad-3 rounded-lg hover:bg-[var(--surface-alt)] transition-colors">
-                <span class="text-sm text-[var(--text)] cursor-pointer hover:text-[var(--primary)] transition-colors" @click="goToEditor(chapterId)">{{ chapterTitle(chapterId) }}</span>
+                <span
+                  class="text-sm cursor-pointer hover:text-[var(--primary)] transition-colors"
+                  :class="getChapter(chapterId)?.status === 'discarded' ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text)]'"
+                  @click="goToEditor(chapterId)"
+                >{{ chapterTitle(chapterId) }}</span>
                 <button
                   @click="removeFromSeries(series.id, chapterId)"
                   class="pad-1 rounded hover:bg-red-500/10 text-[var(--text-muted)] hover:text-[var(--error)] transition-colors"
@@ -114,7 +118,8 @@ const unassignedChapters = (seriesId: string) => {
   return chapters.value.filter(c => !ids.has(c.id)).sort((a, b) => a.order - b.order);
 };
 
-const chapterTitle = (id: string) => chapters.value.find(c => c.id === id)?.title || '未知章节';
+const getChapter = (id: string) => chapters.value.find(c => c.id === id);
+const chapterTitle = (id: string) => getChapter(id)?.title || '未知章节';
 
 const toggleSeries = (id: string) => {
   if (expanded.has(id)) {
