@@ -116,7 +116,7 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-4 mb-0.5">
-                      <h3 class="font-semibold text-[var(--text)] truncate">{{ chapter.title.length > 15 ? chapter.title.slice(0, 15) + '...' : chapter.title }}</h3>
+                      <h3 class="font-semibold truncate" :class="chapter.status === 'discarded' ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text)]'">{{ chapter.title.length > 15 ? chapter.title.slice(0, 15) + '...' : chapter.title }}</h3>
                       <span class="tag" :class="statusClass(chapter.status)">{{ statusText(chapter.status) }}</span>
                     </div>
                     <p class="text-sm text-[var(--text-muted)]">
@@ -202,6 +202,7 @@
                 <option value="draft">草稿</option>
                 <option value="in-progress">撰写中</option>
                 <option value="completed">已完成</option>
+                <option value="discarded">废稿</option>
               </select>
             </div>
             <div>
@@ -493,6 +494,7 @@ const statusClass = (status: string) => {
     'draft': 'tag-muted',
     'in-progress': 'tag-warning',
     'completed': 'tag-success',
+    'discarded': 'tag-error',
   };
   return classes[status] || 'tag-muted';
 };
@@ -502,6 +504,7 @@ const statusText = (status: string) => {
     'draft': '草稿',
     'in-progress': '撰写中',
     'completed': '已完成',
+    'discarded': '废稿',
   };
   return texts[status] || '草稿';
 };

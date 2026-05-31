@@ -192,8 +192,10 @@ export const useStore = () => {
   }
 
   const totalChapters = computed(() => state.novel.chapters.length);
-  const totalWords = computed(() => 
-    state.novel.chapters.reduce((sum, chapter) => sum + chapter.wordCount, 0)
+  const totalWords = computed(() =>
+    state.novel.chapters
+      .filter(c => c.status !== 'discarded')
+      .reduce((sum, chapter) => sum + chapter.wordCount, 0)
   );
   const totalCharacters = computed(() => state.novel.characters.length);
   const totalScenes = computed(() => state.novel.scenes.length);

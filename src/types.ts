@@ -14,7 +14,7 @@ export interface Chapter {
   wordCount: number;
   createdAt: string;
   updatedAt: string;
-  status: 'draft' | 'in-progress' | 'completed';
+  status: 'draft' | 'in-progress' | 'completed' | 'discarded';
   order: number;
   volumeId: string;
 }
