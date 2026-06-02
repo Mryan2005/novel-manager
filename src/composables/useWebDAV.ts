@@ -1,5 +1,7 @@
 import { ref } from 'vue';
 import { useNovelManager, type NovelMeta } from './useNovelManager';
+import { useSettings } from './useSettings';
+import { encrypt, decrypt, looksEncrypted } from './useCrypto';
 
 export interface WebDAVConfig {
   url: string;
@@ -54,12 +56,22 @@ export function useWebDAV() {
     uploading.value = true;
     try {
       const { novels } = useNovelManager();
+      const { settings } = useSettings();
+      const passkey = settings.value.encryptionPasskey;
 
       // Build list of all files to sync
       const filesToSync: { name: string; data: string }[] = [];
       filesToSync.push({ name: 'novel-list.json', data: JSON.stringify(novels.value) });
 
-      const settingsRaw = localStorage.getItem('novel-workshop-settings');
+      // Strip encryptionPasskey from settings before upload — it should never leave the device
+      let settingsRaw = localStorage.getItem('novel-workshop-settings');
+      if (settingsRaw) {
+        try {
+          const parsed = JSON.parse(settingsRaw);
+          delete (parsed as Record<string, unknown>).encryptionPasskey;
+          settingsRaw = JSON.stringify(parsed);
+        } catch { /* keep as-is */ }
+      }
       filesToSync.push({ name: 'novel-workshop-settings.json', data: settingsRaw || '{}' });
 
       for (const novel of novels.value) {
@@ -71,6 +83,13 @@ export function useWebDAV() {
             raw = localStorage.getItem(baseKey);
           }
           filesToSync.push({ name: `${novel.id}-${baseKey}.json`, data: raw || '{}' });
+        }
+      }
+
+      // Encrypt all file data if passkey is set
+      if (passkey) {
+        for (const file of filesToSync) {
+          file.data = await encrypt(file.data, passkey);
         }
       }
 
@@ -117,6 +136,21 @@ export function useWebDAV() {
 
     downloading.value = true;
     try {
+      const { settings } = useSettings();
+      const passkey = settings.value.encryptionPasskey;
+
+      // Helper to decrypt downloaded data if needed
+      const tryDecrypt = async (raw: string): Promise<string> => {
+        if (!passkey || !looksEncrypted(raw)) return raw;
+        try {
+          return await decrypt(raw, passkey);
+        } catch {
+          // If decryption fails (wrong passkey or not encrypted),
+          // return raw — the caller will try to parse as JSON
+          return raw;
+        }
+      };
+
       // Download novel list
       let res = await fetch(buildUrl(config.url, 'novel-list.json'), {
         headers: authHeaders(config),
@@ -128,7 +162,8 @@ export function useWebDAV() {
 
       let novels: NovelMeta[] = [];
       if (res.ok) {
-        const text = await res.text();
+        const raw = await res.text();
+        const text = await tryDecrypt(raw);
         try { novels = JSON.parse(text); } catch {
           setStatus('novel-list.json 格式无效', 'error');
           return false;
@@ -141,12 +176,22 @@ export function useWebDAV() {
         headers: authHeaders(config),
       });
       if (res.ok) {
-        const text = await res.text();
+        const raw = await res.text();
+        const text = await tryDecrypt(raw);
         try { JSON.parse(text); } catch {
           setStatus('settings.json 格式无效', 'error');
           return false;
         }
-        localStorage.setItem('novel-workshop-settings', text);
+        // Preserve the local encryption passkey — never overwrite from remote
+        let merged = text;
+        if (passkey) {
+          try {
+            const remote = JSON.parse(text) as Record<string, unknown>;
+            remote.encryptionPasskey = passkey;
+            merged = JSON.stringify(remote);
+          } catch { /* keep as-is */ }
+        }
+        localStorage.setItem('novel-workshop-settings', merged);
       }
 
       // Download each novel's data
@@ -163,9 +208,10 @@ export function useWebDAV() {
             return false;
           }
 
-          const text = await res.text();
+          const raw = await res.text();
           // Skip empty or whitespace-only files
-          if (!text || !text.trim()) continue;
+          if (!raw || !raw.trim()) continue;
+          const text = await tryDecrypt(raw);
           try { JSON.parse(text); } catch { continue; }
           const scopedKey = `${baseKey}-${novel.id}`;
           localStorage.setItem(scopedKey, text);

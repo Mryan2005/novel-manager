@@ -263,6 +263,20 @@
             </div>
           </div>
 
+          <div>
+            <label class="text-sm font-medium text-[var(--text-light)]">加密口令</label>
+            <input
+              type="password"
+              :value="settings.encryptionPasskey"
+              @input="settings.encryptionPasskey = ($event.target as HTMLInputElement).value"
+              placeholder="留空则不加密上传文件"
+              class="input mt-1"
+            />
+            <p class="text-xs text-[var(--text-muted)] mt-1">
+              设置口令后，上传到 WebDAV 的文件将使用 AES-GCM 加密。下载时需输入相同口令解密。
+            </p>
+          </div>
+
           <!-- HTTP on HTTPS warning -->
           <div
             v-if="isHttpsPage && settings.webdavUrl.startsWith('http://')"

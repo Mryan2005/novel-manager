@@ -27,6 +27,7 @@ export interface AppSettings {
   webdavUrl: string;
   webdavUsername: string;
   webdavPassword: string;
+  encryptionPasskey: string;
 }
 
 const VALID_PROVIDERS: AIProvider[] = ['openai', 'openai-like', 'gemini'];
@@ -61,6 +62,7 @@ const defaults: AppSettings = {
   webdavUrl: '',
   webdavUsername: '',
   webdavPassword: '',
+  encryptionPasskey: '',
 };
 
 const DISPLAY_SCALE_MIN = 0.75;
@@ -114,6 +116,7 @@ function normalize(input: Partial<AppSettings>): AppSettings {
     webdavUrl: typeof input.webdavUrl === 'string' ? input.webdavUrl : '',
     webdavUsername: typeof input.webdavUsername === 'string' ? input.webdavUsername : '',
     webdavPassword: typeof input.webdavPassword === 'string' ? input.webdavPassword : '',
+    encryptionPasskey: typeof input.encryptionPasskey === 'string' ? input.encryptionPasskey : '',
   };
 }
 
