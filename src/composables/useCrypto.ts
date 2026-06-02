@@ -2,10 +2,10 @@ const PBKDF2_ITERATIONS = 200_000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 const KEY_BITS = 256;
-const KEY_BYTES = KEY_BITS / 8;
 
-function buf2hex(buffer: ArrayBuffer): string {
-  return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, '0')).join('');
+function buf2hex(buf: Uint8Array | ArrayBuffer): string {
+  const arr = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  return [...arr].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function hex2buf(hex: string): Uint8Array {
@@ -17,7 +17,7 @@ function hex2buf(hex: string): Uint8Array {
   return bytes;
 }
 
-async function deriveKey(passkey: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(passkey: string, salt: BufferSource): Promise<CryptoKey> {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -45,8 +45,10 @@ async function deriveKey(passkey: string, salt: Uint8Array): Promise<CryptoKey> 
  * Returns a string in the format: hex(salt):hex(iv):hex(ciphertext)
  */
 export async function encrypt(data: string, passkey: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
-  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
+  const salt = new Uint8Array(SALT_BYTES);
+  crypto.getRandomValues(salt);
+  const iv = new Uint8Array(IV_BYTES);
+  crypto.getRandomValues(iv);
   const key = await deriveKey(passkey, salt);
   const enc = new TextEncoder();
   const ciphertext = await crypto.subtle.encrypt(
