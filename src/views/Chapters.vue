@@ -425,6 +425,7 @@ const {
 const searchQuery = ref('');
 const expandedVolumes = ref(new Set<string>());
 const copyMenuChapterId = ref<string | null>(null);
+const showReorder = ref(false);
 
 // Volume modals
 const showVolumeModal = ref(false);
@@ -788,8 +789,6 @@ const removeRelation = (id: string) => {
 const chapterName = (id: string) => chapters.value.find(chapter => chapter.id === id)?.title || '未知章节';
 
 // === 排序 ===
-const showReorder = ref(false);
-
 const sortedVolumes = computed(() => [...volumes.value].sort((a, b) => a.order - b.order));
 
 const getVolumeChaptersForReorder = (volumeId: string) =>
