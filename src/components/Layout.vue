@@ -178,14 +178,6 @@
             物品设定
           </router-link>
           <router-link
-            to="/relations"
-            class="nav-link"
-            :class="$route.path === '/relations' ? 'nav-link-active' : ''"
-          >
-            <GitBranch class="w-5 h-5" />
-            关系图
-          </router-link>
-          <router-link
             to="/moments"
             class="nav-link"
             :class="$route.path === '/moments' ? 'nav-link-active' : ''"
@@ -273,7 +265,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard, Plus, Trash2, GitBranch } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard, Plus, Trash2 } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';

@@ -6,10 +6,16 @@
           <h1 class="text-3xl font-bold text-[var(--text)]">角色设定</h1>
           <p class="text-[var(--text-light)] mt-1 text-lg">管理你的小说角色</p>
         </div>
-        <button @click="showAddModal = true" class="btn btn-primary">
-          <Plus class="w-4 h-4" />
-          新建角色
-        </button>
+        <div class="flex items-center gap-3">
+          <button @click="showGraph = true" class="btn btn-secondary" :disabled="characters.length < 2">
+            <GitBranch class="w-4 h-4" />
+            关系图
+          </button>
+          <button @click="showAddModal = true" class="btn btn-primary">
+            <Plus class="w-4 h-4" />
+            新建角色
+          </button>
+        </div>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-4">
@@ -234,6 +240,19 @@
             <p v-if="detailCharacter.traits.length > 0">性格特点：{{ detailCharacter.traits.join('、') }}</p>
             <p v-if="detailCharacter.description" class="!mt-3">{{ detailCharacter.description }}</p>
           </div>
+          <!-- 人物关系 -->
+          <div v-if="detailRelations.length > 0" class="mt-4 pt-4 border-t border-[var(--border)]">
+            <div class="text-xs font-semibold text-[var(--text-muted)] mb-2">人物关系</div>
+            <div v-for="r in detailRelations" :key="r.relation.id" class="flex items-center justify-between text-sm py-1.5">
+              <span>
+                <span class="font-medium text-[var(--text)]">{{ r.character?.name || '未知' }}</span>
+                <span v-if="r.relation.label" class="text-[var(--text-muted)]"> — {{ r.relation.label }}</span>
+              </span>
+              <button class="pad-1 rounded text-[var(--text-muted)] hover:text-red-500" @click.stop="removeCharRelation(r.relation.id)">
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
         </div>
         <div class="detail-footer">
           <button @click="editFromDetail" class="btn btn-secondary">
@@ -269,18 +288,70 @@
       </div>
       </div>
     </Teleport>
+
+    <!-- 人物关系图全屏 -->
+    <Teleport to="body">
+      <div v-if="showGraph" class="fixed inset-0 z-50 flex flex-col" style="background: rgba(0,0,0,0.85);" @click.self="showGraph = false">
+        <div class="flex items-center justify-between pad-4 bg-[var(--surface)] border-b border-[var(--border)]">
+          <h2 class="text-lg font-semibold text-[var(--text)]">人物关系图</h2>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-secondary" @click="graphZoomOut" :disabled="graphScale <= 0.4">缩小</button>
+            <span class="text-sm font-semibold text-[var(--text-light)] w-14 text-center">{{ Math.round(graphScale * 100) }}%</span>
+            <button class="btn btn-secondary" @click="graphZoomIn" :disabled="graphScale >= 2">放大</button>
+            <button class="btn btn-primary" @click="resetGraphViewport">重置视图</button>
+            <button class="btn btn-secondary" @click="showGraph = false">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <div
+          class="flex-1 m-4 overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
+          :class="graphPanning ? 'is-panning' : ''"
+          style="cursor: grab;"
+          @pointerdown="onGraphPointerDown"
+          @pointermove="onGraphPointerMove"
+          @pointerup="onGraphPointerUp"
+          @pointerleave="onGraphPointerUp"
+          @wheel.prevent="onGraphWheel"
+          @selectstart.prevent
+        >
+          <div class="mermaid-canvas" :style="graphCanvasStyle" style="min-height: calc(100vh - 8rem);">
+            <div v-if="characters.length === 0" class="empty-state" style="min-height: calc(100vh - 8rem);">
+              还没有角色，先创建角色再绘制关系图。
+            </div>
+            <div v-else ref="charGraphRef" class="mermaid-render"></div>
+          </div>
+        </div>
+        <!-- 添加关系表单 -->
+        <div class="pad-4 bg-[var(--surface)] border-t border-[var(--border)]">
+          <div class="flex items-center gap-3">
+            <select v-model="newCharRel.from" class="input text-sm w-40">
+              <option value="">选择角色A</option>
+              <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+            <input v-model="newCharRel.label" class="input text-sm w-32" placeholder="关系（如师徒）" />
+            <select v-model="newCharRel.to" class="input text-sm w-40">
+              <option value="">选择角色B</option>
+              <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+            <button class="btn btn-primary text-sm !py-1.5" @click="addCharRelation">添加关系</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </Layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { Users, Plus, Edit, Trash2, Search, Tag, X } from 'lucide-vue-next';
+import { Users, Plus, Edit, Trash2, Search, Tag, X, GitBranch } from 'lucide-vue-next';
+import mermaid from 'mermaid';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Character } from '../types';
 
-const { characters, addCharacter, updateCharacter, deleteCharacter: deleteCharacterFromStore } = useStore();
+const { characters, characterRelations, addCharacter, updateCharacter, deleteCharacter: deleteCharacterFromStore, addCharacterRelation, deleteCharacterRelation } = useStore();
 const route = useRoute();
 
 const showAddModal = ref(false);
@@ -288,7 +359,7 @@ const showEditModal = ref(false);
 const showDeleteModal = ref(false);
 const showDetailModal = ref(false);
 
-const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDetailModal.value || showDeleteModal.value);
+const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDetailModal.value || showDeleteModal.value || showGraph.value);
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
@@ -489,22 +560,130 @@ const deleteFromDetail = () => {
     showDetailModal.value = false;
   }
 };
+
+// === 人物关系 ===
+const detailRelations = computed(() => {
+  if (!detailCharacter.value) return [];
+  return characterRelations.value
+    .filter(r => r.fromCharacterId === detailCharacter.value!.id || r.toCharacterId === detailCharacter.value!.id)
+    .map(r => {
+      const otherId = r.fromCharacterId === detailCharacter.value!.id ? r.toCharacterId : r.fromCharacterId;
+      return { relation: r, character: characters.value.find(c => c.id === otherId) };
+    });
+});
+
+// === 人物关系图 ===
+const showGraph = ref(false);
+const charGraphRef = ref<HTMLDivElement | null>(null);
+const graphScale = ref(1);
+const graphPanning = ref(false);
+const graphPanStart = ref({ x: 0, y: 0 });
+const graphPanOffset = ref({ x: 0, y: 0 });
+const graphOffset = ref({ x: 0, y: 0 });
+const mermaidInit = ref(false);
+const mermaidIdx = ref(0);
+const newCharRel = ref({ from: '', to: '', label: '' });
+
+const graphCanvasStyle = computed(() => ({
+  transform: `translate(${graphOffset.value.x}px, ${graphOffset.value.y}px) scale(${graphScale.value})`,
+}));
+
+const sanitizeId = (v: string) => v.replace(/[^a-zA-Z0-9_]/g, '_');
+const escLabel = (v: string) => v.replace(/[\[\]<>]/g, '').replace(/[(){}]/g, '').replace(/["']/g, '').replace(/\|/g, '/').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+
+const charGraphCode = computed(() => {
+  const nodes = characters.value.map(c => `  char_${sanitizeId(c.id)}["${escLabel(c.name || '未命名')}"]`);
+  const rels = characterRelations.value
+    .filter(r => characters.value.some(c => c.id === r.fromCharacterId) && characters.value.some(c => c.id === r.toCharacterId))
+    .map(r => {
+      const lbl = r.label ? `|${escLabel(r.label)}|` : '';
+      return `  char_${sanitizeId(r.fromCharacterId)} ---${lbl} char_${sanitizeId(r.toCharacterId)}`;
+    });
+  return ['flowchart LR', ...nodes, ...rels].join('\n');
+});
+
+const renderCharGraph = async () => {
+  const el = charGraphRef.value;
+  if (!el || characters.value.length === 0) return;
+  try {
+    const id = `char-graph-${mermaidIdx.value++}`;
+    const { svg } = await mermaid.render(id, charGraphCode.value);
+    el.innerHTML = svg;
+  } catch (e) { console.error(e); }
+};
+
+watch(charGraphCode, async () => { await nextTick(); renderCharGraph(); });
+watch(showGraph, async (v) => {
+  if (v) {
+    if (!mermaidInit.value) { mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' }); mermaidInit.value = true; }
+    await nextTick(); renderCharGraph();
+  }
+});
+
+const graphZoomIn = () => { graphScale.value = Math.min(2, graphScale.value + 0.1); };
+const graphZoomOut = () => { graphScale.value = Math.max(0.4, graphScale.value - 0.1); };
+const resetGraphViewport = () => { graphScale.value = 1; graphOffset.value = { x: 0, y: 0 }; };
+const onGraphWheel = (e: WheelEvent) => { graphScale.value = Math.min(2, Math.max(0.4, graphScale.value + (e.deltaY > 0 ? -0.1 : 0.1))); };
+const onGraphPointerDown = (e: PointerEvent) => {
+  if (e.button !== 0) return;
+  graphPanning.value = true;
+  graphPanStart.value = { x: e.clientX, y: e.clientY };
+  graphPanOffset.value = { x: graphOffset.value.x, y: graphOffset.value.y };
+  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+};
+const onGraphPointerMove = (e: PointerEvent) => {
+  if (!graphPanning.value) return;
+  graphOffset.value = { x: graphPanOffset.value.x + e.clientX - graphPanStart.value.x, y: graphPanOffset.value.y + e.clientY - graphPanStart.value.y };
+};
+const onGraphPointerUp = (e: PointerEvent) => {
+  if (!graphPanning.value) return;
+  graphPanning.value = false;
+  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+};
+
+const addCharRelation = () => {
+  if (!newCharRel.value.from || !newCharRel.value.to) return;
+  addCharacterRelation({
+    fromCharacterId: newCharRel.value.from,
+    toCharacterId: newCharRel.value.to,
+    label: newCharRel.value.label.trim() || undefined,
+  });
+  newCharRel.value = { from: '', to: '', label: '' };
+};
+
+const removeCharRelation = (id: string) => {
+  deleteCharacterRelation(id);
+};
+
+const handleGraphEsc = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && showGraph.value) showGraph.value = false;
+};
+
+onMounted(() => document.addEventListener('keydown', handleGraphEsc));
+onUnmounted(() => document.removeEventListener('keydown', handleGraphEsc));
 </script>
 
 <style scoped>
-.form-modal-window {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 51;
-  width: min(560px, calc(100vw - 2rem));
-  max-height: 90vh;
-  padding: 1.5rem;
-  overflow-y: auto;
-  background: var(--surface);
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
+.mermaid-canvas {
+  min-height: 520px;
+  transform-origin: 0 0;
+}
+
+.mermaid-render :deep(svg) {
+  max-width: none;
+  height: auto;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 520px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.is-panning {
+  cursor: grabbing;
 }
 </style>
