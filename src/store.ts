@@ -1181,8 +1181,10 @@ ${pageMarkup}
         chapterSeries: Array.isArray(entry.data.chapterSeries) ? entry.data.chapterSeries : [],
         chapterRelations: Array.isArray(entry.data.chapterRelations) ? entry.data.chapterRelations : [],
         characters: Array.isArray(entry.data.characters) ? entry.data.characters : [],
+        characterRelations: Array.isArray(entry.data.characterRelations) ? entry.data.characterRelations : [],
         scenes: Array.isArray(entry.data.scenes) ? entry.data.scenes : [],
         items: Array.isArray(entry.data.items) ? entry.data.items : [],
+        moments: Array.isArray(entry.data.moments) ? entry.data.moments : [],
         dayCount: (entry.data.dayCount && typeof entry.data.dayCount === 'object' && !Array.isArray(entry.data.dayCount)) ? entry.data.dayCount : {},
       };
       if (!entry.data.dayCount || typeof entry.data.dayCount !== 'object' || Array.isArray(entry.data.dayCount) || Object.keys(entry.data.dayCount).length === 0) {

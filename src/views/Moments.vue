@@ -254,9 +254,10 @@ function setCardRef(id: string, el: unknown) {
 }
 
 function scrollToFocusedCard() {
-  if (!focusedMomentId.value) return;
+  const id = focusedMomentId.value;
+  if (!id) return;
   nextTick(() => {
-    const el = cardRefs.value[focusedMomentId.value];
+    const el = cardRefs.value[id];
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
