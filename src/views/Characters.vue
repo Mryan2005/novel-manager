@@ -358,6 +358,7 @@ const showAddModal = ref(false);
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
 const showDetailModal = ref(false);
+const showGraph = ref(false);
 
 const anyModalOpen = computed(() => showAddModal.value || showEditModal.value || showDetailModal.value || showDeleteModal.value || showGraph.value);
 watch(anyModalOpen, (open) => {
@@ -573,7 +574,6 @@ const detailRelations = computed(() => {
 });
 
 // === 人物关系图 ===
-const showGraph = ref(false);
 const charGraphRef = ref<HTMLDivElement | null>(null);
 const graphScale = ref(1);
 const graphPanning = ref(false);
