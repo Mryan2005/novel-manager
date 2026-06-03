@@ -1,5 +1,5 @@
 import { reactive, computed, watch } from 'vue';
-import type { Novel, Volume, Chapter, ChapterSeries, ChapterRelation, Character, Scene, Item, DailyWordRecord, DayCount, ExportBundle } from './types';
+import type { Novel, Volume, Chapter, ChapterSeries, ChapterRelation, Character, CharacterRelation, Scene, Item, Moment, DailyWordRecord, DayCount, ExportBundle } from './types';
 import { useNovelManager } from './composables/useNovelManager';
 import { setSharedStorageKeys } from './shared-storage';
 
@@ -19,6 +19,7 @@ const EMPTY_SEARCH_RESULTS = Object.freeze({
   characters: [] as Character[],
   scenes: [] as Scene[],
   items: [] as Item[],
+  moments: [] as Moment[],
 });
 
 export function buildChapterSynopsis(chapter: Pick<Chapter, 'outline' | 'content'>): string {
@@ -96,6 +97,14 @@ function loadFromStorage(): Novel {
       if (!novel.items || !Array.isArray(novel.items)) {
         novel.items = [];
       }
+      // Backward compat: ensure characterRelations exists
+      if (!novel.characterRelations || !Array.isArray(novel.characterRelations)) {
+        novel.characterRelations = [];
+      }
+      // Backward compat: ensure moments exists
+      if (!novel.moments || !Array.isArray(novel.moments)) {
+        novel.moments = [];
+      }
       // Backward compat: ensure dayCount exists
       if (!novel.dayCount || typeof novel.dayCount !== 'object' || Array.isArray(novel.dayCount)) {
         novel.dayCount = {};
@@ -112,8 +121,10 @@ function loadFromStorage(): Novel {
       chapterSeries: [],
       chapterRelations: [],
       characters: [],
+      characterRelations: [],
       scenes: [],
       items: [],
+      moments: [],
       dayCount: {},
   };
 }
@@ -142,8 +153,10 @@ const defaultNovel: Novel = {
   chapterSeries: [],
   chapterRelations: [],
   characters: [],
+  characterRelations: [],
   scenes: [],
   items: [],
+  moments: [],
   dayCount: {},
 };
 
@@ -200,6 +213,7 @@ export const useStore = () => {
   const totalCharacters = computed(() => state.novel.characters.length);
   const totalScenes = computed(() => state.novel.scenes.length);
   const totalItems = computed(() => state.novel.items.length);
+  const totalMoments = computed(() => state.novel.moments.length);
 
   const volumes = computed(() =>
     [...state.novel.volumes].sort((a, b) => a.order - b.order)
@@ -213,8 +227,10 @@ export const useStore = () => {
   const chapterRelations = computed(() => state.novel.chapterRelations);
 
   const characters = computed(() => state.novel.characters);
+  const characterRelations = computed(() => state.novel.characterRelations);
   const scenes = computed(() => state.novel.scenes);
   const items = computed(() => state.novel.items);
+  const moments = computed(() => state.novel.moments);
   const currentChapter = computed(() => 
     state.novel.chapters.find(c => c.id === state.currentChapterId)
   );
@@ -292,7 +308,19 @@ export const useStore = () => {
       item => item.createdAt
     );
 
-    return { chapters, characters, scenes, items };
+    const moments = sortByDateDesc(
+      state.novel.moments
+      .filter((moment) => {
+        return [
+          moment.title,
+          moment.content,
+          moment.tags.join(' '),
+        ].join(' ').toLowerCase().includes(keyword);
+      }),
+      moment => moment.createdAt
+    );
+
+    return { chapters, characters, scenes, items, moments };
   }
 
   function setNovelTitle(title: string) {
@@ -575,6 +603,73 @@ export const useStore = () => {
     }
   }
 
+  // === CharacterRelation CRUD ===
+  function addCharacterRelation(relation: Omit<CharacterRelation, 'id' | 'createdAt'>): CharacterRelation | null {
+    if (relation.fromCharacterId === relation.toCharacterId) return null;
+    const hasFrom = state.novel.characters.some(c => c.id === relation.fromCharacterId);
+    const hasTo = state.novel.characters.some(c => c.id === relation.toCharacterId);
+    if (!hasFrom || !hasTo) return null;
+    const exists = state.novel.characterRelations.some(rel =>
+      rel.fromCharacterId === relation.fromCharacterId && rel.toCharacterId === relation.toCharacterId
+    );
+    if (exists) return null;
+    const newRelation: CharacterRelation = {
+      ...relation,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.characterRelations.push(newRelation);
+    saveToStorage();
+    return newRelation;
+  }
+
+  function updateCharacterRelation(id: string, updates: Partial<Pick<CharacterRelation, 'fromCharacterId' | 'toCharacterId' | 'label'>>) {
+    const index = state.novel.characterRelations.findIndex(r => r.id === id);
+    if (index !== -1) {
+      state.novel.characterRelations[index] = {
+        ...state.novel.characterRelations[index],
+        ...updates,
+      } as CharacterRelation;
+      saveToStorage();
+    }
+  }
+
+  function deleteCharacterRelation(id: string) {
+    const index = state.novel.characterRelations.findIndex(r => r.id === id);
+    if (index !== -1) {
+      state.novel.characterRelations.splice(index, 1);
+      saveToStorage();
+    }
+  }
+
+  // === Moment (名场面) CRUD ===
+  function addMoment(moment: Omit<Moment, 'id' | 'createdAt'>) {
+    const newMoment: Moment = {
+      ...moment,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    state.novel.moments.push(newMoment);
+    saveToStorage();
+    return newMoment;
+  }
+
+  function updateMoment(id: string, updates: Partial<Moment>) {
+    const index = state.novel.moments.findIndex(m => m.id === id);
+    if (index !== -1) {
+      state.novel.moments[index] = { ...state.novel.moments[index], ...updates } as Moment;
+      saveToStorage();
+    }
+  }
+
+  function deleteMoment(id: string) {
+    const index = state.novel.moments.findIndex(m => m.id === id);
+    if (index !== -1) {
+      state.novel.moments.splice(index, 1);
+      saveToStorage();
+    }
+  }
+
   function exportToTxt(): string {
     let content = `# ${state.novel.title}\n\n`;
     content += `## 角色设定\n\n`;
@@ -612,6 +707,16 @@ export const useStore = () => {
       content += `- 描述: ${item.description}\n`;
       if (item.abilities.length > 0) {
         content += `- 能力: ${item.abilities.join(', ')}\n`;
+      }
+      content += '\n';
+    });
+
+    content += `## 名场面\n\n`;
+    state.novel.moments.forEach(moment => {
+      content += `### ${moment.title}\n`;
+      content += `- 内容: ${moment.content}\n`;
+      if (moment.tags.length > 0) {
+        content += `- 标签: ${moment.tags.join(', ')}\n`;
       }
       content += '\n';
     });
@@ -719,6 +824,18 @@ export const useStore = () => {
         return `<div class="card"><h3>${escapeHtml(i.name || '未命名物品')}</h3>${lines.join('')}</div>`;
       });
       sections.push({ heading: '物品设定', cards });
+    }
+
+    // Moments (名场面) section
+    if (state.novel.moments.length > 0) {
+      const cards = state.novel.moments.map(m => {
+        const lines = [
+          `<p><strong>内容：</strong>${formatText(m.content || '—')}</p>`,
+        ];
+        if (m.tags.length > 0) lines.push(`<p><strong>标签：</strong>${escapeHtml(m.tags.join('、'))}</p>`);
+        return `<div class="card"><h3>${escapeHtml(m.title || '未命名名场面')}</h3>${lines.join('')}</div>`;
+      });
+      sections.push({ heading: '名场面', cards });
     }
 
     // Push each section as a single page
@@ -922,8 +1039,10 @@ ${pageMarkup}
         chapterSeries: Array.isArray(data.chapterSeries) ? data.chapterSeries : [],
         chapterRelations: Array.isArray(data.chapterRelations) ? data.chapterRelations : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
+        characterRelations: Array.isArray(data.characterRelations) ? data.characterRelations : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
         items: Array.isArray(data.items) ? data.items : [],
+        moments: Array.isArray(data.moments) ? data.moments : [],
         dayCount: (data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) ? data.dayCount : {},
       };
       if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
@@ -1160,8 +1279,10 @@ ${pageMarkup}
         chapterSeries: Array.isArray(data.chapterSeries) ? data.chapterSeries : [],
         chapterRelations: Array.isArray(data.chapterRelations) ? data.chapterRelations : [],
         characters: Array.isArray(data.characters) ? data.characters : [],
+        characterRelations: Array.isArray(data.characterRelations) ? data.characterRelations : [],
         scenes: Array.isArray(data.scenes) ? data.scenes : [],
         items: Array.isArray(data.items) ? data.items : [],
+        moments: Array.isArray(data.moments) ? data.moments : [],
         dayCount: (data.dayCount && typeof data.dayCount === 'object' && !Array.isArray(data.dayCount)) ? data.dayCount : {},
       };
       if (!data.dayCount || typeof data.dayCount !== 'object' || Array.isArray(data.dayCount) || Object.keys(data.dayCount).length === 0) {
@@ -1191,8 +1312,10 @@ ${pageMarkup}
         : undefined,
       lore: {
         characters: Array.isArray(raw.characters) ? raw.characters as Character[] : [],
+        characterRelations: Array.isArray(raw.characterRelations) ? raw.characterRelations as CharacterRelation[] : [],
         scenes: Array.isArray(raw.scenes) ? raw.scenes as Scene[] : [],
         items: Array.isArray(raw.items) ? raw.items as Item[] : [],
+        moments: Array.isArray(raw.moments) ? raw.moments as Moment[] : [],
       },
     };
   }
@@ -1214,8 +1337,10 @@ ${pageMarkup}
     if (selected.has('lore')) {
       result.lore = {
         characters: state.novel.characters,
+        characterRelations: state.novel.characterRelations,
         scenes: state.novel.scenes,
         items: state.novel.items,
+        moments: state.novel.moments,
       };
     }
     return result;
@@ -1234,8 +1359,10 @@ ${pageMarkup}
     }
     if (selected.has('lore') && data.lore) {
       state.novel.characters = Array.isArray(data.lore.characters) ? data.lore.characters : [];
+      state.novel.characterRelations = Array.isArray(data.lore.characterRelations) ? data.lore.characterRelations : [];
       state.novel.scenes = Array.isArray(data.lore.scenes) ? data.lore.scenes : [];
       state.novel.items = Array.isArray(data.lore.items) ? data.lore.items : [];
+      state.novel.moments = Array.isArray(data.lore.moments) ? data.lore.moments : [];
     }
     saveToStorage();
   }
@@ -1247,13 +1374,16 @@ ${pageMarkup}
     totalCharacters,
     totalScenes,
     totalItems,
+    totalMoments,
     volumes,
     chapters,
     chapterSeries,
     chapterRelations,
     characters,
+    characterRelations,
     scenes,
     items,
+    moments,
     currentChapter,
     setNovelTitle,
     addVolume,
@@ -1280,6 +1410,12 @@ ${pageMarkup}
     addItem,
     updateItem,
     deleteItem,
+    addCharacterRelation,
+    updateCharacterRelation,
+    deleteCharacterRelation,
+    addMoment,
+    updateMoment,
+    deleteMoment,
     exportToTxt,
     downloadTxt,
     downloadWord,

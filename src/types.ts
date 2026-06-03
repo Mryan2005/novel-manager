@@ -47,6 +47,23 @@ export interface Character {
   createdAt: string;
 }
 
+export interface CharacterRelation {
+  id: string;
+  fromCharacterId: string;
+  toCharacterId: string;
+  label?: string;
+  createdAt: string;
+}
+
+export interface Moment {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  relatedCharacterIds: string[];
+  createdAt: string;
+}
+
 export interface Scene {
   id: string;
   name: string;
@@ -84,8 +101,10 @@ export interface Novel {
   chapterSeries: ChapterSeries[];
   chapterRelations: ChapterRelation[];
   characters: Character[];
+  characterRelations: CharacterRelation[];
   scenes: Scene[];
   items: Item[];
+  moments: Moment[];
   dayCount: DayCount;
 }
 
@@ -100,7 +119,7 @@ export interface ExportBundle {
     chapterRelations?: ChapterRelation[];
   };
   dayCount?: DayCount;
-  lore?: { characters: Character[]; scenes: Scene[]; items: Item[] };
+  lore?: { characters: Character[]; characterRelations: CharacterRelation[]; scenes: Scene[]; items: Item[]; moments: Moment[] };
   settings?: unknown;
   aiChats?: unknown[];
 }

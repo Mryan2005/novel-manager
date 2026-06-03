@@ -229,16 +229,18 @@
 
               <div class="space-y-2">
                 <div class="text-xs font-semibold text-[var(--text-muted)]">快捷新增</div>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-4 gap-2">
                   <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'character' ? null : 'character'">角色</button>
                   <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'scene' ? null : 'scene'">地点</button>
                   <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'item' ? null : 'item'">物品</button>
+                  <button class="btn btn-secondary text-xs !px-2 !py-1.5" @click="activeQuickAdd = activeQuickAdd === 'moment' ? null : 'moment'">名场面</button>
                 </div>
                 <div v-if="activeQuickAdd" class="pad-3 rounded-xl bg-[var(--surface-alt)] space-y-2">
-                  <input v-model="quickAddForm.name" class="input text-sm" :placeholder="activeQuickAdd === 'item' ? '物品名称' : '名称'" />
+                  <input v-model="quickAddForm.name" class="input text-sm" :placeholder="activeQuickAdd === 'item' ? '物品名称' : activeQuickAdd === 'moment' ? '名场面标题' : '名称'" />
                   <input v-if="activeQuickAdd === 'character'" v-model="quickAddForm.extra" class="input text-sm" placeholder="角色定位（如主角）" />
                   <input v-if="activeQuickAdd === 'scene'" v-model="quickAddForm.extra" class="input text-sm" placeholder="地点（如城主府）" />
                   <input v-if="activeQuickAdd === 'item'" v-model="quickAddForm.extra" class="input text-sm" placeholder="类型（如武器）" />
+                  <input v-if="activeQuickAdd === 'moment'" v-model="quickAddForm.extra" class="input text-sm" placeholder="内容简述" />
                   <input v-model="quickAddForm.tags" class="input text-sm" placeholder="标签（逗号分隔，可选）" />
                   <div class="flex justify-end gap-2">
                     <button class="btn btn-secondary text-xs !px-2.5 !py-1.5" @click="cancelQuickAdd">取消</button>
@@ -303,6 +305,25 @@
                   <div v-if="assistantItems.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">暂无匹配物品</div>
                 </div>
               </div>
+
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                  <Sparkles class="w-4 h-4" />
+                  名场面
+                </h4>
+                <div class="space-y-2">
+                  <div
+                    v-for="moment in assistantMoments"
+                    :key="moment.id"
+                    class="pad-3-5 rounded-xl bg-[var(--surface-alt)] text-sm cursor-pointer hover:bg-[var(--surface-hover)] transition-all"
+                    @click="openKnowledgeDetail('moment', moment.id)"
+                  >
+                    <div class="font-semibold text-[var(--text)]">{{ moment.title }}</div>
+                    <div class="text-[var(--text-muted)] text-xs mt-1 line-clamp-1">{{ moment.content || '未设置内容' }}</div>
+                  </div>
+                  <div v-if="assistantMoments.length === 0" class="text-[var(--text-muted)] text-sm pad-3-5">暂无匹配名场面</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -340,17 +361,80 @@
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="selectedKnowledge" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null">
+      <div v-if="selectedKnowledge" class="fixed inset-0 z-50" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="selectedKnowledge = null; knowledgeEditMode = false">
         <div class="editor-knowledge-window">
           <div>
             <span class="text-xs text-[var(--text-muted)]">{{ knowledgeTypeLabel }}</span>
-            <button class="editor-kw-close" @click="selectedKnowledge = null">
-              <X class="w-4 h-4" />
-            </button>
+            <div class="flex items-center gap-1">
+              <button v-if="!knowledgeEditMode" class="editor-kw-close" @click="startEditKnowledge" title="编辑">
+                <Edit class="w-4 h-4" />
+              </button>
+              <button v-if="!knowledgeEditMode" class="editor-kw-close" @click="deleteKnowledgeItem" title="删除">
+                <Trash2 class="w-4 h-4" />
+              </button>
+              <button class="editor-kw-close" @click="selectedKnowledge = null; knowledgeEditMode = false">
+                <X class="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ knowledgeTitle }}</h3>
-            <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+            <!-- Read-only mode -->
+            <template v-if="!knowledgeEditMode">
+              <h3 class="text-xl font-bold text-[var(--text)] mb-4">{{ knowledgeTitle }}</h3>
+              <div class="text-sm text-[var(--text-light)] whitespace-pre-wrap leading-relaxed">{{ knowledgeDescription }}</div>
+              <!-- Character relations -->
+              <div v-if="selectedKnowledge.type === 'character' && relatedCharactersForDetail.length > 0" class="mt-4 pt-4 border-t border-[var(--border)]">
+                <div class="text-xs font-semibold text-[var(--text-muted)] mb-2">关系</div>
+                <div v-for="rc in relatedCharactersForDetail" :key="rc.relation.id" class="text-sm text-[var(--text-light)] py-1">
+                  <span class="font-medium text-[var(--text)]">{{ rc.character?.name }}</span>
+                  <span v-if="rc.relation.label" class="text-[var(--text-muted)]"> — {{ rc.relation.label }}</span>
+                </div>
+              </div>
+            </template>
+            <!-- Edit mode -->
+            <template v-else>
+              <h3 class="text-lg font-bold text-[var(--text)] mb-4">编辑{{ knowledgeTypeLabel }}</h3>
+              <div class="space-y-3">
+                <!-- Character fields -->
+                <template v-if="selectedKnowledge.type === 'character'">
+                  <input v-model="knowledgeEditForm.name" class="input text-sm" placeholder="角色名称" />
+                  <div class="grid grid-cols-2 gap-2">
+                    <input v-model="knowledgeEditForm.gender" class="input text-sm" placeholder="性别" />
+                    <input v-model.number="knowledgeEditForm.age" class="input text-sm" placeholder="年龄" type="number" />
+                  </div>
+                  <input v-model="knowledgeEditForm.role" class="input text-sm" placeholder="身份/定位" />
+                  <input v-model="knowledgeEditForm.traits" class="input text-sm" placeholder="性格特点（逗号分隔）" />
+                  <input v-model="knowledgeEditForm.tags" class="input text-sm" placeholder="标签（逗号分隔）" />
+                  <textarea v-model="knowledgeEditForm.description" class="input text-sm resize-none" rows="4" placeholder="角色描述"></textarea>
+                </template>
+                <!-- Scene fields -->
+                <template v-if="selectedKnowledge.type === 'scene'">
+                  <input v-model="knowledgeEditForm.name" class="input text-sm" placeholder="地点名称" />
+                  <input v-model="knowledgeEditForm.location" class="input text-sm" placeholder="具体位置" />
+                  <input v-model="knowledgeEditForm.atmosphere" class="input text-sm" placeholder="氛围（逗号分隔）" />
+                  <input v-model="knowledgeEditForm.belongsTo" class="input text-sm" placeholder="所属上级地点（可选）" />
+                  <textarea v-model="knowledgeEditForm.description" class="input text-sm resize-none" rows="4" placeholder="地点描述"></textarea>
+                </template>
+                <!-- Item fields -->
+                <template v-if="selectedKnowledge.type === 'item'">
+                  <input v-model="knowledgeEditForm.name" class="input text-sm" placeholder="物品名称" />
+                  <input v-model="knowledgeEditForm.type" class="input text-sm" placeholder="类型（如武器）" />
+                  <input v-model="knowledgeEditForm.owner" class="input text-sm" placeholder="所属角色" />
+                  <input v-model="knowledgeEditForm.abilities" class="input text-sm" placeholder="能力（逗号分隔）" />
+                  <textarea v-model="knowledgeEditForm.description" class="input text-sm resize-none" rows="4" placeholder="物品描述"></textarea>
+                </template>
+                <!-- Moment fields -->
+                <template v-if="selectedKnowledge.type === 'moment'">
+                  <input v-model="knowledgeEditForm.title" class="input text-sm" placeholder="名场面标题" />
+                  <input v-model="knowledgeEditForm.tags" class="input text-sm" placeholder="标签（逗号分隔）" />
+                  <textarea v-model="knowledgeEditForm.content" class="input text-sm resize-none" rows="5" placeholder="内容描述"></textarea>
+                </template>
+              </div>
+              <div class="flex justify-end gap-2 mt-4">
+                <button class="btn btn-secondary text-xs" @click="knowledgeEditMode = false">取消</button>
+                <button class="btn btn-primary text-xs" @click="saveKnowledgeEdit">保存</button>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -396,7 +480,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List, MessageSquare, Copy, Maximize2 } from 'lucide-vue-next';
+import { FileText, Plus, Save, BookOpen, Users, Map, ChevronDown, Eye, Search, Package, X, List, MessageSquare, Copy, Maximize2, Sparkles, Edit, Trash2 } from 'lucide-vue-next';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
 import type { Chapter } from '../types';
@@ -407,15 +491,29 @@ const {
   volumes,
   chapters,
   characters,
+  characterRelations,
   scenes,
   items,
+  moments,
   currentChapter,
   setCurrentChapter,
   updateChapter,
   addChapter,
   addCharacter,
+  updateCharacter,
+  deleteCharacter,
   addScene,
+  updateScene,
+  deleteScene,
   addItem,
+  updateItem,
+  deleteItem,
+  addCharacterRelation,
+  updateCharacterRelation,
+  deleteCharacterRelation,
+  addMoment,
+  updateMoment,
+  deleteMoment,
   saveDraft,
   loadDraft,
   removeDraft,
@@ -433,7 +531,7 @@ const previewMode = ref(false);
 const showOutline = ref(true);
 const showOutlineFull = ref(false);
 const outlineFullPreview = ref(false);
-const showAuthorNote = ref(true);
+const showAuthorNote = ref(false);
 const showSidebar = ref(false);
 const showCopyMenu = ref(false);
 const showNewChapterModal = ref(false);
@@ -445,9 +543,11 @@ const lastSavedTitle = ref('');
 const lastSavedContent = ref('');
 const assistantQuery = ref('');
 const selectedAssistantTags = ref(new Set<string>());
-const activeQuickAdd = ref<'character' | 'scene' | 'item' | null>(null);
+const activeQuickAdd = ref<'character' | 'scene' | 'item' | 'moment' | null>(null);
 const quickAddForm = ref({ name: '', extra: '', tags: '' });
-const selectedKnowledge = ref<{ type: 'character' | 'scene' | 'item'; id: string } | null>(null);
+const selectedKnowledge = ref<{ type: 'character' | 'scene' | 'item' | 'moment'; id: string } | null>(null);
+const knowledgeEditMode = ref(false);
+const knowledgeEditForm = ref({ name: '', role: '', gender: '', age: 0, location: '', type: '', owner: '', description: '', tags: '', traits: '', atmosphere: '', abilities: '', belongsTo: '', title: '', content: '' });
 
 const anyModalOpenEditor = computed(() => showNewChapterModal.value || selectedKnowledge.value !== null || showOutlineFull.value);
 watch(anyModalOpenEditor, (open) => {
@@ -494,6 +594,7 @@ const assistantTags = computed(() => {
   characters.value.forEach((character) => character.tags.forEach((tag) => tags.add(tag)));
   scenes.value.forEach((scene) => scene.atmosphere.forEach((tag) => tags.add(tag)));
   items.value.forEach((item) => item.abilities.forEach((tag) => tags.add(tag)));
+  moments.value.forEach((moment) => moment.tags.forEach((tag) => tags.add(tag)));
   return [...tags].filter(Boolean).sort();
 });
 
@@ -545,6 +646,20 @@ const assistantItems = computed(() => {
   });
 });
 
+const assistantMoments = computed(() => {
+  const query = normalizedAssistantQuery.value;
+  return moments.value.filter((moment) => {
+    const byText = !query || [
+      moment.title,
+      moment.content,
+      moment.tags.join(' '),
+    ].join(' ').toLowerCase().includes(query);
+    const byTags = selectedAssistantTags.value.size === 0
+      || moment.tags.some((tag) => selectedAssistantTags.value.has(tag));
+    return byText && byTags;
+  });
+});
+
 const selectedCharacter = computed(() =>
   selectedKnowledge.value?.type === 'character'
     ? characters.value.find((item) => item.id === selectedKnowledge.value?.id)
@@ -563,10 +678,31 @@ const selectedItem = computed(() =>
     : null
 );
 
+const selectedMoment = computed(() =>
+  selectedKnowledge.value?.type === 'moment'
+    ? moments.value.find((m) => m.id === selectedKnowledge.value?.id)
+    : null
+);
+
+const relatedCharactersForDetail = computed(() => {
+  if (selectedKnowledge.value?.type === 'character' && selectedKnowledge.value?.id) {
+    return characterRelations.value
+      .filter(r => r.fromCharacterId === selectedKnowledge.value!.id || r.toCharacterId === selectedKnowledge.value!.id)
+      .map(r => {
+        const otherId = r.fromCharacterId === selectedKnowledge.value!.id ? r.toCharacterId : r.fromCharacterId;
+        const otherChar = characters.value.find(c => c.id === otherId);
+        return { relation: r, character: otherChar };
+      })
+      .filter(x => x.character);
+  }
+  return [];
+});
+
 const knowledgeTypeLabel = computed(() => {
   if (selectedKnowledge.value?.type === 'character') return '角色信息';
   if (selectedKnowledge.value?.type === 'scene') return '地点信息';
   if (selectedKnowledge.value?.type === 'item') return '物品信息';
+  if (selectedKnowledge.value?.type === 'moment') return '名场面';
   return '';
 });
 
@@ -603,6 +739,13 @@ const knowledgeDescription = computed(() => {
       item.owner ? `所属：${item.owner}` : '',
       item.abilities.length ? `能力：${item.abilities.join('、')}` : '',
       item.description || '',
+    ].filter(Boolean).join('\n');
+  }
+  if (selectedMoment.value) {
+    const moment = selectedMoment.value;
+    return [
+      moment.tags.length ? `标签：${moment.tags.join('、')}` : '',
+      moment.content || '',
     ].filter(Boolean).join('\n');
   }
   return '';
@@ -825,7 +968,7 @@ const submitQuickAdd = () => {
       atmosphere: tags,
       belongsTo: '',
     });
-  } else {
+  } else if (activeQuickAdd.value === 'item') {
     addItem({
       name,
       type: quickAddForm.value.extra.trim() || '其他',
@@ -833,12 +976,86 @@ const submitQuickAdd = () => {
       owner: '',
       abilities: tags,
     });
+  } else if (activeQuickAdd.value === 'moment') {
+    addMoment({
+      title: name,
+      content: quickAddForm.value.extra.trim(),
+      tags,
+      relatedCharacterIds: [],
+    });
   }
   cancelQuickAdd();
 };
 
-const openKnowledgeDetail = (type: 'character' | 'scene' | 'item', id: string) => {
+const openKnowledgeDetail = (type: 'character' | 'scene' | 'item' | 'moment', id: string) => {
   selectedKnowledge.value = { type, id };
+  knowledgeEditMode.value = false;
+};
+
+const startEditKnowledge = () => {
+  if (!selectedKnowledge.value) return;
+  const f = knowledgeEditForm.value;
+  // Reset form
+  f.name = ''; f.role = ''; f.gender = ''; f.age = 0; f.location = ''; f.type = ''; f.owner = ''; f.description = ''; f.tags = ''; f.traits = ''; f.atmosphere = ''; f.abilities = ''; f.belongsTo = ''; f.title = ''; f.content = '';
+
+  const type = selectedKnowledge.value.type;
+  if (type === 'character' && selectedCharacter.value) {
+    const c = selectedCharacter.value;
+    f.name = c.name; f.role = c.role; f.gender = c.gender; f.age = c.age; f.description = c.description;
+    f.tags = c.tags.join(', '); f.traits = c.traits.join(', ');
+  } else if (type === 'scene' && selectedScene.value) {
+    const s = selectedScene.value;
+    f.name = s.name; f.location = s.location; f.description = s.description;
+    f.atmosphere = s.atmosphere.join(', '); f.belongsTo = s.belongsTo;
+  } else if (type === 'item' && selectedItem.value) {
+    const i = selectedItem.value;
+    f.name = i.name; f.type = i.type; f.owner = i.owner; f.description = i.description;
+    f.abilities = i.abilities.join(', ');
+  } else if (type === 'moment' && selectedMoment.value) {
+    const m = selectedMoment.value;
+    f.title = m.title; f.content = m.content; f.tags = m.tags.join(', ');
+  }
+  knowledgeEditMode.value = true;
+};
+
+const saveKnowledgeEdit = () => {
+  if (!selectedKnowledge.value) return;
+  const f = knowledgeEditForm.value;
+  const parseTags = (s: string) => s.split(',').map(t => t.trim()).filter(Boolean);
+  const type = selectedKnowledge.value.type;
+
+  if (type === 'character') {
+    updateCharacter(selectedKnowledge.value.id, {
+      name: f.name, role: f.role, gender: f.gender, age: f.age, description: f.description,
+      tags: parseTags(f.tags), traits: parseTags(f.traits),
+    });
+  } else if (type === 'scene') {
+    updateScene(selectedKnowledge.value.id, {
+      name: f.name, location: f.location, description: f.description,
+      atmosphere: parseTags(f.atmosphere), belongsTo: f.belongsTo,
+    });
+  } else if (type === 'item') {
+    updateItem(selectedKnowledge.value.id, {
+      name: f.name, type: f.type, owner: f.owner, description: f.description,
+      abilities: parseTags(f.abilities),
+    });
+  } else if (type === 'moment') {
+    updateMoment(selectedKnowledge.value.id, {
+      title: f.title, content: f.content, tags: parseTags(f.tags),
+    });
+  }
+  knowledgeEditMode.value = false;
+};
+
+const deleteKnowledgeItem = () => {
+  if (!selectedKnowledge.value) return;
+  const type = selectedKnowledge.value.type;
+  if (type === 'character') deleteCharacter(selectedKnowledge.value.id);
+  else if (type === 'scene') deleteScene(selectedKnowledge.value.id);
+  else if (type === 'item') deleteItem(selectedKnowledge.value.id);
+  else if (type === 'moment') deleteMoment(selectedKnowledge.value.id);
+  selectedKnowledge.value = null;
+  knowledgeEditMode.value = false;
 };
 
 const createNewChapter = () => {

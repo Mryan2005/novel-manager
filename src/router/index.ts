@@ -8,6 +8,8 @@ import Search from '../views/Search.vue';
 import Editor from '../views/Editor.vue';
 import Series from '../views/Series.vue';
 import PlotOutline from '../views/PlotOutline.vue';
+import Relations from '../views/Relations.vue';
+import Moments from '../views/Moments.vue';
 import Settings from '../views/Settings.vue';
 import WorldSimulation from '../views/WorldSimulation.vue';
 
@@ -20,6 +22,8 @@ const routes = [
   { path: '/characters', name: 'Characters', component: Characters },
   { path: '/scenes', name: 'Scenes', component: Scenes },
   { path: '/items', name: 'Items', component: Items },
+  { path: '/relations', name: 'Relations', component: Relations },
+  { path: '/moments', name: 'Moments', component: Moments },
   { path: '/search', name: 'Search', component: Search },
   { path: '/editor', name: 'Editor', component: Editor },
   { path: '/editor/:id', name: 'EditorWithId', component: Editor },

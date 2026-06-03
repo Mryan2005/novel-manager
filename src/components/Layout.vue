@@ -178,6 +178,22 @@
             物品设定
           </router-link>
           <router-link
+            to="/relations"
+            class="nav-link"
+            :class="$route.path === '/relations' ? 'nav-link-active' : ''"
+          >
+            <GitBranch class="w-5 h-5" />
+            关系图
+          </router-link>
+          <router-link
+            to="/moments"
+            class="nav-link"
+            :class="$route.path === '/moments' ? 'nav-link-active' : ''"
+          >
+            <Sparkles class="w-5 h-5" />
+            名场面
+          </router-link>
+          <router-link
             to="/search"
             class="nav-link"
             :class="$route.path === '/search' ? 'nav-link-active' : ''"
@@ -257,7 +273,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard, Plus, Trash2 } from 'lucide-vue-next';
+import { BookOpen, LayoutDashboard, FileText, Users, Map, Package, Edit, Download, Upload, ChevronDown, FileJson, Layers, Search, Settings, Sparkles, CircuitBoard, Plus, Trash2, GitBranch } from 'lucide-vue-next';
 import { useStore } from '../store';
 import { useAIChat } from '../composables/useAIChat';
 import { useSettings } from '../composables/useSettings';
@@ -300,7 +316,7 @@ const exportSummaries = computed(() => {
   return {
     articles: `${n.volumes.length} 卷, ${n.chapters.length} 章, ${seriesCount} 系列, ${relationCount} 关系`,
     dayCount: `${dayCountKeys} 天记录`,
-    lore: `${n.characters.length} 角色, ${n.scenes.length} 场景, ${n.items.length} 物品`,
+    lore: `${n.characters.length} 角色, ${n.scenes.length} 场景, ${n.items.length} 物品, ${n.moments?.length ?? 0} 名场面`,
     settings: `${settings.value.aiConfigs.length} 个 AI 配置`,
     aiChats: `${sessions.value.length} 个对话`,
   };
@@ -410,7 +426,8 @@ function detectSections(data: Record<string, unknown>): { key: string; label: st
       const chars = Array.isArray(l.characters) ? l.characters.length : 0;
       const scenes = Array.isArray(l.scenes) ? l.scenes.length : 0;
       const items = Array.isArray(l.items) ? l.items.length : 0;
-      sections.push({ key: 'lore', label: '设定集', summary: `${chars} 角色, ${scenes} 场景, ${items} 物品` });
+      const moments = Array.isArray(l.moments) ? l.moments.length : 0;
+      sections.push({ key: 'lore', label: '设定集', summary: `${chars} 角色, ${scenes} 场景, ${items} 物品, ${moments} 名场面` });
     }
     if (data.settings) {
       sections.push({ key: 'settings', label: '设置', summary: '应用设置' });
@@ -431,11 +448,12 @@ function detectSections(data: Record<string, unknown>): { key: string; label: st
       const days = Object.keys(data.dayCount as Record<string, unknown>).length;
       sections.push({ key: 'dayCount', label: '码字记录', summary: `${days} 天记录` });
     }
-    if (data.characters || data.scenes || data.items) {
+    if (data.characters || data.scenes || data.items || data.moments) {
       const chars = Array.isArray(data.characters) ? data.characters.length : 0;
       const scs = Array.isArray(data.scenes) ? data.scenes.length : 0;
       const itms = Array.isArray(data.items) ? data.items.length : 0;
-      sections.push({ key: 'lore', label: '设定集', summary: `${chars} 角色, ${scs} 场景, ${itms} 物品` });
+      const moms = Array.isArray(data.moments) ? data.moments.length : 0;
+      sections.push({ key: 'lore', label: '设定集', summary: `${chars} 角色, ${scs} 场景, ${itms} 物品, ${moms} 名场面` });
     }
   }
 

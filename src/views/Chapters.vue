@@ -15,6 +15,10 @@
             <Plus class="w-4 h-4" />
             新建章节
           </button>
+          <button @click="showReorder = true" class="btn btn-secondary" :disabled="chapters.length < 2">
+            <List class="w-4 h-4" />
+            排序
+          </button>
           <button @click="showGraph = true" class="btn btn-secondary">
             <Share2 class="w-4 h-4" />
             关系图
@@ -312,6 +316,56 @@
       </div>
     </Teleport>
 
+    <!-- 章节排序模态框 -->
+    <Teleport to="body">
+      <div v-if="showReorder" class="fixed inset-0 z-50 flex items-center justify-center pad-4" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);" @click.self="showReorder = false">
+        <div class="card w-full pad-8 overflow-y-auto" style="max-width: 700px; max-height: 85vh;">
+          <h2 class="text-xl font-bold text-[var(--text)] mb-1">调整章节顺序</h2>
+          <p class="text-sm text-[var(--text-muted)] mb-5">使用上下箭头调整顺序，或直接修改章节所属卷</p>
+          <div class="space-y-2">
+            <div v-for="vol in sortedVolumes" :key="vol.id" class="mb-4">
+              <h3 class="text-sm font-semibold text-[var(--text)] mb-2 px-1 flex items-center gap-2">
+                <FolderOpen class="w-4 h-4 text-[var(--primary)]" />
+                {{ vol.title }}
+                <span class="text-xs text-[var(--text-muted)] font-normal">({{ getVolumeChapterCount(vol.id) }} 章)</span>
+              </h3>
+              <div v-for="(chapter, idx) in getVolumeChaptersForReorder(vol.id)" :key="chapter.id"
+                class="flex items-center gap-3 pad-3 rounded-lg bg-[var(--surface-alt)] mb-1.5">
+                <span class="text-xs text-[var(--text-muted)] w-6 text-center tabular-nums font-mono">{{ idx + 1 }}</span>
+                <span class="flex-1 text-sm font-medium text-[var(--text)] truncate">{{ chapter.title }}</span>
+                <div class="flex items-center gap-1">
+                  <button @click="moveChapterInVolume(chapter, -1)" :disabled="idx === 0"
+                    class="pad-1 rounded hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed" title="上移">
+                    <ChevronUp class="w-3.5 h-3.5" />
+                  </button>
+                  <button @click="moveChapterInVolume(chapter, 1)" :disabled="idx === getVolumeChapterCount(vol.id) - 1"
+                    class="pad-1 rounded hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed" title="下移">
+                    <ChevronDown class="w-3.5 h-3.5" />
+                  </button>
+                  <button @click="moveChapterToTop(chapter, vol.id)" :disabled="idx === 0"
+                    class="pad-1 rounded hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed" title="移至最前">
+                    <ChevronsUp class="w-3.5 h-3.5" />
+                  </button>
+                  <button @click="moveChapterToBottom(chapter, vol.id)" :disabled="idx === getVolumeChapterCount(vol.id) - 1"
+                    class="pad-1 rounded hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-30 disabled:cursor-not-allowed" title="移至最后">
+                    <ChevronsDown class="w-3.5 h-3.5" />
+                  </button>
+                  <select :value="chapter.volumeId" @change="changeChapterVolumeInReorder(chapter, ($event.target as HTMLSelectElement).value)"
+                    class="text-xs pad-1 rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] ml-2" style="max-width: 120px;">
+                    <option v-for="v in volumes" :key="v.id" :value="v.id">{{ v.title }}</option>
+                  </select>
+                </div>
+              </div>
+              <div v-if="getVolumeChapterCount(vol.id) === 0" class="text-xs text-[var(--text-muted)] pad-3">此卷暂无章节</div>
+            </div>
+          </div>
+          <div class="flex justify-end mt-5">
+            <button @click="showReorder = false" class="btn btn-primary">完成</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <Teleport to="body">
       <div v-if="showGraph" class="fixed inset-0 z-50 flex flex-col" style="background: rgba(0,0,0,0.85);" @click.self="showGraph = false">
         <div class="flex items-center justify-between pad-4 bg-[var(--surface)] border-b border-[var(--border)]">
@@ -352,7 +406,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search, Copy, Share2, X } from 'lucide-vue-next';
+import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search, Copy, Share2, X, List, ChevronsUp, ChevronsDown } from 'lucide-vue-next';
 import mermaid from 'mermaid';
 import Layout from '../components/Layout.vue';
 import { useStore } from '../store';
@@ -395,7 +449,7 @@ const relationError = ref('');
 watch(newSeriesTitle, () => { seriesError.value = ''; });
 watch(relationForm, () => { relationError.value = ''; }, { deep: true });
 
-const anyModalOpen = computed(() => showVolumeModal.value || showChapterModal.value || showDeleteVolumeModal.value || showDeleteChapterModal.value);
+const anyModalOpen = computed(() => showVolumeModal.value || showChapterModal.value || showDeleteVolumeModal.value || showDeleteChapterModal.value || showReorder.value);
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : '';
 });
@@ -732,6 +786,46 @@ const removeRelation = (id: string) => {
 };
 
 const chapterName = (id: string) => chapters.value.find(chapter => chapter.id === id)?.title || '未知章节';
+
+// === 排序 ===
+const showReorder = ref(false);
+
+const sortedVolumes = computed(() => [...volumes.value].sort((a, b) => a.order - b.order));
+
+const getVolumeChaptersForReorder = (volumeId: string) =>
+  chapters.value.filter(c => c.volumeId === volumeId).sort((a, b) => a.order - b.order);
+
+const moveChapterInVolume = (chapter: Chapter, direction: number) => {
+  const siblings = getVolumeChaptersForReorder(chapter.volumeId);
+  const newOrder = chapter.order + direction;
+  if (newOrder < 0 || newOrder >= siblings.length) return;
+  const targetChapter = siblings.find(c => c.order === newOrder);
+  if (targetChapter) updateChapter(targetChapter.id, { order: chapter.order });
+  updateChapter(chapter.id, { order: newOrder });
+};
+
+const moveChapterToTop = (chapter: Chapter, volumeId: string) => {
+  const siblings = getVolumeChaptersForReorder(volumeId);
+  siblings.forEach((c, i) => {
+    if (c.id === chapter.id) updateChapter(c.id, { order: 0 });
+    else if (c.order < chapter.order) updateChapter(c.id, { order: c.order + 1 });
+  });
+};
+
+const moveChapterToBottom = (chapter: Chapter, volumeId: string) => {
+  const siblings = getVolumeChaptersForReorder(volumeId);
+  const maxOrder = siblings.length - 1;
+  siblings.forEach((c, i) => {
+    if (c.id === chapter.id) updateChapter(c.id, { order: maxOrder });
+    else if (c.order > chapter.order) updateChapter(c.id, { order: c.order - 1 });
+  });
+};
+
+const changeChapterVolumeInReorder = (chapter: Chapter, newVolumeId: string) => {
+  if (chapter.volumeId === newVolumeId) return;
+  const newVolumeCount = chapters.value.filter(c => c.volumeId === newVolumeId).length;
+  updateChapter(chapter.id, { volumeId: newVolumeId, order: newVolumeCount });
+};
 
 // === 关系图 ===
 const showGraph = ref(false);
