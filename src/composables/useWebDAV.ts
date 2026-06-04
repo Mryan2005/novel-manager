@@ -134,7 +134,10 @@ export function useWebDAV() {
   }
 
   /** Download all novels + settings from WebDAV and restore to localStorage */
-  async function downloadAll(config: WebDAVConfig): Promise<boolean> {
+  async function downloadAll(
+    config: WebDAVConfig,
+    opts?: { verifyPasskey?: (attempt: number) => Promise<string | null> },
+  ): Promise<boolean> {
     if (!config.url) {
       setStatus('请先配置 WebDAV 地址', 'error');
       return false;
@@ -163,13 +166,18 @@ export function useWebDAV() {
             break; // Passkey matches — proceed
           }
 
-          // Prompt user for the correct passkey
-          const input = window.prompt(
-            attempts === 0
-              ? '此备份已加密，请输入加密口令以恢复数据：'
-              : '口令不正确，请重新输入加密口令：',
-            ''
-          );
+          // Request passkey from caller (password-style input) or fallback to prompt
+          let input: string | null;
+          if (opts?.verifyPasskey) {
+            input = await opts.verifyPasskey(attempts);
+          } else {
+            input = window.prompt(
+              attempts === 0
+                ? '此备份已加密，请输入加密口令以恢复数据：'
+                : '口令不正确，请重新输入加密口令：',
+              ''
+            );
+          }
           if (input === null) {
             // User cancelled
             setStatus('恢复已取消：未提供正确的加密口令', 'error');

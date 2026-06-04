@@ -350,6 +350,26 @@
         </div>
       </section>
 
+      <!-- Passkey verification modal for WebDAV restore -->
+      <div v-if="showPasskeyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="cancelPasskey">
+        <div class="card p-6 max-w-sm w-full mx-4 space-y-4">
+          <h3 class="text-lg font-semibold text-[var(--text)]">加密备份验证</h3>
+          <p class="text-sm text-[var(--text-light)]">{{ passkeyError || '此备份已加密，请输入加密口令：' }}</p>
+          <input
+            ref="passkeyInputRef"
+            v-model="passkeyInput"
+            type="password"
+            class="input"
+            placeholder="输入加密口令"
+            @keyup.enter="confirmPasskey"
+          />
+          <div class="flex gap-3 justify-end">
+            <button @click="cancelPasskey" class="btn btn-secondary text-sm">取消</button>
+            <button @click="confirmPasskey" class="btn btn-primary text-sm">确认</button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="confirmAction" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="confirmAction = null">
         <div class="card p-6 max-w-sm w-full mx-4 space-y-4">
           <h3 class="text-lg font-semibold text-[var(--text)]">确认操作</h3>
@@ -405,6 +425,40 @@ function removeCurrentConfig() {
 const confirmAction = ref<(() => void) | null>(null);
 const confirmMessage = ref('');
 
+// Passkey modal for WebDAV restore
+const showPasskeyModal = ref(false);
+const passkeyInput = ref('');
+const passkeyError = ref('');
+const passkeyInputRef = ref<HTMLInputElement | null>(null);
+let passkeyResolver: ((value: string | null) => void) | null = null;
+
+function requestPasskey(attempt: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    passkeyResolver = resolve;
+    passkeyInput.value = '';
+    passkeyError.value = attempt > 0 ? '口令不正确，请重新输入：' : '';
+    showPasskeyModal.value = true;
+    setTimeout(() => passkeyInputRef.value?.focus(), 100);
+  });
+}
+
+function confirmPasskey() {
+  const value = passkeyInput.value;
+  showPasskeyModal.value = false;
+  if (passkeyResolver) {
+    passkeyResolver(value);
+    passkeyResolver = null;
+  }
+}
+
+function cancelPasskey() {
+  showPasskeyModal.value = false;
+  if (passkeyResolver) {
+    passkeyResolver(null);
+    passkeyResolver = null;
+  }
+}
+
 function handleClearAll() {
   confirmMessage.value = '将清除所有小说数据、草稿和备份，此操作不可恢复。确定继续？';
   confirmAction.value = clearAllCache;
@@ -440,11 +494,14 @@ async function handleWebDAVUpload() {
 }
 
 async function handleWebDAVDownload() {
-  await wdav.downloadAll({
-    url: settings.value.webdavUrl,
-    username: settings.value.webdavUsername,
-    password: settings.value.webdavPassword,
-  });
+  await wdav.downloadAll(
+    {
+      url: settings.value.webdavUrl,
+      username: settings.value.webdavUsername,
+      password: settings.value.webdavPassword,
+    },
+    { verifyPasskey: requestPasskey },
+  );
 }
 
 </script>

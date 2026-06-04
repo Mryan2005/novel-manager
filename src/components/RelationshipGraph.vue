@@ -135,24 +135,27 @@ function buildGraph() {
       });
     }
 
+    const dataObj: Record<string, any> = {
+      nodes: g6Nodes,
+      edges: g6Edges,
+    };
+    if (g6Combos.length > 0) {
+      dataObj.combos = g6Combos;
+    }
+
     graph = new Graph({
       container: containerRef.value,
       width: cw,
       height: ch,
-      renderer: 'webgl' as any,
-      data: {
-        nodes: g6Nodes as any,
-        edges: g6Edges as any,
-        combos: g6Combos as any,
-      },
+      data: dataObj,
       node: {
         type: 'circle',
         state: {
           hover: {
             stroke: '#fff',
             lineWidth: 3,
-            size: (d: any) => (d.data?.hasChildren ? 44 : 36),
-            labelText: (d: any) => d.data?.label || '',
+            size: 44,
+            labelText: '',
             labelFill: '#fff',
             labelFontSize: 12,
             labelFontWeight: 'bold' as const,
@@ -221,20 +224,45 @@ function buildGraph() {
       }
     });
 
-    // Hover: show full label and highlight edge
+    // Hover: show full label via updateNodeData
+    let hoveredNodeId: string | null = null;
     graph.on('node:pointerenter', (evt: any) => {
       const nodeId = evt.target?.id;
-      if (!nodeId) return;
+      if (!nodeId || hoveredNodeId === nodeId) return;
+      hoveredNodeId = nodeId;
       try {
-        graph?.setElementState({ [nodeId]: 'hover' });
+        const nodeData = props.nodes.find(n => n.id === nodeId);
+        graph?.updateNodeData([{
+          id: nodeId,
+          style: {
+            labelText: nodeData?.label || '',
+            size: 36,
+            stroke: '#fff',
+            lineWidth: 3,
+            zIndex: 999,
+          } as any,
+        }]);
+        graph?.draw();
       } catch { /* ignore */ }
     });
 
     graph.on('node:pointerleave', (evt: any) => {
       const nodeId = evt.target?.id;
       if (!nodeId) return;
+      hoveredNodeId = null;
+      const isLarge = props.nodes.length > 100;
       try {
-        graph?.setElementState({ [nodeId]: '' });
+        graph?.updateNodeData([{
+          id: nodeId,
+          style: {
+            labelText: isLarge ? '' : (props.nodes.find(n => n.id === nodeId)?.label || '').slice(0, 6),
+            size: 28,
+            stroke: props.nodes.find(n => n.id === nodeId)?.color || '#6366f1',
+            lineWidth: 0,
+            zIndex: 1,
+          } as any,
+        }]);
+        graph?.draw();
       } catch { /* ignore */ }
     });
   });

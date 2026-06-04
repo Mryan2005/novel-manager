@@ -33,7 +33,8 @@
       "Bash(node -e \"const v = require\\('vis-network'\\); console.log\\(Object.keys\\(v\\).slice\\(0,20\\)\\)\")",
       "Bash(npm uninstall *)",
       "Bash(node -e \"const g = require\\('@antv/g6'\\); console.log\\('G6 loaded, keys:', Object.keys\\(g\\).slice\\(0,10\\).join\\(', '\\)\\)\")",
-      "Bash(npm exec *)"
+      "Bash(npm exec *)",
+      "Bash(node -e \"console.log\\(require\\('@antv/g6/package.json'\\).version\\)\")"
     ]
   }
 }
