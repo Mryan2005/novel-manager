@@ -135,17 +135,20 @@ function md5(data: string): string {
   const msgLen = msg.length;
   const padLen = (msgLen + 8) % 64;
   const totalLen = msgLen + (padLen < 56 ? 56 - padLen : 120 - padLen) + 8;
+  const wordCount = totalLen / 4;
 
-  const words = new Array<number>(totalLen / 4);
+  const words: number[] = [];
+  for (let i = 0; i < wordCount; i++) words.push(0);
+
   for (let i = 0; i < msgLen; i++) {
-    words[i >> 2] |= msg.charCodeAt(i) << ((i % 4) * 8);
+    words[i >> 2]! |= msg.charCodeAt(i) << ((i % 4) * 8);
   }
   words[msgLen >> 2]! |= 0x80 << ((msgLen % 4) * 8);
   // Append length in bits at the end
   const bitLen = msgLen * 8;
-  const lenIdx = (totalLen / 4) - 2;
+  const lenIdx = wordCount - 2;
   words[lenIdx] = bitLen;
-  words[lenIdx + 1] = (bitLen / 0x100000000) | 0;
+  words[lenIdx + 1] = Math.floor(bitLen / 0x100000000);
 
   const state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
   for (let i = 0; i < words.length; i += 16) {
