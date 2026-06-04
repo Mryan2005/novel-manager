@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { useNovelManager, type NovelMeta } from './useNovelManager';
 import { useSettings } from './useSettings';
-import { encrypt, decrypt, looksEncrypted } from './useCrypto';
+import { encrypt, decrypt, looksEncrypted, hashPasskey } from './useCrypto';
 
 export interface WebDAVConfig {
   url: string;
@@ -91,10 +91,16 @@ export function useWebDAV() {
         for (const file of filesToSync) {
           file.data = await encrypt(file.data, passkey);
         }
+        // Upload the double-MD5 hash of the passkey for restore-time verification
+        filesToSync.push({ name: 'passkey-hash.json', data: hashPasskey(passkey) });
       }
 
       // Phase 1: Delete all existing files (ignore errors — files may not exist)
       const headers = authHeaders(config);
+      // Also delete old passkey-hash if it exists (in case we switched from encrypted to plain)
+      if (!passkey) {
+        await fetch(buildUrl(config.url, 'passkey-hash.json'), { method: 'DELETE', headers }).catch(function () {});
+      }
       for (const file of filesToSync) {
         await fetch(buildUrl(config.url, file.name), { method: 'DELETE', headers }).catch(function () {});
       }
@@ -137,7 +143,46 @@ export function useWebDAV() {
     downloading.value = true;
     try {
       const { settings } = useSettings();
-      const passkey = settings.value.encryptionPasskey;
+      let passkey = settings.value.encryptionPasskey;
+
+      // Check if the backup has a passkey hash for verification
+      let requiredHash: string | null = null;
+      let hashRes = await fetch(buildUrl(config.url, 'passkey-hash.json'), {
+        headers: authHeaders(config),
+      });
+      if (hashRes.ok) {
+        requiredHash = (await hashRes.text()).trim();
+      }
+
+      // If backup is encrypted, verify the passkey
+      if (requiredHash) {
+        let attempts = 0;
+        while (true) {
+          const currentPasskey = passkey || '';
+          if (currentPasskey && hashPasskey(currentPasskey) === requiredHash) {
+            break; // Passkey matches — proceed
+          }
+
+          // Prompt user for the correct passkey
+          const input = window.prompt(
+            attempts === 0
+              ? '此备份已加密，请输入加密口令以恢复数据：'
+              : '口令不正确，请重新输入加密口令：',
+            ''
+          );
+          if (input === null) {
+            // User cancelled
+            setStatus('恢复已取消：未提供正确的加密口令', 'error');
+            return false;
+          }
+          passkey = input;
+          attempts++;
+        }
+        // Update the stored passkey so subsequent restores work
+        if (passkey && passkey !== settings.value.encryptionPasskey) {
+          settings.value.encryptionPasskey = passkey;
+        }
+      }
 
       // Helper to decrypt downloaded data if needed
       const tryDecrypt = async (raw: string): Promise<string> => {
