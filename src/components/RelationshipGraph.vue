@@ -214,7 +214,7 @@ function buildGraph() {
         linkDistance: 300,
         manyBodyStrength: -2500,
         edgeStrength: 0.05,
-        gravity: 0.2,
+        gravity: 1,
         iterations: 500,
         animated: true,
       },
