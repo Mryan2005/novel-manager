@@ -42,11 +42,11 @@ const props = withDefaults(defineProps<{
 const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4'];
 const containerRef = ref<HTMLDivElement | null>(null);
 let graph: Graph | null = null;
+const LABEL_ZOOM_THRESHOLD = 0.6;
 
 function buildGraph() {
   if (!containerRef.value || props.nodes.length === 0) return;
 
-  // Wait one frame to ensure container has correct dimensions after display
   requestAnimationFrame(() => {
     if (!containerRef.value || props.nodes.length === 0) return;
 
@@ -58,20 +58,16 @@ function buildGraph() {
     const cw = containerRef.value.clientWidth || 800;
     const ch = containerRef.value.clientHeight || 560;
 
-    const truncate = (text: string, max: number): string =>
-      text.length > max ? text.slice(0, max) + '…' : text;
+    const isLargeGraph = props.nodes.length > 100;
 
     const g6Nodes = props.nodes.map((n, i) => {
       const color = n.color || COLORS[i % COLORS.length]!;
       const hasChildren = n.children && n.children.length > 0;
-      // Short label shown on node, full label in tooltip
-      const shortLabel = truncate(n.label, 5);
-      const nodeSize = Math.max(32, Math.min(52, shortLabel.length * 8 + 12));
+      const nodeSize = hasChildren ? 36 : 28;
       return {
         id: n.id,
         data: {
           label: n.label,
-          shortLabel,
           color,
           hasChildren,
           children: n.children || [],
@@ -79,22 +75,14 @@ function buildGraph() {
         style: {
           fill: color,
           stroke: color,
-          labelText: shortLabel,
+          // Hide labels by default for performance — shown on hover or zoom
+          labelText: isLargeGraph ? '' : n.label.slice(0, 6),
           labelFill: '#fff',
-          labelFontSize: 11,
+          labelFontSize: 10,
           labelFontWeight: 'bold' as const,
           labelPlacement: 'center' as const,
           size: nodeSize,
-          shadowBlur: 8,
-          shadowColor: color,
-          shadowOffsetX: 0,
-          shadowOffsetY: 2,
-          ports: [
-            { key: 'top', placement: 'top' as const },
-            { key: 'bottom', placement: 'bottom' as const },
-            { key: 'left', placement: 'left' as const },
-            { key: 'right', placement: 'right' as const },
-          ],
+          opacity: 0.9,
         },
       };
     });
@@ -105,20 +93,11 @@ function buildGraph() {
       target: e.target,
       data: { label: e.label || '' },
       style: {
-        stroke: '#94a3b8',
-        lineWidth: 2,
+        stroke: '#cbd5e1',
+        lineWidth: 1.5,
         endArrow: true,
-        labelText: e.label || '',
-        labelFill: '#64748b',
-        labelFontSize: 11,
-        labelBackground: true,
-        labelBackgroundFill: '#fff',
-        labelBackgroundOpacity: 0.85,
-        labelBackgroundPadding: [2, 4] as [number, number],
+        opacity: 0.7,
       } as Record<string, unknown>,
-      animation: {
-        dash: { loop: true, lineDash: [4, 4], speed: 2000 },
-      },
     }));
 
     // Build combos from groups
@@ -134,15 +113,15 @@ function buildGraph() {
       id: `combo-${i}`,
       data: { label: group },
       style: {
-        fill: '#f1f5f9',
-        stroke: '#94a3b8',
-        strokeDasharray: [4, 4] as [number, number],
+        fill: '#f8fafc',
+        stroke: '#cbd5e1',
+        opacity: 0.6,
         labelText: group,
-        labelFill: '#64748b',
-        labelFontSize: 12,
+        labelFill: '#94a3b8',
+        labelFontSize: 11,
         labelPlacement: 'top' as const,
-        radius: 12,
-        padding: [20, 20, 20, 20] as [number, number, number, number],
+        radius: 10,
+        padding: [16, 16, 16, 16] as [number, number, number, number],
       },
     }));
 
@@ -160,6 +139,7 @@ function buildGraph() {
       container: containerRef.value,
       width: cw,
       height: ch,
+      renderer: 'webgl' as any,
       data: {
         nodes: g6Nodes as any,
         edges: g6Edges as any,
@@ -168,17 +148,14 @@ function buildGraph() {
       node: {
         type: 'circle',
         state: {
-          active: {
-            halo: true,
-            haloFill: (d: any) => d.data?.color || '#6366f1',
-            haloLineWidth: 3,
-            haloStrokeOpacity: 0.4,
-            haloOpacity: 0.3,
-            shadowBlur: 20,
-            shadowColor: (d: any) => d.style?.shadowColor || '#6366f1',
-            lineWidth: 3,
+          hover: {
             stroke: '#fff',
-            size: (d: any) => (d.data?.hasChildren ? 56 : 48),
+            lineWidth: 3,
+            size: (d: any) => (d.data?.hasChildren ? 44 : 36),
+            labelText: (d: any) => d.data?.label || '',
+            labelFill: '#fff',
+            labelFontSize: 12,
+            labelFontWeight: 'bold' as const,
             zIndex: 999,
           },
         },
@@ -187,18 +164,16 @@ function buildGraph() {
         type: 'line',
         style: { endArrow: true },
         state: {
-          active: {
+          hover: {
             stroke: '#6366f1',
-            lineWidth: 3,
-            halo: true,
-            haloLineWidth: 2,
-            haloStrokeOpacity: 0.3,
+            lineWidth: 2.5,
+            opacity: 1,
           },
         },
       },
       combo: {
         type: 'rect',
-        style: { radius: 12 },
+        style: { radius: 10 },
       },
       behaviors: [
         'drag-canvas',
@@ -210,21 +185,57 @@ function buildGraph() {
       layout: {
         type: 'force',
         preventOverlap: true,
-        nodeSize: 65,
+        nodeSize: 40,
         linkDistance: 150,
         manyBodyStrength: -400,
         edgeStrength: 0.1,
         gravity: 2,
         iterations: 300,
-        animated: true,
+        animated: !isLargeGraph,
       },
-      animation: { duration: 500 },
+      animation: { duration: isLargeGraph ? 0 : 300 },
       autoFit: 'center' as any,
       padding: [60, 60, 60, 60] as [number, number, number, number],
     });
 
     graph.render().then(() => {
       graph?.fitCenter();
+
+      // LOD: show labels when zoomed in, hide when zoomed out
+      if (isLargeGraph) {
+        graph?.on('viewportchange', () => {
+          const zoom = graph?.getZoom() ?? 1;
+          const showLabels = zoom >= LABEL_ZOOM_THRESHOLD;
+          props.nodes.forEach(n => {
+            try {
+              graph?.updateNodeData([{
+                id: n.id,
+                style: {
+                  labelText: showLabels ? n.label.slice(0, 6) : '',
+                },
+              }]);
+            } catch { /* ignore */ }
+          });
+          if (showLabels) graph?.draw();
+        });
+      }
+    });
+
+    // Hover: show full label and highlight edge
+    graph.on('node:pointerenter', (evt: any) => {
+      const nodeId = evt.target?.id;
+      if (!nodeId) return;
+      try {
+        graph?.setElementState({ [nodeId]: 'hover' });
+      } catch { /* ignore */ }
+    });
+
+    graph.on('node:pointerleave', (evt: any) => {
+      const nodeId = evt.target?.id;
+      if (!nodeId) return;
+      try {
+        graph?.setElementState({ [nodeId]: '' });
+      } catch { /* ignore */ }
     });
   });
 }
@@ -235,16 +246,17 @@ function fitGraph() {
 
 function resetLayout() {
   if (!graph) return;
+  const isLargeGraph = props.nodes.length > 100;
   graph.layout({
     type: 'force',
     preventOverlap: true,
-    nodeSize: 65,
+    nodeSize: 40,
     linkDistance: 150,
     manyBodyStrength: -400,
     edgeStrength: 0.1,
     gravity: 2,
     iterations: 300,
-    animated: true,
+    animated: !isLargeGraph,
   } as any).then(() => {
     graph?.fitCenter();
   });
