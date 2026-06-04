@@ -369,34 +369,13 @@
     <Teleport to="body">
       <div v-if="showGraph" class="fixed inset-0 z-50 flex flex-col" style="background: rgba(0,0,0,0.85);" @click.self="showGraph = false">
         <div class="flex items-center justify-between pad-4 bg-[var(--surface)] border-b border-[var(--border)]">
-          <h2 class="text-lg font-semibold text-[var(--text)]">关系图</h2>
-          <div class="flex items-center gap-2">
-            <button class="btn btn-secondary" @click="zoomOut" :disabled="graphScale <= 0.4">缩小</button>
-            <span class="text-sm font-semibold text-[var(--text-light)] w-14 text-center">{{ Math.round(graphScale * 100) }}%</span>
-            <button class="btn btn-secondary" @click="zoomIn" :disabled="graphScale >= 2">放大</button>
-            <button class="btn btn-primary" @click="resetViewport">重置视图</button>
-            <button class="btn btn-secondary" @click="showGraph = false">
-              <X class="w-4 h-4" />
-            </button>
-          </div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">章节关系图</h2>
+          <button class="btn btn-secondary" @click="showGraph = false">
+            <X class="w-4 h-4" />
+          </button>
         </div>
-        <div
-          class="flex-1 m-4 overflow-hidden bg-[var(--surface-alt)] border border-dashed border-[var(--border)]"
-          :class="graphPanning ? 'is-panning' : ''"
-          style="cursor: grab;"
-          @pointerdown="onGraphPointerDown"
-          @pointermove="onGraphPointerMove"
-          @pointerup="onGraphPointerUp"
-          @pointerleave="onGraphPointerUp"
-          @wheel.prevent="onGraphWheel"
-          @selectstart.prevent
-        >
-          <div class="mermaid-canvas" :style="graphCanvasStyle" style="min-height: calc(100vh - 8rem);">
-            <div v-if="chapters.length === 0" class="empty-state" style="min-height: calc(100vh - 8rem);">
-              还没有章节，先创建章节再绘制关系图。
-            </div>
-            <div v-else ref="graphRef" class="mermaid-render"></div>
-          </div>
+        <div class="flex-1 m-4 overflow-hidden rounded-xl">
+          <RelationshipGraph title="章节关系图" :nodes="chapterGraphNodes" :edges="chapterGraphEdges" />
         </div>
       </div>
     </Teleport>
@@ -407,8 +386,8 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { FileText, Plus, Edit, ChevronUp, ChevronDown, ChevronRight, Trash2, FolderOpen, FolderPlus, Search, Copy, Share2, X, List, ChevronsUp, ChevronsDown } from 'lucide-vue-next';
-import mermaid from 'mermaid';
 import Layout from '../components/Layout.vue';
+import RelationshipGraph from '../components/RelationshipGraph.vue';
 import { useStore } from '../store';
 import type { Chapter, Volume } from '../types';
 
@@ -828,94 +807,24 @@ const changeChapterVolumeInReorder = (chapter: Chapter, newVolumeId: string) => 
 
 // === 关系图 ===
 const showGraph = ref(false);
-const graphRef = ref<HTMLDivElement | null>(null);
-const graphScale = ref(1);
-const graphPanning = ref(false);
-const graphPanStart = ref({ x: 0, y: 0 });
-const graphPanOffset = ref({ x: 0, y: 0 });
-const graphError = ref('');
-const mermaidInit = ref(false);
-const mermaidIdx = ref(0);
 
-const graphOffset = ref({ x: 0, y: 0 });
-const graphCanvasStyle = computed(() => ({
-  transform: `translate(${graphOffset.value.x}px, ${graphOffset.value.y}px) scale(${graphScale.value})`,
-}));
+const chapterGraphNodes = computed(() =>
+  chapters.value.map(c => ({
+    id: c.id,
+    label: c.title || '未命名章节',
+  }))
+);
 
-const sanitizeId = (v: string) => v.replace(/[^a-zA-Z0-9_]/g, '_');
-const escLabel = (v: string) => v.replace(/[\[\]<>]/g, '').replace(/[(){}]/g, '').replace(/["']/g, '').replace(/\|/g, '/').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-const gNodeId = (id: string) => `ch_${sanitizeId(id)}`;
-const gSeriesId = (id: string) => `series_${sanitizeId(id)}`;
-
-const graphCode = computed(() => {
-  const nodes = chapters.value.map(ch => `  ${gNodeId(ch.id)}["${escLabel(ch.title || '未命名章节')}"]`);
-  const assigned = new Set<string>();
-  const blocks = chapterSeries.value.map(series => {
-    const ids = series.chapterIds.filter(id => chapters.value.some(c => c.id === id) && !assigned.has(id));
-    ids.forEach(id => assigned.add(id));
-    if (ids.length === 0) return '';
-    const sid = gSeriesId(series.id);
-    return [
-      `  subgraph ${sid}["${escLabel(series.title || '未命名系列')}"]`,
-      '    direction LR',
-      ...ids.map(id => `    ${gNodeId(id)}`),
-      '  end',
-      `  style ${sid} fill:#10b98114,stroke:#10b9814d,stroke-width:1px,rx:12,ry:12`,
-    ].join('\n');
-  }).filter(Boolean);
-  const rels = chapterRelations.value
+const chapterGraphEdges = computed(() =>
+  chapterRelations.value
     .filter(r => chapters.value.some(c => c.id === r.fromChapterId) && chapters.value.some(c => c.id === r.toChapterId))
-    .map(r => {
-      const lbl = r.label ? `|${escLabel(r.label)}|` : '';
-      return `  ${gNodeId(r.fromChapterId)} ---${lbl} ${gNodeId(r.toChapterId)}`;
-    });
-  return ['flowchart LR', ...nodes, ...blocks, ...rels].join('\n');
-});
-
-const renderGraph = async () => {
-  const el = graphRef.value;
-  if (!el || chapters.value.length === 0) return;
-  try {
-    graphError.value = '';
-    const id = `mg-${mermaidIdx.value++}`;
-    const { svg } = await mermaid.render(id, graphCode.value);
-    el.innerHTML = svg;
-  } catch (e) {
-    graphError.value = '渲染失败';
-    console.error(e);
-  }
-};
-
-watch(graphCode, async () => { await nextTick(); renderGraph(); });
-watch(showGraph, async (v) => {
-  if (v) {
-    if (!mermaidInit.value) { mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' }); mermaidInit.value = true; }
-    await nextTick(); renderGraph();
-  }
-});
-
-const zoomIn = () => { graphScale.value = Math.min(2, graphScale.value + 0.1); };
-const zoomOut = () => { graphScale.value = Math.max(0.4, graphScale.value - 0.1); };
-const resetViewport = () => { graphScale.value = 1; graphOffset.value = { x: 0, y: 0 }; };
-const onGraphWheel = (e: WheelEvent) => {
-  graphScale.value = Math.min(2, Math.max(0.4, graphScale.value + (e.deltaY > 0 ? -0.1 : 0.1)));
-};
-const onGraphPointerDown = (e: PointerEvent) => {
-  if (e.button !== 0) return;
-  graphPanning.value = true;
-  graphPanStart.value = { x: e.clientX, y: e.clientY };
-  graphPanOffset.value = { x: graphOffset.value.x, y: graphOffset.value.y };
-  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-};
-const onGraphPointerMove = (e: PointerEvent) => {
-  if (!graphPanning.value) return;
-  graphOffset.value = { x: graphPanOffset.value.x + e.clientX - graphPanStart.value.x, y: graphPanOffset.value.y + e.clientY - graphPanStart.value.y };
-};
-const onGraphPointerUp = (e: PointerEvent) => {
-  if (!graphPanning.value) return;
-  graphPanning.value = false;
-  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-};
+    .map(r => ({
+      id: r.id,
+      source: r.fromChapterId,
+      target: r.toChapterId,
+      label: r.label || undefined,
+    }))
+);
 </script>
 
 <style scoped>

@@ -12,6 +12,7 @@
     "ts-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@antv/g6": "^5.1.1",
     "@google/genai": "^2.4.0",
     "lucide-vue-next": "^1.0.0",
     "marked": "^18.0.4",

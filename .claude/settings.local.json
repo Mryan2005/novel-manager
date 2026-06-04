@@ -28,7 +28,11 @@
       "Read(//c/Users/A2564/AppData/Local/pnpm/**)",
       "Read(//c/Program Files/nodejs/node_modules/pnpm/bin/**)",
       "Bash(npm list *)",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(node -e \"try { require\\('cytoscape'\\); console.log\\('yes'\\); } catch\\(e\\) { console.log\\('no'\\); }\")",
+      "Bash(node -e \"const v = require\\('vis-network'\\); console.log\\(Object.keys\\(v\\).slice\\(0,20\\)\\)\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"const g = require\\('@antv/g6'\\); console.log\\('G6 loaded, keys:', Object.keys\\(g\\).slice\\(0,10\\).join\\(', '\\)\\)\")"
     ]
   }
 }
