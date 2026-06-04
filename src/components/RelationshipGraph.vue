@@ -196,9 +196,9 @@ function buildGraph() {
     layout: {
       type: 'force',
       preventOverlap: true,
-      linkDistance: 150,
-      nodeStrength: -100,
-      edgeStrength: 0.2,
+      linkDistance: 250,
+      nodeStrength: -300,
+      edgeStrength: 0.1,
       animated: true,
     },
     animation: { duration: 500 },
@@ -220,9 +220,9 @@ function resetLayout() {
   graph.layout({
     type: 'force',
     preventOverlap: true,
-    linkDistance: 150,
-    nodeStrength: -100,
-    edgeStrength: 0.2,
+    linkDistance: 250,
+    nodeStrength: -300,
+    edgeStrength: 0.1,
     animated: true,
   } as any).then(() => {
     graph?.fitView();
