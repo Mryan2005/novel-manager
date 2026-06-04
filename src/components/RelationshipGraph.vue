@@ -68,14 +68,19 @@ function buildGraph() {
         labelText: n.label,
         labelFill: '#fff',
         labelFontSize: 13,
-        labelFontWeight: 'bold',
-        labelPlacement: 'center',
+        labelFontWeight: 'bold' as const,
+        labelPlacement: 'center' as const,
         size: hasChildren ? 48 : 40,
         shadowBlur: 8,
         shadowColor: color,
         shadowOffsetX: 0,
         shadowOffsetY: 2,
-        ports: [{ key: 'top' }, { key: 'bottom' }, { key: 'left' }, { key: 'right' }],
+        ports: [
+          { key: 'top', placement: 'top' as const },
+          { key: 'bottom', placement: 'bottom' as const },
+          { key: 'left', placement: 'left' as const },
+          { key: 'right', placement: 'right' as const },
+        ],
       },
     };
   });
@@ -95,8 +100,8 @@ function buildGraph() {
       labelBackground: true,
       labelBackgroundFill: '#fff',
       labelBackgroundOpacity: 0.85,
-      labelBackgroundPadding: [2, 4],
-    },
+      labelBackgroundPadding: [2, 4] as [number, number],
+    } as Record<string, unknown>,
     animation: {
       dash: { loop: true, lineDash: [4, 4], speed: 2000 },
     },
@@ -111,19 +116,19 @@ function buildGraph() {
     }
   });
 
-  const g6Combos = [...comboMap.entries()].map(([group, nodeIds], i) => ({
+  const g6Combos = [...comboMap.entries()].map(([group], i) => ({
     id: `combo-${i}`,
     data: { label: group },
     style: {
       fill: '#f1f5f9',
       stroke: '#94a3b8',
-      strokeDasharray: [4, 4],
+      strokeDasharray: [4, 4] as [number, number],
       labelText: group,
       labelFill: '#64748b',
       labelFontSize: 12,
-      labelPlacement: 'top',
+      labelPlacement: 'top' as const,
       radius: 12,
-      padding: [20, 20, 20, 20],
+      padding: [20, 20, 20, 20] as [number, number, number, number],
     },
   }));
 
@@ -132,7 +137,7 @@ function buildGraph() {
       if (n.group) {
         const comboIdx = [...comboMap.keys()].indexOf(n.group);
         const node = g6Nodes.find(gn => gn.id === n.id);
-        if (node) (node as any).combo = `combo-${comboIdx}`;
+        if (node) (node as Record<string, unknown>).combo = `combo-${comboIdx}`;
       }
     });
   }
@@ -142,9 +147,9 @@ function buildGraph() {
     width: containerRef.value.clientWidth,
     height: containerRef.value.clientHeight,
     data: {
-      nodes: g6Nodes,
-      edges: g6Edges,
-      combos: g6Combos,
+      nodes: g6Nodes as any,
+      edges: g6Edges as any,
+      combos: g6Combos as any,
     },
     node: {
       type: 'circle',
@@ -166,9 +171,7 @@ function buildGraph() {
     },
     edge: {
       type: 'line',
-      style: {
-        endArrow: true,
-      },
+      style: { endArrow: true },
       state: {
         active: {
           stroke: '#6366f1',
@@ -181,20 +184,14 @@ function buildGraph() {
     },
     combo: {
       type: 'rect',
-      style: {
-        radius: 12,
-      },
+      style: { radius: 12 },
     },
     behaviors: [
       'drag-canvas',
       'drag-element',
       'zoom-canvas',
       'collapse-expand',
-      {
-        type: 'hover-activate',
-        degree: 1,
-        direction: 'both',
-      },
+      { type: 'hover-activate', degree: 1, direction: 'both' as const },
     ],
     layout: {
       type: 'force',
@@ -204,20 +201,18 @@ function buildGraph() {
       edgeStrength: 0.2,
       animated: true,
     },
-    animation: {
-      duration: 500,
-    },
+    animation: { duration: 500 },
     autoFit: 'view',
-    padding: [40, 40, 40, 40],
+    padding: [40, 40, 40, 40] as [number, number, number, number],
   });
 
   graph.render().then(() => {
-    graph?.fitView({ animation: { duration: 500 } });
+    graph?.fitView();
   });
 }
 
 function fitGraph() {
-  graph?.fitView({ animation: { duration: 400 } });
+  graph?.fitView();
 }
 
 function resetLayout() {
@@ -229,8 +224,8 @@ function resetLayout() {
     nodeStrength: -100,
     edgeStrength: 0.2,
     animated: true,
-  }).then(() => {
-    graph?.fitView({ animation: { duration: 500 } });
+  } as any).then(() => {
+    graph?.fitView();
   });
 }
 
