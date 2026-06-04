@@ -210,31 +210,29 @@ function buildGraph() {
       layout: {
         type: 'force',
         preventOverlap: true,
-        nodeSize: 45,
-        linkDistance: 220,
-        nodeStrength: -800,
-        edgeStrength: 0.08,
-        gravity: 8,
-        coulombDisScale: 0.3,
-        iterations: 300,
+        nodeSize: 80,
+        linkDistance: 300,
+        manyBodyStrength: -2500,
+        edgeStrength: 0.05,
+        gravity: 0.2,
+        iterations: 500,
         animated: true,
       },
       animation: { duration: 500 },
       autoFit: 'center' as any,
-      padding: [60, 60, 60, 60] as [number, number, number, number],
+      padding: [80, 80, 80, 80] as [number, number, number, number],
     });
 
     graph.render().then(() => {
       graph?.layout({
         type: 'force',
         preventOverlap: true,
-        nodeSize: 45,
-        linkDistance: 220,
-        nodeStrength: -800,
-        edgeStrength: 0.08,
-        gravity: 8,
-        coulombDisScale: 0.3,
-        iterations: 300,
+        nodeSize: 80,
+        linkDistance: 300,
+        manyBodyStrength: -2500,
+        edgeStrength: 0.05,
+        gravity: 0.2,
+        iterations: 500,
       } as any).then(() => {
         graph?.fitCenter();
       });
@@ -251,13 +249,12 @@ function resetLayout() {
   graph.layout({
     type: 'force',
     preventOverlap: true,
-    nodeSize: 45,
-    linkDistance: 220,
-    nodeStrength: -800,
-    edgeStrength: 0.08,
-    gravity: 8,
-    coulombDisScale: 0.3,
-    iterations: 300,
+    nodeSize: 80,
+    linkDistance: 300,
+    manyBodyStrength: -2500,
+    edgeStrength: 0.05,
+    gravity: 0.2,
+    iterations: 500,
     animated: true,
   } as any).then(() => {
     graph?.fitCenter();
