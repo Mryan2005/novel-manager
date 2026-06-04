@@ -58,13 +58,20 @@ function buildGraph() {
     const cw = containerRef.value.clientWidth || 800;
     const ch = containerRef.value.clientHeight || 560;
 
+    const truncate = (text: string, max: number): string =>
+      text.length > max ? text.slice(0, max) + '…' : text;
+
     const g6Nodes = props.nodes.map((n, i) => {
       const color = n.color || COLORS[i % COLORS.length]!;
       const hasChildren = n.children && n.children.length > 0;
+      // Short label shown on node, full label in tooltip
+      const shortLabel = truncate(n.label, 5);
+      const nodeSize = Math.max(32, Math.min(52, shortLabel.length * 8 + 12));
       return {
         id: n.id,
         data: {
           label: n.label,
+          shortLabel,
           color,
           hasChildren,
           children: n.children || [],
@@ -72,12 +79,12 @@ function buildGraph() {
         style: {
           fill: color,
           stroke: color,
-          labelText: n.label,
+          labelText: shortLabel,
           labelFill: '#fff',
-          labelFontSize: 13,
+          labelFontSize: 11,
           labelFontWeight: 'bold' as const,
           labelPlacement: 'center' as const,
-          size: hasChildren ? 48 : 40,
+          size: nodeSize,
           shadowBlur: 8,
           shadowColor: color,
           shadowOffsetX: 0,
@@ -203,12 +210,12 @@ function buildGraph() {
       layout: {
         type: 'force',
         preventOverlap: true,
-        nodeSize: 50,
-        linkDistance: 250,
-        nodeStrength: -1000,
-        edgeStrength: 0.05,
-        gravity: 10,
-        coulombDisScale: 0.2,
+        nodeSize: 45,
+        linkDistance: 220,
+        nodeStrength: -800,
+        edgeStrength: 0.08,
+        gravity: 8,
+        coulombDisScale: 0.3,
         iterations: 300,
         animated: true,
       },
@@ -218,16 +225,15 @@ function buildGraph() {
     });
 
     graph.render().then(() => {
-      // Explicitly run layout after render to ensure nodes spread
       graph?.layout({
         type: 'force',
         preventOverlap: true,
-        nodeSize: 50,
-        linkDistance: 250,
-        nodeStrength: -1000,
-        edgeStrength: 0.05,
-        gravity: 10,
-        coulombDisScale: 0.2,
+        nodeSize: 45,
+        linkDistance: 220,
+        nodeStrength: -800,
+        edgeStrength: 0.08,
+        gravity: 8,
+        coulombDisScale: 0.3,
         iterations: 300,
       } as any).then(() => {
         graph?.fitCenter();
@@ -245,13 +251,14 @@ function resetLayout() {
   graph.layout({
     type: 'force',
     preventOverlap: true,
-    nodeSize: 50,
-    linkDistance: 250,
-    nodeStrength: -1000,
-    edgeStrength: 0.05,
-    gravity: 10,
-    coulombDisScale: 0.2,
+    nodeSize: 45,
+    linkDistance: 220,
+    nodeStrength: -800,
+    edgeStrength: 0.08,
+    gravity: 8,
+    coulombDisScale: 0.3,
     iterations: 300,
+    animated: true,
   } as any).then(() => {
     graph?.fitCenter();
   });
