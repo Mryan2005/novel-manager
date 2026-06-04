@@ -210,32 +210,21 @@ function buildGraph() {
       layout: {
         type: 'force',
         preventOverlap: true,
-        nodeSize: 80,
-        linkDistance: 250,
-        manyBodyStrength: -500,
-        edgeStrength: 0.05,
-        gravity: 3,
-        iterations: 500,
+        nodeSize: 65,
+        linkDistance: 150,
+        manyBodyStrength: -400,
+        edgeStrength: 0.1,
+        gravity: 2,
+        iterations: 300,
         animated: true,
       },
       animation: { duration: 500 },
       autoFit: 'center' as any,
-      padding: [80, 80, 80, 80] as [number, number, number, number],
+      padding: [60, 60, 60, 60] as [number, number, number, number],
     });
 
     graph.render().then(() => {
-      graph?.layout({
-        type: 'force',
-        preventOverlap: true,
-        nodeSize: 80,
-        linkDistance: 300,
-        manyBodyStrength: -2500,
-        edgeStrength: 0.05,
-        gravity: 0.2,
-        iterations: 500,
-      } as any).then(() => {
-        graph?.fitCenter();
-      });
+      graph?.fitCenter();
     });
   });
 }
@@ -249,12 +238,12 @@ function resetLayout() {
   graph.layout({
     type: 'force',
     preventOverlap: true,
-    nodeSize: 80,
-    linkDistance: 300,
-    manyBodyStrength: -2500,
-    edgeStrength: 0.05,
-    gravity: 0.2,
-    iterations: 500,
+    nodeSize: 65,
+    linkDistance: 150,
+    manyBodyStrength: -400,
+    edgeStrength: 0.1,
+    gravity: 2,
+    iterations: 300,
     animated: true,
   } as any).then(() => {
     graph?.fitCenter();
