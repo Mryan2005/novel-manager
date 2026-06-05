@@ -6,7 +6,7 @@
           <h1 class="text-3xl font-bold text-[var(--text)]">整理情节</h1>
           <p class="text-[var(--text-light)] mt-1 text-lg">按过程、章节、梗概与关联章节整理情节</p>
         </div>
-        <button class="btn btn-primary" @click="downloadPlotOutlineExcel">
+        <button class="btn btn-primary" @click="downloadPlotOutlineExcel()">
           导出 Excel
         </button>
       </div>

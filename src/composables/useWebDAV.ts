@@ -9,6 +9,30 @@ export interface WebDAVConfig {
   password: string;
 }
 
+// ---- Trusted Hosts ----
+interface TrustedHost {
+  url: string;
+  passkeyHash: string;
+}
+
+function getTrustedHosts(): TrustedHost[] {
+  try {
+    const raw = localStorage.getItem('novel-workshop-trusted-hosts');
+    if (!raw) return [];
+    return JSON.parse(raw) as TrustedHost[];
+  } catch { return []; }
+}
+
+function saveTrustedHost(url: string, passkeyHash: string) {
+  const hosts = getTrustedHosts().filter(h => h.url !== url);
+  hosts.push({ url, passkeyHash });
+  localStorage.setItem('novel-workshop-trusted-hosts', JSON.stringify(hosts));
+}
+
+function isHostTrusted(url: string, passkeyHash: string): boolean {
+  return getTrustedHosts().some(h => h.url === url && h.passkeyHash === passkeyHash);
+}
+
 const NOVEL_KEYS = [
   'novel-workshop-data',
   'novel-workshop-ai-chats',
@@ -47,7 +71,10 @@ export function useWebDAV() {
   }
 
   /** Upload all novels + settings to WebDAV */
-  async function uploadAll(config: WebDAVConfig): Promise<boolean> {
+  async function uploadAll(
+    config: WebDAVConfig,
+    opts?: { verifyPasskey?: (attempt: number) => Promise<{ passkey: string; trust: boolean } | null> },
+  ): Promise<boolean> {
     if (!config.url) {
       setStatus('请先配置 WebDAV 地址', 'error');
       return false;
@@ -58,6 +85,54 @@ export function useWebDAV() {
       const { novels } = useNovelManager();
       const { settings } = useSettings();
       const passkey = settings.value.encryptionPasskey;
+
+      // Check if remote already has an encrypted backup
+      let remoteHash: string | null = null;
+      const hashRes = await fetch(buildUrl(config.url, 'passkey-hash.json'), { headers: authHeaders(config) }).catch(() => null);
+      if (hashRes && 'ok' in hashRes && hashRes.ok) {
+        remoteHash = (await (hashRes as Response).text()).trim();
+      }
+
+      // If remote has encrypted backup, verify passkey before overwriting
+      if (remoteHash) {
+        const alreadyTrusted = isHostTrusted(config.url, remoteHash);
+        let currentPasskey = passkey;
+
+        if (!alreadyTrusted || !currentPasskey || hashPasskey(currentPasskey) !== remoteHash) {
+          let attempts = 0;
+          let verified = false;
+          while (!verified) {
+            let result: { passkey: string; trust: boolean } | null;
+            if (opts?.verifyPasskey) {
+              result = await opts.verifyPasskey(attempts);
+            } else {
+              const input = window.prompt(
+                attempts === 0
+                  ? '远程已有加密备份，请输入加密口令以确认覆盖：'
+                  : '口令不正确，请重新输入：',
+                ''
+              );
+              result = input !== null ? { passkey: input, trust: false } : null;
+            }
+            if (result === null) {
+              setStatus('上传已取消：未提供正确的加密口令', 'error');
+              return false;
+            }
+            if (hashPasskey(result.passkey) === remoteHash) {
+              verified = true;
+              currentPasskey = result.passkey;
+              if (result.passkey !== settings.value.encryptionPasskey) {
+                settings.value.encryptionPasskey = result.passkey;
+              }
+              if (result.trust) {
+                saveTrustedHost(config.url, remoteHash);
+              }
+            } else {
+              attempts++;
+            }
+          }
+        }
+      }
 
       // Build list of all files to sync
       const filesToSync: { name: string; data: string }[] = [];

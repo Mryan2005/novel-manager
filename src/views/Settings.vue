@@ -353,8 +353,8 @@
       <!-- Passkey verification modal for WebDAV restore -->
       <div v-if="showPasskeyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="cancelPasskey">
         <div class="card p-6 max-w-sm w-full mx-4 space-y-4">
-          <h3 class="text-lg font-semibold text-[var(--text)]">加密备份验证</h3>
-          <p class="text-sm text-[var(--text-light)]">{{ passkeyError || '此备份已加密，请输入加密口令：' }}</p>
+          <h3 class="text-lg font-semibold text-[var(--text)]">加密口令验证</h3>
+          <p class="text-sm text-[var(--text-light)]">{{ passkeyError || '此操作需要验证加密口令：' }}</p>
           <input
             ref="passkeyInputRef"
             v-model="passkeyInput"
@@ -363,6 +363,10 @@
             placeholder="输入加密口令"
             @keyup.enter="confirmPasskey"
           />
+          <label v-if="showTrustCheckbox" class="flex items-center gap-2 text-sm text-[var(--text-light)] cursor-pointer">
+            <input v-model="trustHost" type="checkbox" class="w-4 h-4 rounded" />
+            信任此主机，下次无需验证
+          </label>
           <div class="flex gap-3 justify-end">
             <button @click="cancelPasskey" class="btn btn-secondary text-sm">取消</button>
             <button @click="confirmPasskey" class="btn btn-primary text-sm">确认</button>
@@ -430,13 +434,17 @@ const showPasskeyModal = ref(false);
 const passkeyInput = ref('');
 const passkeyError = ref('');
 const passkeyInputRef = ref<HTMLInputElement | null>(null);
-let passkeyResolver: ((value: string | null) => void) | null = null;
+let passkeyResolver: ((value: { passkey: string; trust: boolean } | null) => void) | null = null;
+const showTrustCheckbox = ref(false);
+const trustHost = ref(false);
 
-function requestPasskey(attempt: number): Promise<string | null> {
+function requestPasskey(attempt: number): Promise<{ passkey: string; trust: boolean } | null> {
   return new Promise((resolve) => {
     passkeyResolver = resolve;
     passkeyInput.value = '';
     passkeyError.value = attempt > 0 ? '口令不正确，请重新输入：' : '';
+    showTrustCheckbox.value = attempt === 0;
+    trustHost.value = false;
     showPasskeyModal.value = true;
     setTimeout(() => passkeyInputRef.value?.focus(), 100);
   });
@@ -444,15 +452,20 @@ function requestPasskey(attempt: number): Promise<string | null> {
 
 function confirmPasskey() {
   const value = passkeyInput.value;
+  const trust = trustHost.value;
   showPasskeyModal.value = false;
+  showTrustCheckbox.value = false;
+  trustHost.value = false;
   if (passkeyResolver) {
-    passkeyResolver(value);
+    passkeyResolver({ passkey: value, trust });
     passkeyResolver = null;
   }
 }
 
 function cancelPasskey() {
   showPasskeyModal.value = false;
+  showTrustCheckbox.value = false;
+  trustHost.value = false;
   if (passkeyResolver) {
     passkeyResolver(null);
     passkeyResolver = null;
@@ -486,11 +499,14 @@ function adjustDisplayScale(delta: number) {
 }
 
 async function handleWebDAVUpload() {
-  await wdav.uploadAll({
-    url: settings.value.webdavUrl,
-    username: settings.value.webdavUsername,
-    password: settings.value.webdavPassword,
-  });
+  await wdav.uploadAll(
+    {
+      url: settings.value.webdavUrl,
+      username: settings.value.webdavUsername,
+      password: settings.value.webdavPassword,
+    },
+    { verifyPasskey: requestPasskey },
+  );
 }
 
 async function handleWebDAVDownload() {
