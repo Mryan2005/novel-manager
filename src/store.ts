@@ -738,13 +738,13 @@ export const useStore = () => {
     return content;
   }
 
-  function downloadTxt() {
+  function downloadTxt(novelTitle?: string) {
     const content = exportToTxt();
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${state.novel.title || '小说'}.txt`;
+    link.download = `${novelTitle || state.novel.title || '小说'}.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -901,18 +901,18 @@ ${pageMarkup}
 </html>`;
   }
 
-  function downloadWord() {
+  function downloadWord(novelTitle?: string) {
     const content = exportToWord();
     const blob = new Blob([content], { type: 'application/msword;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${state.novel.title || '小说'}.doc`;
+    link.download = `${novelTitle || state.novel.title || '小说'}.doc`;
     link.click();
     URL.revokeObjectURL(url);
   }
 
-  function downloadPlotOutlineExcel() {
+  function downloadPlotOutlineExcel(novelTitle?: string) {
     const sortedVolumes = [...state.novel.volumes].sort((a, b) => a.order - b.order);
     const relationMap = buildChapterRelationTitleMap(state.novel);
 
@@ -1008,7 +1008,7 @@ ${pageMarkup}
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${state.novel.title || '小说'}-情节整理表.xls`;
+    link.download = `${novelTitle || state.novel.title || '小说'}-情节整理表.xls`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1017,13 +1017,13 @@ ${pageMarkup}
     return JSON.stringify(state.novel, null, 2);
   }
 
-  function downloadJson() {
+  function downloadJson(novelTitle?: string) {
     const content = exportToJson();
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${state.novel.title || '小说'}.json`;
+    link.download = `${novelTitle || state.novel.title || '小说'}.json`;
     link.click();
     URL.revokeObjectURL(url);
   }

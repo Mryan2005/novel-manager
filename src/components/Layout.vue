@@ -14,7 +14,21 @@
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-alt)] transition-colors text-sm text-[var(--text)] min-w-[140px]"
           >
             <BookOpen class="w-3.5 h-3.5 text-[var(--primary)]" />
-            <span class="truncate max-w-[120px]">{{ activeNovel?.title || '我的小说' }}</span>
+            <input
+              v-if="editingNovelTitle"
+              v-model="editNovelTitleInput"
+              class="text-sm font-medium bg-transparent border-b border-[var(--primary)] outline-none w-full max-w-[130px]"
+              @keyup.enter="commitRename"
+              @keyup.escape="editingNovelTitle = false"
+              @blur="commitRename"
+              @click.stop
+            />
+            <span
+              v-else
+              class="truncate max-w-[120px] cursor-pointer hover:text-[var(--primary)]"
+              @click.stop="startRename"
+              title="点击编辑书名"
+            >{{ activeNovel?.title || '我的小说' }}</span>
             <ChevronDown class="w-3 h-3 text-[var(--text-muted)]" :class="{ 'rotate-180': showNovelDropdown }" />
           </button>
 
@@ -294,9 +308,11 @@ const showImportDialog = ref(false);
 const showNovelDropdown = ref(false);
 const showCreateNovel = ref(false);
 const newNovelTitle = ref('');
+const editingNovelTitle = ref(false);
+const editNovelTitleInput = ref('');
 const novelDropdownRef = ref<HTMLElement | null>(null);
 
-const { novels, activeNovelId, activeNovel, createNovel, switchNovel, deleteNovel } = useNovelManager();
+const { novels, activeNovelId, activeNovel, createNovel, switchNovel, deleteNovel, renameNovel } = useNovelManager();
 const importSections = ref<{ key: string; label: string; summary: string; checked: boolean }[]>([]);
 const pendingImportData = ref<ExportBundle | null>(null);
 
@@ -369,17 +385,17 @@ const handleExport = (selected: string[]) => {
 };
 
 const exportTxt = () => {
-  downloadTxt();
+  downloadTxt(activeNovel.value?.title);
   showDropdown.value = false;
 };
 
 const exportWord = () => {
-  downloadWord();
+  downloadWord(activeNovel.value?.title);
   showDropdown.value = false;
 };
 
 const exportPlotExcel = () => {
-  downloadPlotOutlineExcel();
+  downloadPlotOutlineExcel(activeNovel.value?.title);
   showDropdown.value = false;
 };
 
@@ -522,6 +538,21 @@ const handleImport = (selected: string[]) => {
 };
 
 // === Novel management ===
+function startRename() {
+  if (!activeNovel.value) return;
+  showNovelDropdown.value = false;
+  editNovelTitleInput.value = activeNovel.value.title;
+  editingNovelTitle.value = true;
+}
+
+function commitRename() {
+  editingNovelTitle.value = false;
+  const newTitle = editNovelTitleInput.value.trim();
+  if (newTitle && activeNovelId.value && newTitle !== activeNovel.value?.title) {
+    renameNovel(activeNovelId.value, newTitle);
+  }
+}
+
 function handleSwitchNovel(id: string) {
   switchNovel(id);
 }
